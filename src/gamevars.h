@@ -350,6 +350,8 @@ namespace ZZT {
         uint8_t tickSpeed;
 
         const ElementDef *elementDefs;
+        uint8_t elementCharOverrides[ElementCount];
+
         int16_t editorPatternCount;
         uint8_t editorPatterns[10];
 
@@ -391,7 +393,7 @@ namespace ZZT {
             return elementDefs[element >= ElementCount ? EEmpty : element];
         }
 
-        Game(): highScoreList(this) { }
+        Game(void);
 
         // elements.cpp
         void DrawPlayerSurroundings(int16_t x, int16_t y, int16_t bomb_phase);

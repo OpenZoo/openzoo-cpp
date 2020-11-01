@@ -1179,14 +1179,14 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
     Stat &stat = game.board.stats[stat_id];
 
     if (game.world.info.energizer_ticks > 0) {
-        // TODO [ZZT]: character energizer flicker
+        game.elementCharOverrides[EPlayer] = game.elementCharOverrides[EPlayer] == 0 ? 1 : 0;
 
         game.board.tiles.set_color(stat.x, stat.y,
             (game.currentTick & 2) != 0 ? 0x0F : ((((game.currentTick % 7) + 1) << 4) | 0x0F));
         game.BoardDrawTile(stat.x, stat.y);
-    } else if (game.board.tiles.get(stat.x, stat.y).color != 0x1F || game.elementDefs[EPlayer].character != 2) {
+    } else if (game.board.tiles.get(stat.x, stat.y).color != 0x1F || game.elementCharOverrides[EPlayer] != 0) {
         game.board.tiles.set_color(stat.x, stat.y, 0x1F);
-        // TODO [ZZT]: restore player char
+        game.elementCharOverrides[EPlayer] = 0;
         game.BoardDrawTile(stat.x, stat.y);
     }
 
@@ -1387,11 +1387,14 @@ void Game::ResetMessageNotShownFlags(void) {
 
 void Game::InitElementDefs(void) {
     this->elementDefs = defaultElementDefs;
+    memset(elementCharOverrides, 0, sizeof(elementCharOverrides));
 }
 
 void Game::InitElementsEditor(void) {
     InitElementDefs();
-    // TODO [ZZT]: Invisible
+
+    elementCharOverrides[EBoardEdge] = 'E';
+    elementCharOverrides[EInvisible] = 176;
     forceDarknessOff = true;   
 }
 

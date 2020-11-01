@@ -28,6 +28,10 @@ const uint8_t ZZT::LineChars[16] = {
     249, 208, 210, 186, 181, 188, 187, 185, 198, 200, 201, 204, 205, 202, 203, 206
 };
 
+Game::Game(void): highScoreList(this) {
+    
+}
+
 void Game::SidebarClearLine(int16_t y) {
     video->draw_string(60, y, 0x11, "                    ");
 }
@@ -328,7 +332,9 @@ void Game::BoardDrawTile(int16_t x, int16_t y) {
             elementDefs[tile.element].draw(*this, x, y, ch);
             video->draw_char(x - 1, y - 1, tile.color, ch);
         } else if (tile.element < ETextBlue) {
-            video->draw_char(x - 1, y - 1, tile.color, elementDefs[tile.element].character);
+            uint8_t ch = elementCharOverrides[tile.element];
+            if (ch == 0) ch = elementDefs[tile.element].character;
+            video->draw_char(x - 1, y - 1, tile.color, ch);
         } else {
             if (tile.element == ETextWhite) {
                 video->draw_char(x - 1, y - 1, 0x0F, tile.color);
@@ -588,7 +594,20 @@ void Game::PauseOnError(void) {
 void Game::DisplayIOError(IOStream &stream) {
     if (!stream.errored()) return;
 
-    // TODO [ZZT]
+    TextWindow window = TextWindow(video, input, sound);
+    StrCopy(window.title, "Error");
+    window.Append("$I/O Error: ");
+    window.Append("");
+    window.Append("This may be caused by missing");
+    window.Append("ZZT files or a bad disk.  If");
+    window.Append("you are trying to save a game,");
+    window.Append("your disk may be full -- try");
+    window.Append("using a blank, formatted disk");
+    window.Append("for saving the game!");
+
+    window.DrawOpen();
+    window.Select(false, false);
+    window.DrawClose();
 }
 
 void Game::WorldUnload(void) {

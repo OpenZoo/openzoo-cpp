@@ -183,7 +183,10 @@ void Editor::CopyPattern(int16_t x, int16_t y, EditorCopiedTile &copied) {
     if (def.has_draw_proc) {
         def.draw(*game, x, y, copied.preview_char);
     } else if (tile.element < ETextBlue) {
-        copied.preview_char = def.character;
+        uint8_t elem_ch = game->elementCharOverrides[tile.element];
+        if (elem_ch == 0) elem_ch = def.character;
+
+        copied.preview_char = elem_ch;
     } else {
         copied.preview_char = def.color;
     }
@@ -1058,10 +1061,13 @@ void Editor::Loop(void) {
                             i++;
                         }
 
+                        uint8_t elem_ch = game->elementCharOverrides[i_elem];
+                        if (elem_ch == 0) elem_ch = def.character;
+
                         hotkey[1] = def.editor_shortcut;
                         game->video->draw_string(61, i, ((i & 1) << 6) + 0x30, hotkey);
                         game->video->draw_string(65, i, 0x1F, def.name);
-                        game->video->draw_char(78, i, GetDrawingColor(i_elem), def.character);
+                        game->video->draw_char(78, i, GetDrawingColor(i_elem), elem_ch);
 
                         i++;
                     }
