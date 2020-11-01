@@ -1,0 +1,11 @@
+AC_INIT([OpenZoo], [0.1.0], [kontakt+openzoo@asie.pl])
+AM_INIT_AUTOMAKE([foreign])
+
+PKG_CHECK_MODULES(SDL2, sdl2 >= 2.0.0)
+
+AC_SUBST(SDL2_CFLAGS)
+AC_SUBST(SDL2_LIBS)
+
+AC_PROG_CXX
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT
