@@ -12,9 +12,13 @@ openzoo_SOURCES = \
 	src/txtwind.cpp \
 	src/utils.cpp \
 	src/video.cpp \
-	src/driver_sdl.cpp \
 	src/audio_simulator.cpp \
 	src/main.cpp
 
-openzoo_CXXFLAGS = $(SDL2_CFLAGS)
-openzoo_LDFLAGS = $(SDL2_LIBS)
+if DRIVER_SDL2
+openzoo_SOURCES += src/driver_sdl2.cpp
+endif
+
+openzoo_CFLAGS = $(DRIVER_CFLAGS)
+openzoo_CXXFLAGS = $(DRIVER_CFLAGS)
+openzoo_LDFLAGS = $(DRIVER_LDFLAGS)

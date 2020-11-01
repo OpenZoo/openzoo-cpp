@@ -1,7 +1,7 @@
 #include <cstddef>
 #include <cstring>
 #include <SDL.h>
-#include "driver_sdl.h"
+#include "driver_sdl2.h"
 
 #define PIT_SPEED_MS 55
 

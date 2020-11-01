@@ -1,7 +1,7 @@
 #include <cstdio>
 #include "gamevars.h"
 #include "txtwind.h"
-#include "driver_sdl.h"
+#include "driver_sdl2.h"
 
 using namespace ZZT;
 using namespace ZZT::Utils;
