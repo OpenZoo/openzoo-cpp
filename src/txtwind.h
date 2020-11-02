@@ -2,7 +2,6 @@
 #define __TXTWIND_H__
 
 #include <cstdint>
-#include <string>
 #include "input.h"
 #include "sounds.h"
 #include "utils.h"
@@ -36,7 +35,7 @@ namespace ZZT {
         bool selectable;
         int16_t line_count;
         int16_t line_pos;
-        std::string *lines[MAX_TEXT_WINDOW_LINES];
+        Utils::DynString *lines[MAX_TEXT_WINDOW_LINES];
         sstring<20> hyperlink;
         sstring<50> title;
         sstring<50> loaded_filename;
@@ -51,7 +50,7 @@ namespace ZZT {
         void DrawClose(void);
         void Draw(bool withoutFormatting, bool viewingFile);
         void Append(const char *line);
-        void Append(const std::string line);
+        void Append(const Utils::DynString line);
         void Select(bool hyperlinkAsSelect, bool viewingFile);
         void Edit(void);
         void OpenFile(const char *filename, bool errorIfMissing);

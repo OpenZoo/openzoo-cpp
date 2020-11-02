@@ -5,6 +5,8 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdarg>
+#include <new>
+#include "config.h"
 
 template <size_t N>
 using sstring = char[N + 1];
@@ -53,7 +55,11 @@ public:
     }
 
     template<size_t i> inline int StrLength(char (&str)[i]) {
+#if defined(HAVE_STRNLEN)
         return strnlen(str, i);
+#else
+        return strlen(str);
+#endif
     }
 
     template<size_t i> inline void StrCopy(char (&dst)[i], const char *src) {
@@ -88,7 +94,12 @@ public:
     template<size_t i> inline void StrFormat(char (&dst)[i], const char *format, ...) {
         va_list args;
         va_start(args, format);
+#if defined(HAVE_VSNIPRINTF)
+        // Avoid linking in floating-point parsing code on newlib-based platforms.
+        vsniprintf(dst, i, format, args);
+#else
         vsnprintf(dst, i, format, args);
+#endif
         va_end(args);
     }
 
@@ -162,6 +173,44 @@ public:
         size_t skip(size_t len) override;
         size_t tell(void) override;
         bool eof(void) override;
+    };
+
+    // Dynamic strings
+
+
+    class DynString {
+    private:
+        uint8_t len;
+        char *data;
+
+        void set_length(size_t new_len);
+        DynString(size_t length);
+
+    public:
+        DynString();
+        DynString(const char *s);
+        DynString(const DynString &other);
+
+        ~DynString();
+
+        DynString& operator=(const DynString& other);
+        DynString& operator=(DynString&& other);
+        DynString operator+(const DynString &rhs);
+        DynString operator+(const char *rhs);
+        DynString operator+(char rhs);
+        DynString substr(size_t from, size_t length);
+
+        inline const char* c_str() {
+            return data;
+        }
+
+        inline size_t length() {
+            return len;
+        }
+
+        inline char operator[](int idx) {
+            return data[idx];
+        }
     };
 }
 }

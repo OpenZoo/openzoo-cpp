@@ -77,6 +77,8 @@ CharsetTexture* SDL2Driver::loadCharsetFromBMP(const char *path) {
     SDL_SetColorKey(surface, 1, ((uint32_t*) surface->pixels)[0] & 0x00FFFFFF);
 
     CharsetTexture *tex = new CharsetTexture();
+    if (tex == nullptr) return nullptr;
+
     tex->texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_FreeSurface(surface);
     if (tex->texture == nullptr) {
@@ -107,6 +109,8 @@ CharsetTexture* SDL2Driver::loadCharsetFromBMP(const char *path) {
 
 CharsetTexture* SDL2Driver::loadCharsetFromBytes(const uint8_t *buf, size_t len) {
     CharsetTexture *tex = new CharsetTexture();
+    if (tex == nullptr) return nullptr;
+
     tex->charWidth = 8;
     tex->charHeight = len >> 8;
     tex->charsetPitch = 32;
@@ -440,29 +444,7 @@ void SDL2Driver::update_input(void) {
         }
     }
 
-    keyPressed = k;
-    switch (keyPressed) {
-        case KeyUp:
-        case '8': {
-            deltaX = 0;
-            deltaY = -1;
-        } break;
-        case KeyLeft:
-        case '4': {
-            deltaX = -1;
-            deltaY = 0;
-        } break;
-        case KeyRight:
-        case '6': {
-            deltaX = 1;
-            deltaY = 0;
-        } break;
-        case KeyDown:
-        case '2': {
-            deltaX = 0;
-            deltaY = 1;
-        } break;
-    }
+    set_key_pressed(k);
     shiftPressed = keyShiftHeld;
 }
 
@@ -488,4 +470,29 @@ void SDL2Driver::sound_lock(void) {
 
 void SDL2Driver::sound_unlock(void) {
     SDL_UnlockMutex(soundBufferMutex);
+}
+
+#include "gamevars.h"
+
+int main(int argc, char** argv) {
+	SDL2Driver driver = SDL2Driver();
+	Game game = Game();
+	
+	game.input = &driver;
+	game.sound = &driver;
+	game.video = &driver;
+
+	driver.install();
+
+	game.video->set_cursor(false);
+	game.video->clrscr();
+
+	game.GameTitleLoop();
+
+	game.video->clrscr();
+	game.video->set_cursor(true);
+
+	driver.uninstall();
+
+	return 0;
 }

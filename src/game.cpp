@@ -29,7 +29,14 @@ const uint8_t ZZT::LineChars[16] = {
 };
 
 Game::Game(void): highScoreList(this) {
-    
+    tickSpeed = 4;
+    debugEnabled = false;
+    editorEnabled = true;
+    StrCopy(startupWorldFileName, "TOWN");
+    StrCopy(savedGameFileName, "SAVED");
+    StrCopy(savedBoardFileName, "TEMP");
+    GenerateTransitionTable();
+    WorldCreate();
 }
 
 void Game::SidebarClearLine(int16_t y) {
@@ -780,10 +787,17 @@ bool Game::GameWorldLoad(const char *extension) {
     }
 
     while ((entry = readdir(dir)) != NULL) {
+#ifndef MSDOS
         stat(entry->d_name, &st);
-        int name_len = strlen(entry->d_name);
         if (S_ISDIR(st.st_mode)) continue;
+#endif
+        int name_len = strlen(entry->d_name);
         if (name_len < ext_len) continue;
+#if defined(MSDOS) || defined(WINDOWS)
+        for (int i = 0; i < name_len; i++) {
+            entry->d_name[i] = UpCase(entry->d_name[i]);
+        }
+#endif
 
         bool match = true;
         for (int i = 0; i < ext_len; i++) {
@@ -820,7 +834,7 @@ bool Game::GameWorldLoad(const char *extension) {
 
 void ZZT::CopyStatDataToTextWindow(const Stat &stat, TextWindow &window) {
     const char *data_ptr = stat.data;
-    std::string s = "";
+    DynString s = "";
     int data_str_pos = 0;
     
     window.Clear();
@@ -831,7 +845,7 @@ void ZZT::CopyStatDataToTextWindow(const Stat &stat, TextWindow &window) {
             window.Append(s);
             s = "";
         } else {
-            s += ch;
+            s = s + ch;
         }
     }
 
@@ -1567,7 +1581,7 @@ void Game::GameTitleLoop(void) {
                     GameAboutScreen();
                 } break;
                 case 'E': {
-                    if (editorEnabled) {
+                   if (editorEnabled) {
                         Editor *editor = new Editor(this);
                         editor->Loop();
                         delete editor;

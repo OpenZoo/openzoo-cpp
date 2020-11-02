@@ -74,7 +74,7 @@ void HighScoreList::InitTextWindow(TextWindow &window) {
                 StrCopy(scoreStrPadded, scoreStr);
             }
 
-            window.Append(std::string(scoreStrPadded) + "  " + entries[i].name);
+            window.Append(DynString(scoreStrPadded) + "  " + entries[i].name);
         }
     }
 }

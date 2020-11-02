@@ -382,19 +382,19 @@ void Editor::EditBoardInfo(void) {
         window.selectable = true;
         StrCopy(window.title, "Board Information");
 
-        window.Append("         Title: " + std::string(game->board.name));
+        window.Append(DynString("         Title: ") + game->board.name);
         StrFromInt(num_str, game->board.info.max_shots);
-        window.Append("      Can fire: " + std::string(num_str) + " shots.");
-        window.Append(" Board is dark: " + std::string(boolToString(game->board.info.is_dark)));
+        window.Append(DynString("      Can fire: ") + num_str + " shots.");
+        window.Append(DynString(" Board is dark: ") + boolToString(game->board.info.is_dark));
         
         for (int i = 0; i < 4; i++) {
             GetBoardName(game->board.info.neighbor_boards[i], true, num_str, sizeof(num_str));
-            window.Append(std::string("       ") + std::string(NeighborBoardStrs[i]) + ": " + num_str);
+            window.Append(DynString("       ") + NeighborBoardStrs[i] + ": " + num_str);
         }
 
-        window.Append("Re-enter when zapped: " + std::string(boolToString(game->board.info.reenter_when_zapped)));
+        window.Append(DynString("Re-enter when zapped: ") + boolToString(game->board.info.reenter_when_zapped));
         StrFromInt(num_str, game->board.info.time_limit_seconds);
-        window.Append("  Time limit, 0=None: " + std::string(num_str) + " sec.");
+        window.Append(DynString("  Time limit, 0=None: ") + num_str + " sec.");
         window.Append("          Quit!");
 
         window.Select(false, false);

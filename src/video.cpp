@@ -44,7 +44,7 @@ void VideoDriver::draw_string(int16_t x, int16_t y, uint8_t col, const char* tex
 
 void VideoDriver::clrscr(void) {
     for (int16_t y = 0; y < 25; y++) {
-        for (int16_t x = 0; x < 25; x++) {
+        for (int16_t x = 0; x < 80; x++) {
             draw_char(x, y, 0, 0);
         }
     }

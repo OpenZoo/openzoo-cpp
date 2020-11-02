@@ -6,7 +6,7 @@
 using namespace ZZT;
 using namespace ZZT::Utils;
 
-static int16_t window_x, window_y, window_width, window_height;
+static int16_t window_x = 5, window_y = 3, window_width = 50, window_height = 18;
 
 static const char draw_patterns[4][5] = {
 	{'\xC6', '\xD1', '\xCD', '\xD1', '\xB5'}, // top
@@ -104,12 +104,12 @@ void TextWindow::Append(const char *line) {
     this->lines[this->line_count][str_width] = 0; */
 
     if (this->line_count >= MAX_TEXT_WINDOW_LINES) return;
-    this->lines[this->line_count++] = new std::string(line);
+    this->lines[this->line_count++] = new DynString(line);
 }
 
-void TextWindow::Append(const std::string line) {
+void TextWindow::Append(const DynString line) {
     if (this->line_count >= MAX_TEXT_WINDOW_LINES) return;
-    this->lines[this->line_count++] = new std::string(line);
+    this->lines[this->line_count++] = new DynString(line);
 }
 
 void TextWindow::DrawLine(int16_t lpos, bool withoutFormatting, bool viewingFile) {
@@ -306,7 +306,7 @@ int16_t TextWindow::Edit_DeleteCurrLine(void) {
         }
     } else {
         delete lines[0];
-        lines[0] = new std::string("");
+        lines[0] = new DynString();
         return line_pos;
     }
 }
@@ -368,9 +368,9 @@ void TextWindow::Edit(void) {
                         lines[i + 1] = lines[i];
                     }
 
-                    std::string *s = lines[line_pos];
-                    lines[line_pos + 1] = new std::string(char_pos >= s->length() ? "" : s->substr(char_pos, lines[line_pos]->length() - char_pos));
-                    lines[line_pos] = new std::string(s->substr(0, char_pos));
+                    DynString *s = lines[line_pos];
+                    lines[line_pos + 1] = new DynString(char_pos >= s->length() ? "" : s->substr(char_pos, lines[line_pos]->length() - char_pos));
+                    lines[line_pos] = new DynString(s->substr(0, char_pos));
                     delete s;
 
                     new_line_pos = line_pos + 1;
@@ -380,8 +380,8 @@ void TextWindow::Edit(void) {
             } break;
             case KeyBackspace: {
                 if (char_pos > 0) {
-                    std::string *s = lines[line_pos];
-                    lines[line_pos] = new std::string(
+                    DynString *s = lines[line_pos];
+                    lines[line_pos] = new DynString(
                         s->substr(0, char_pos - 1) + s->substr(char_pos, s->length() - char_pos)
                     );
                     delete s;
@@ -397,13 +397,13 @@ void TextWindow::Edit(void) {
                 break;
             case KeyDelete: {
                 if (lines[line_pos]->length() > 0) {
-                    std::string *s = lines[line_pos];
+                    DynString *s = lines[line_pos];
                     if (char_pos < lines[line_pos]->length()) {
-                        lines[line_pos] = new std::string(
+                        lines[line_pos] = new DynString(
                             s->substr(0, char_pos) + s->substr(char_pos + 1, s->length() - char_pos - 1)
                         );
                     } else {
-                        lines[line_pos] = new std::string(
+                        lines[line_pos] = new DynString(
                             s->substr(0, char_pos) 
                         );
                     }
@@ -416,13 +416,13 @@ void TextWindow::Edit(void) {
             default: {
                 if (input->keyPressed >= 32 && input->keyPressed < 127 && char_pos < (window_width - 7)) {
                     if (!insert_mode) {
-                        std::string *s = lines[line_pos];
+                        DynString *s = lines[line_pos];
                         if (char_pos < s->length()) {
-                            lines[line_pos] = new std::string(
+                            lines[line_pos] = new DynString(
                                 s->substr(0, char_pos) + ((char) input->keyPressed) + s->substr(char_pos, s->length() - char_pos)
                             );
                         } else {
-                            lines[line_pos] = new std::string(
+                            lines[line_pos] = new DynString(
                                 s->substr(0, char_pos) + ((char) input->keyPressed)
                             );
                         }
@@ -431,13 +431,13 @@ void TextWindow::Edit(void) {
                         char_pos++;
                     } else {
                         if (lines[line_pos]->length() < (window_width - 8)) {
-                            std::string *s = lines[line_pos];
+                            DynString *s = lines[line_pos];
                             if ((char_pos + 1) < s->length()) {
-                                lines[line_pos] = new std::string(
+                                lines[line_pos] = new DynString(
                                     s->substr(0, char_pos) + ((char) input->keyPressed) + s->substr(char_pos + 1, s->length() - char_pos - 1)
                                 );
                             } else {
-                                lines[line_pos] = new std::string(
+                                lines[line_pos] = new DynString(
                                     s->substr(0, char_pos) + ((char) input->keyPressed)
                                 );
                             }

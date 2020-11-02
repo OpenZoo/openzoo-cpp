@@ -1,5 +1,5 @@
-#ifndef __DRIVER_SDL_H__
-#define __DRIVER_SDL_H__
+#ifndef __DRIVER_SDL2_H__
+#define __DRIVER_SDL2_H__
 
 #include <cstdint>
 #include "input.h"

@@ -36,6 +36,7 @@ namespace ZZT {
     class InputDriver {
     protected:
         InputDriver(void);
+        void set_key_pressed(uint16_t value);
 
     public:
         int16_t deltaX, deltaY;
