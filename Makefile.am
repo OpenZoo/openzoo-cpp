@@ -5,6 +5,7 @@ openzoo_SOURCES = \
 	src/cxx_shim.cpp \
 	src/editor.cpp \
 	src/elements.cpp \
+	src/file_selector.cpp \
 	src/game.cpp \
 	src/high_scores.cpp \
 	src/input.cpp \

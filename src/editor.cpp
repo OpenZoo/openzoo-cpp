@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <cstring>
 #include "editor.h"
+#include "file_selector.h"
 #include "txtwind.h"
 #include "utils.h"
 
@@ -640,8 +641,12 @@ void Editor::TransferBoard(void) {
     game->SidebarPromptChoice(true, 3, "Transfer board:", "Import Export", i);
     if (game->input->keyPressed != KeyEscape) {
         if (i == 0) {
-            game->SidebarPromptString("Import board", ".BRD", game->savedBoardFileName, sizeof(game->savedBoardFileName), PMAlphanum);
-            if (game->input->keyPressed != KeyEscape && !StrEmpty(game->savedBoardFileName)) {
+            FileSelector *selector = new FileSelector(game->video, game->input, game->sound, "Import board", ".BRD");
+
+            if (selector->select()) {
+                StrCopy(game->savedBoardFileName, selector->get_filename());
+                delete selector;
+
                 StrJoin(filename_joined, 2, game->savedBoardFileName, ".BRD");
                 FileIOStream stream = FileIOStream(filename_joined, false);
                 if (!stream.errored()) {
@@ -668,6 +673,8 @@ void Editor::TransferBoard(void) {
                         }
                     }
                 }
+            } else {
+                delete selector;
             }
         } else if (i == 1) {
             // export

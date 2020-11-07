@@ -1,7 +1,6 @@
 #include <cstdlib>
-#include <sys/stat.h>
-#include <dirent.h>
 #include "editor.h"
+#include "file_selector.h"
 #include "gamevars.h"
 #include "txtwind.h"
 
@@ -568,13 +567,22 @@ bool Game::SidebarPromptYesNo(const char *message, bool defaultReturn) {
     video->draw_string(63, 5, 0x1F, message);
     video->draw_char(63 + strlen(message), 5, 0x9E, '_');
 
-    do {
-        input->read_wait_key();
-    } while (input->keyPressed != KeyEscape && UpCase(input->keyPressed) != 'Y' && UpCase(input->keyPressed) != 'N');
-    defaultReturn = UpCase(input->keyPressed) == 'Y';
+    bool returnValue = defaultReturn;
+    while (true) {
+        sound->idle(IMUntilFrame);
+        input->update_input();
+
+        if (input->keyPressed == KeyEscape || UpCase(input->keyPressed) == 'N' || input->joy_button_pressed(JoyButtonB, false)) {
+            returnValue = false;
+            break;
+        } else if (UpCase(input->keyPressed) == 'Y' || input->joy_button_pressed(JoyButtonA, false)) {
+            returnValue = true;
+            break;
+        }
+    }
 
     SidebarClearLine(5);
-    return defaultReturn;
+    return returnValue;
 }
 
 void Game::SidebarPromptString(const char *prompt, const char *extension, char *filename, int filenameLen, PromptMode mode) {
@@ -774,61 +782,21 @@ void Game::GameWorldSave(const char *prompt, char* filename, size_t filename_len
 }
 
 bool Game::GameWorldLoad(const char *extension) {
-    int ext_len = strlen(extension);
-    TextWindow window = TextWindow(video, input, sound);
-    StrCopy(window.title, StrEquals(extension, ".ZZT") ? "ZZT Worlds" : "Saved Games");
-    window.selectable = true;
+    const char *title = StrEquals(extension, ".ZZT") ? "ZZT Worlds" : "Saved Games";
+    FileSelector *selector = new FileSelector(video, input, sound, title, extension);
 
-    DIR *dir;
-    struct dirent *entry;
-    struct stat st;
-    if ((dir = opendir(".")) == NULL) {
-        return false;
-    }
-
-    while ((entry = readdir(dir)) != NULL) {
-#ifndef MSDOS
-        stat(entry->d_name, &st);
-        if (S_ISDIR(st.st_mode)) continue;
-#endif
-        int name_len = strlen(entry->d_name);
-        if (name_len < ext_len) continue;
-#if defined(MSDOS) || defined(WINDOWS)
-        for (int i = 0; i < name_len; i++) {
-            entry->d_name[i] = UpCase(entry->d_name[i]);
+    if (selector->select()) {
+        bool result = WorldLoad(selector->get_filename(), extension, false);
+        if (result) {
+            TransitionDrawToFill(219, 0x44);
+            delete selector;
+            return true;
+        } else {
+            TransitionDrawBoardChange();
         }
-#endif
-
-        bool match = true;
-        for (int i = 0; i < ext_len; i++) {
-            if (entry->d_name[name_len - ext_len + i] != extension[i]) {
-                match = false;
-                break;
-            }
-        }
-        if (!match) continue;
-
-        sstring<20> wname;
-        StrCopy(wname, entry->d_name);
-        char *extpos = strchr(wname, '.');
-        if (extpos != NULL) {
-            *extpos = 0;
-        }
-        window.Append(wname);
     }
-    window.Append("Exit");
-
-    window.DrawOpen();
-    window.Select(false, false);
-    window.DrawClose();
-
-    if (window.line_pos < (window.line_count - 1) && !window.rejected) {
-        const char *filename = window.lines[window.line_pos]->c_str();
-        bool result = WorldLoad(filename, extension, false);
-        TransitionDrawToFill(219, 0x44);
-        return result;
-    }
-
+    
+    delete selector;
     return false;
 }
 
