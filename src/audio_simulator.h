@@ -1,8 +1,8 @@
 #ifndef __AUDIO_SIMULATOR_H__
 #define __AUDIO_SIMULATOR_H__
 
-#include <cstddef>
-#include <cstdint>
+#include <stddef.h>
+#include <stdint.h>
 #include "sounds.h"
 
 namespace ZZT {

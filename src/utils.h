@@ -111,6 +111,14 @@ public:
         return !strcmp(a, b); 
     }
 
+    inline void StrClear(char *s) {
+        s[0] = 0;
+    }
+
+    inline bool StrEmpty(const char *s) {
+        return s[0] == 0;
+    }
+
     // I/O
 
     class IOStream {

@@ -287,7 +287,7 @@ int16_t Game::WorldGetFlagPosition(const char *name) {
 void Game::WorldSetFlag(const char *name) {
 	if (WorldGetFlagPosition(name) < 0) {
 		for (int i = 0; i < MAX_FLAG; i++) {
-			if (world.info.flags[i][0] == 0) {
+			if (StrEmpty(world.info.flags[i])) {
 				StrCopy(world.info.flags[i], name);
 				return;
 			}
@@ -298,7 +298,7 @@ void Game::WorldSetFlag(const char *name) {
 void Game::WorldClearFlag(const char *name) {
 	int16_t pos = WorldGetFlagPosition(name);
 	if (pos >= 0) {
-		world.info.flags[pos][0] = 0;
+		StrClear(world.info.flags[pos]);
 	}
 }
 
@@ -559,7 +559,7 @@ ReadCommand:
 				if (StrEquals(oopWord, "THEN")) {
 					OopReadWord(stat, position);
 				}
-				if (oopWord[0] == 0) {
+				if (StrEmpty(oopWord)) {
 					goto ReadInstruction;
 				} else {
 					insCount++;
@@ -768,7 +768,7 @@ ReadCommand:
 					} else if (StrEquals(oopWord, "PLAY")) {
 						char textLine[256];
 						OopReadLineToEnd(stat, position, textLine, sizeof(textLine));
-						if (textLine[0] != 0) {
+						if (!StrEmpty(textLine)) {
 							uint8_t buf[255];
 							int buflen = SoundParse(textLine, buf, sizeof(buf));
 							if (buflen > 0) {
@@ -860,7 +860,7 @@ ReadCommand:
 			OopReadLineToEnd(stat, namePosition, name, sizeof(name));
 		}
 
-		if (name[0] == 0) {
+		if (StrEmpty(name)) {
 			StrCopy(name, "Interaction");
 		}
 
@@ -870,7 +870,7 @@ ReadCommand:
 		textWindow.DrawClose();
 		textWindow.Clear();
 
-		if (textWindow.hyperlink[0] != 0) {
+		if (!StrEmpty(textWindow.hyperlink)) {
 			if (OopSend(stat_id, textWindow.hyperlink, false)) {
 				goto StartParsing;
 			}

@@ -264,12 +264,24 @@ bool SDL2Driver::configure(void) {
 
 void SDL2Driver::install(void) {
     if (!installed) {
-        SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER);
+        SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER);
         SDL_StartTextInput();
         pit_timer_id = SDL_AddTimer(PIT_SPEED_MS, (SDL_TimerCallback) pitTimerCallback, this);
         for (int i = 0; i < IdleModeCount; i++) {
             timer_mutexes[i] = SDL_CreateMutex();
             timer_conds[i] = SDL_CreateCond();
+        }
+
+        // input
+        controller = nullptr;
+        SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt");
+        for (int i = 0; i < SDL_NumJoysticks(); i++) {
+            if (SDL_IsGameController(i)) {
+                controller = SDL_GameControllerOpen(i);
+                if (controller != nullptr) {
+                    break;
+                }
+            }
         }
 
         // video
@@ -332,6 +344,11 @@ void SDL2Driver::uninstall(void) {
         SDL_DestroyTexture(playfieldTexture);
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
+
+        // input
+        if (controller != nullptr) {
+            SDL_GameControllerClose(controller);
+        }
 
         for (int i = 0; i < IdleModeCount; i++) {
             SDL_DestroyMutex(timer_mutexes[i]);
@@ -405,6 +422,24 @@ void SDL2Driver::update_keymod(uint16_t kmod) {
     keyNumLockHeld = (kmod & KMOD_NUM) != 0;
 }
 
+static JoyButton sdl_to_pc_joybutton(SDL_GameControllerButton button) {
+    switch (button) {
+        case SDL_CONTROLLER_BUTTON_A: return JoyButtonB;
+        case SDL_CONTROLLER_BUTTON_B: return JoyButtonA;
+        case SDL_CONTROLLER_BUTTON_X: return JoyButtonY;
+        case SDL_CONTROLLER_BUTTON_Y: return JoyButtonX;
+        case SDL_CONTROLLER_BUTTON_START: return JoyButtonStart;
+        case SDL_CONTROLLER_BUTTON_BACK: return JoyButtonSelect;
+        case SDL_CONTROLLER_BUTTON_LEFTSHOULDER: return JoyButtonL;
+        case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER: return JoyButtonR;
+        case SDL_CONTROLLER_BUTTON_DPAD_UP: return JoyButtonUp;
+        case SDL_CONTROLLER_BUTTON_DPAD_LEFT: return JoyButtonLeft;
+        case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: return JoyButtonRight;
+        case SDL_CONTROLLER_BUTTON_DPAD_DOWN: return JoyButtonDown;
+        default: return JoyButtonNone;
+    }
+}
+
 void SDL2Driver::update_input(void) {
     deltaX = 0;
     deltaY = 0;
@@ -437,6 +472,18 @@ void SDL2Driver::update_input(void) {
             case SDL_KEYUP: {
                 update_keymod(event.key.keysym.mod);
             } break;
+            case SDL_CONTROLLERBUTTONDOWN: {
+                JoyButton button = sdl_to_pc_joybutton((SDL_GameControllerButton) event.cbutton.button);
+                if (button != JoyButtonNone) {
+                    set_joy_button_state(button, true);
+                }
+            } break;
+            case SDL_CONTROLLERBUTTONUP: {
+                JoyButton button = sdl_to_pc_joybutton((SDL_GameControllerButton) event.cbutton.button);
+                if (button != JoyButtonNone) {
+                    set_joy_button_state(button, false);
+                }
+            } break;
             case SDL_QUIT: {
                 // TODO
                 exit(1);
@@ -446,6 +493,28 @@ void SDL2Driver::update_input(void) {
 
     set_key_pressed(k);
     shiftPressed = keyShiftHeld;
+
+    if (controller != nullptr) {
+        // emulate delta/shift behaviour on game controller
+        if (!set_dpad(
+            SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_UP),
+            SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_DOWN),
+            SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_LEFT),
+            SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_RIGHT)
+        )) {
+            int16_t axis_x = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX);
+            int16_t axis_y = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTY);
+            set_axis(axis_x, axis_y, -16384, 16384);
+        }
+
+        if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_B)) {
+            if (!shiftAccepted) {
+                shiftPressed = true;
+            }
+        } else {
+            shiftAccepted = false;
+        }
+    }
 }
 
 void SDL2Driver::read_wait_key(void) {

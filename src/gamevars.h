@@ -317,6 +317,29 @@ namespace ZZT {
 		bool EnergizerNotShown;
     };
 
+    struct MenuEntry {
+        const int id;
+        const uint16_t keys[4];
+        const JoyButton joy_button;
+        const char *name;
+        const char *(*name_func)(Game*);
+
+        const char *get_name(Game *game) const {
+            return name_func != nullptr ? name_func(game) : name;
+        }
+
+        bool matches_key(uint16_t key) const {
+            const uint16_t *keyptr = keys;
+            while (*keyptr != 0) {
+                if (key == *keyptr) {
+                    return true;
+                }
+                keyptr++;
+            }
+            return false;
+        }
+    };
+
     void ElementMove(Game &game, int16_t old_x, int16_t old_y, int16_t new_x, int16_t new_y);
     void ElementPushablePush(Game &game, int16_t x, int16_t y, int16_t delta_x, int16_t delta_y);
 
@@ -450,6 +473,7 @@ namespace ZZT {
         void GameAboutScreen(void);
         void GamePlayLoop(bool boardChanged);
         void GameTitleLoop(void);
+        int HandleMenu(const MenuEntry *entries, bool simulate);
 
         // oop.cpp
         void OopError(Stat& stat, const char *message);
@@ -488,6 +512,9 @@ namespace ZZT {
     extern const int16_t NeighborDeltaX[4];
     extern const int16_t NeighborDeltaY[4];
     extern const uint8_t LineChars[16];
+
+    extern const MenuEntry TitleMenu[];
+    extern const MenuEntry PlayMenu[];
 }
 
 #endif

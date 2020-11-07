@@ -31,7 +31,7 @@ void ElementMessageTimerTick(Game &game, int16_t stat_id) {
             game.RemoveStat(stat_id);
             game.currentStatTicked--;
             game.BoardDrawBorder();
-            game.board.info.message[0] = 0;
+            StrClear(game.board.info.message);
         }
     }
 }
@@ -1133,7 +1133,7 @@ void Game::DrawPlayerSurroundings(int16_t x, int16_t y, int16_t bomb_phase) {
             if (bomb_phase > 0 && (Sqr(ix - x) + Sqr(iy - y)*2) < TORCH_DIST_SQR) {
                 const Tile &tile = board.tiles.get(ix, iy);
                 if (bomb_phase == 1) {
-                    if (elementDefs[tile.element].param_text_name[0] != 0) {
+                    if (!StrEmpty(elementDefs[tile.element].param_text_name)) {
                         int16_t i_stat = board.stats.id_at(ix, iy);
                         if (i_stat > 0) {
                             OopSend(i_stat, "BOMBED", false);
@@ -1203,9 +1203,12 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
         game.sound->sound_set_block_queueing(true);
     }
 
-    if (game.input->shiftPressed || game.input->keyPressed == ' ') {
+    // OpenZoo: Only allow shift *with* arrows.
+    bool shootDirPressed = game.input->shiftPressed && (game.input->deltaX != 0 || game.input->deltaY != 0);
+    bool shootNondirPressed = game.input->keyPressed == ' ';
+    if (shootDirPressed || shootNondirPressed) {
         // shooting logic
-        if (game.input->shiftPressed && (game.input->deltaX != 0 || game.input->deltaY != 0)) {
+        if (shootDirPressed) {
             game.playerDirX = game.input->deltaX;
             game.playerDirY = game.input->deltaY;
         }
@@ -1260,7 +1263,7 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
         }
     }
 
-    switch (UpCase(game.input->keyPressed)) {
+    switch (game.HandleMenu(PlayMenu, false)) {
         case 'T': {
             if (game.world.info.torch_ticks <= 0) {
                 if (game.world.info.torches > 0) {
@@ -1284,7 +1287,7 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
                 }
             }
         } break;
-        case KeyEscape: case 'Q': {
+        case 'Q': {
             game.GamePromptEndPlay();
         } break;
         case 'S': {
@@ -1303,9 +1306,6 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
         } break;
         case 'H': {
             TextWindowDisplayFile(game.video, game.input, game.sound, "GAME.HLP", "Playing ZZT");
-        } break;
-        case 'F': {
-            TextWindowDisplayFile(game.video, game.input, game.sound, "ORDER.HLP", "Order form");
         } break;
         case '?': {
             game.GameDebugPrompt();
@@ -1352,20 +1352,8 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
 }
 
 void ElementMonitorTick(Game &game, int16_t stat_id) {
-    switch (UpCase(game.input->keyPressed)) {
-        case KeyEscape:
-        case 'A':
-        case 'E':
-        case 'H':
-        case 'N':
-        case 'P':
-        case 'Q':
-        case 'R':
-        case 'S':
-        case 'W':
-        case '|':
-            game.gamePlayExitRequested = true;
-            break;
+    if (game.HandleMenu(TitleMenu, true) > 0) {
+        game.gamePlayExitRequested = true;
     }
 }
 

@@ -100,7 +100,7 @@ void Editor::AppendBoard(void) {
 
         do {
             game->PopupPromptString("Room's Title:", game->board.name, StrSize(game->board.name));
-        } while (game->board.name[0] == 0);
+        } while (StrEmpty(game->board.name));
 
         game->TransitionDrawToBoard();
     }
@@ -280,7 +280,7 @@ void Editor::DrawRefresh(void) {
     DrawSidebar();
     game->TransitionDrawToBoard();
 
-    if (game->board.name[0] != 0) {
+    if (!StrEmpty(game->board.name)) {
         StrJoin(name, 3, " ", game->board.name, " ");
     } else {
         StrCopy(name, " Untitled ");
@@ -407,7 +407,7 @@ void Editor::EditBoardInfo(void) {
                 case 1: { // max shots
                     StrFromInt(num_str, game->board.info.max_shots);
                     game->SidebarPromptString("Maximum shots?", "", num_str, sizeof(num_str), PMNumeric);
-                    if (num_str[0] != 0) {
+                    if (!StrEmpty(num_str)) {
                         game->board.info.max_shots = atoi(num_str);
                     }
                     DrawSidebar();
@@ -435,7 +435,7 @@ void Editor::EditBoardInfo(void) {
                 case 8: { // time limit
                     StrFromInt(num_str, game->board.info.time_limit_seconds);
                     game->SidebarPromptString("Time limit?", " Sec", num_str, sizeof(num_str), PMNumeric);
-                    if (num_str[0] != 0) {
+                    if (!StrEmpty(num_str)) {
                         game->board.info.time_limit_seconds = atoi(num_str);
                     }
                     DrawSidebar();
@@ -527,7 +527,7 @@ void Editor::EditStat(int16_t stat_id) {
     const char *category_name = "";
     for (int i = 0; i <= tile.element; i++) {
         const ElementDef &i_def = game->elementDefs[i];
-        if (i_def.editor_category == def.editor_category && i_def.category_name[0] != 0) {
+        if (i_def.editor_category == def.editor_category && !StrEmpty(i_def.category_name)) {
             category_name = i_def.category_name;
         }
     }
@@ -536,15 +536,15 @@ void Editor::EditStat(int16_t stat_id) {
     game->video->draw_string(64, 7, 0x1F, def.name);
 
     sstring<50> text;
-    text[0] = 0;
+    StrClear(text);
 
     for (int i = 0; i < 2; i++) {
         bool selected = i == 1;
         game->input->keyPressed = 0;
         int iy = 9;
 
-        if (def.p1_name[0] != 0) {
-            if (def.param_text_name[0] == 0) {
+        if (!StrEmpty(def.p1_name)) {
+            if (StrEmpty(def.param_text_name)) {
                 game->SidebarPromptSlider(selected, 63, iy, def.p1_name, stat.p1);
             } else {
                 if (stat.p1 == 0) {
@@ -563,14 +563,14 @@ void Editor::EditStat(int16_t stat_id) {
         }
 
         if (game->input->keyPressed == KeyEscape) continue;
-        if (def.param_text_name[0] != 0) {
+        if (!StrEmpty(def.param_text_name)) {
             if (selected) {
                 EditStatText(stat_id, def.param_text_name);
             }
         }
 
         if (game->input->keyPressed == KeyEscape) continue;
-        if (def.p2_name[0] != 0) {
+        if (!StrEmpty(def.p2_name)) {
             uint8_t prompt_byte = stat.p2 & 0x7F;
             game->SidebarPromptSlider(selected, 63, iy, def.p2_name, prompt_byte);
             
@@ -583,7 +583,7 @@ void Editor::EditStat(int16_t stat_id) {
         }
 
         if (game->input->keyPressed == KeyEscape) continue;
-        if (def.param_bullet_type_name[0] != 0) {
+        if (!StrEmpty(def.param_bullet_type_name)) {
             uint8_t prompt_byte = stat.p2 >> 7;
             game->SidebarPromptChoice(selected, iy, def.param_bullet_type_name, "Bullets Stars", prompt_byte);
             
@@ -596,7 +596,7 @@ void Editor::EditStat(int16_t stat_id) {
         }
 
         if (game->input->keyPressed == KeyEscape) continue;
-        if (def.param_direction_name[0] != 0) {
+        if (!StrEmpty(def.param_direction_name)) {
             game->SidebarPromptDirection(selected, iy, def.param_direction_name,
                 stat.step_x, stat.step_y);
 
@@ -609,7 +609,7 @@ void Editor::EditStat(int16_t stat_id) {
         }
 
         if (game->input->keyPressed == KeyEscape) continue;
-        if (def.param_board_name[0] != 0) {
+        if (!StrEmpty(def.param_board_name)) {
             if (selected) {
                 int16_t selected_board = SelectBoard(def.param_board_name, stat.p3, true);
                 if (selected_board != 0) {
@@ -641,7 +641,7 @@ void Editor::TransferBoard(void) {
     if (game->input->keyPressed != KeyEscape) {
         if (i == 0) {
             game->SidebarPromptString("Import board", ".BRD", game->savedBoardFileName, sizeof(game->savedBoardFileName), PMAlphanum);
-            if (game->input->keyPressed != KeyEscape && game->savedBoardFileName[0] != 0) {
+            if (game->input->keyPressed != KeyEscape && !StrEmpty(game->savedBoardFileName)) {
                 StrJoin(filename_joined, 2, game->savedBoardFileName, ".BRD");
                 FileIOStream stream = FileIOStream(filename_joined, false);
                 if (!stream.errored()) {
@@ -672,7 +672,7 @@ void Editor::TransferBoard(void) {
         } else if (i == 1) {
             // export
             game->SidebarPromptString("Export board", ".BRD", game->savedBoardFileName, sizeof(game->savedBoardFileName), PMAlphanum);
-            if (game->input->keyPressed != KeyEscape && game->savedBoardFileName[0] != 0) {
+            if (game->input->keyPressed != KeyEscape && !StrEmpty(game->savedBoardFileName)) {
                 StrJoin(filename_joined, 2, game->savedBoardFileName, ".BRD");
                 FileIOStream stream = FileIOStream(filename_joined, true);
                 if (!stream.errored()) {
@@ -1055,7 +1055,7 @@ void Editor::Loop(void) {
                 for (i_elem = 0; i_elem <= ElementCount; i_elem++) {
                     const ElementDef &def = game->elementDefs[i_elem];
                     if (def.editor_category == selected_category) {
-                        if (def.category_name[0] != 0) {
+                        if (!StrEmpty(def.category_name)) {
                             i++;
                             game->video->draw_string(65, i, 0x1E, def.category_name);
                             i++;
@@ -1100,13 +1100,13 @@ void Editor::Loop(void) {
                                 game->AddStat(cursor_x, cursor_y, i_elem, elem_menu_color, def.cycle, Stat());
 
                                 Stat &stat = game->board.stats[game->board.stats.count];
-                                if (def.p1_name[0] != 0) stat.p1 = stat_settings[i_elem].p1;
-                                if (def.p2_name[0] != 0) stat.p2 = stat_settings[i_elem].p2;
-                                if (def.param_direction_name[0] != 0) {
+                                if (!StrEmpty(def.p1_name)) stat.p1 = stat_settings[i_elem].p1;
+                                if (!StrEmpty(def.p2_name)) stat.p2 = stat_settings[i_elem].p2;
+                                if (!StrEmpty(def.param_direction_name)) {
                                     stat.step_x = stat_settings[i_elem].step_x;
                                     stat.step_y = stat_settings[i_elem].step_y;
                                 }
-                                if (def.param_board_name[0] != 0) stat.p3 = stat_settings[i_elem].p3;
+                                if (!StrEmpty(def.param_board_name)) stat.p3 = stat_settings[i_elem].p3;
                                 EditStat(game->board.stats.count);
                                 if (game->input->keyPressed == KeyEscape) {
                                     game->RemoveStat(game->board.stats.count);

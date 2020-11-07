@@ -240,8 +240,8 @@ void Game::BoardChange(int16_t board_id) {
 }
 
 void Game::BoardCreate(void) {
-    board.name[0] = '\0';
-    board.info.message[0] = '\0';
+    StrClear(board.name);
+    StrClear(board.info.message);
     board.info.max_shots = 255;
     board.info.is_dark = false;
     board.info.reenter_when_zapped = false;
@@ -309,12 +309,12 @@ void Game::WorldCreate(void) {
         world.info.keys[i] = false;
     }
     for (int i = 0; i < 10; i++) {
-        world.info.flags[i][0] = '\0';
+        StrClear(world.info.flags[i]);
     }
     BoardChange(0);
     StrCopy(board.name, "Title screen");
-    loadedGameFileName[0] = '\0';
-    world.info.name[0] = '\0';
+    StrClear(loadedGameFileName);
+    StrClear(world.info.name);
 }
 
 void Game::TransitionDrawToFill(uint8_t chr, uint8_t color) {
@@ -518,7 +518,7 @@ void Game::PromptString(int16_t x, int16_t y, uint8_t arrowColor, uint8_t color,
 
         if (strlen(buffer) < width && input->keyPressed >= 32 && input->keyPressed < 128) {
             if (firstKeyPress) {
-                buffer[0] = 0;
+                StrClear(buffer);
             }
             char chAppend = 0;
             switch (mode) {
@@ -761,7 +761,7 @@ void Game::GameWorldSave(const char *prompt, char* filename, size_t filename_len
     sstring<50> newFilename;
     StrCopy(newFilename, filename);
     SidebarPromptString(prompt, extension, newFilename, sizeof(newFilename), PMAlphanum);
-    if (input->keyPressed != KeyEscape && newFilename[0] != 0) {
+    if (input->keyPressed != KeyEscape && !StrEmpty(newFilename)) {
         strncpy(filename, newFilename, filename_len - 1);
         filename[filename_len - 1] = 0;
 
@@ -1014,7 +1014,7 @@ void Game::PopupPromptString(const char *question, char *buffer, size_t buffer_l
     TextWindowDrawPattern(video, x, y + 5, width, color, WinPatBottom);
     video->draw_string(x + 1 + ((width - strlen(question)) / 2), y + 1, color, question);
 
-    buffer[0] = 0;
+    StrClear(buffer);
     PromptString(x + 7, y + 4, (color & 0xF0) | 0x0F, (color & 0xF0) | 0x0E, width - 16, PMAny, buffer, buffer_len);
 
     video->paste_chars(copy, 0, 0, width, 6, x, y);
@@ -1079,6 +1079,14 @@ void Game::GameDrawSidebar(void) {
     }
 }
 
+static const char * menu_str_sound(Game *game) {
+    return game->sound->sound_is_enabled() ? "Be quiet" : "Be noisy";
+}
+
+static const char * menu_str_editor(Game *game) {
+    return game->editorEnabled ? "Editor" : nullptr;
+}
+
 void Game::GameUpdateSidebar(void) {
     sstring<20> s;
 
@@ -1123,7 +1131,7 @@ void Game::GameUpdateSidebar(void) {
             }
         }
 
-        video->draw_string(65, 15, 0x1F, sound->sound_is_enabled() ? " Be quiet" : " Be noisy");
+        video->draw_string(66, 15, 0x1F, menu_str_sound(this));
 
         if (debugEnabled) {
             // TODO: Add something interesting.
@@ -1339,7 +1347,7 @@ void Game::BoardPassageTeleport(int16_t x, int16_t y) {
 
 void Game::GameDebugPrompt(void) {
     sstring<50> input;
-    input[0] = 0;
+    StrClear(input);
     SidebarClearLine(4);
     SidebarClearLine(5);
 
@@ -1544,6 +1552,30 @@ void Game::GamePlayLoop(bool boardChanged) {
     sound->sound_set_block_queueing(false);
 }
 
+const MenuEntry ZZT::TitleMenu[] = {
+    {.id = 'W', .keys = {'W'}, .name = "Load world"},
+    {.id = 'P', .keys = {'P'}, .name = "Play"},
+    {.id = 'R', .keys = {'R'}, .name = "Restore game"},
+    {.id = 'A', .keys = {'A'}, .name = "About ZZT"},
+    {.id = 'E', .keys = {'E'}, .name_func = menu_str_editor},
+    {.id = 'S', .keys = {'S'}, .name = "Game speed"},
+    {.id = 'H', .keys = {'H'}, .name = "Help"},
+    {.id = '|', .keys = {'|'}, .name = "Console command"},
+    {.id = 'Q', .keys = {'Q', KeyEscape}, .name = "Quit ZZT"},
+    {.id = -1}
+};
+
+const MenuEntry ZZT::PlayMenu[] = {
+    {.id = 'T', .keys = {'T'}, .joy_button = JoyButtonB}, // Torch
+    {.id = 'S', .keys = {'S'}, .name = "Save game"},
+    {.id = 'P', .keys = {'P'}}, // Pause - hidden in menu mode
+    {.id = 'B', .keys = {'B'}, .name_func = menu_str_sound},
+    {.id = 'H', .keys = {'H'}, .name = "Help"},
+    {.id = '?', .keys = {'?'}, .name = "Console command"},
+    {.id = 'Q', .keys = {'Q', KeyEscape}, .name = "Quit game"},
+    {.id = -1}
+};
+
 void Game::GameTitleLoop(void) {
     gameTitleExitRequested = false;
     justStarted = true;
@@ -1558,7 +1590,7 @@ void Game::GameTitleLoop(void) {
             GamePlayLoop(boardChanged);
             boardChanged = false;
 
-            switch (UpCase(input->keyPressed)) {
+            switch (HandleMenu(TitleMenu, false)) {
                 case 'W': {
                     if (GameWorldLoad(".ZZT")) {
                         returnBoardId = world.info.current_board;
@@ -1608,7 +1640,7 @@ void Game::GameTitleLoop(void) {
                 case '|': {
                     GameDebugPrompt();
                 } break;
-                case KeyEscape: case 'Q': {
+                case 'Q': {
                     gameTitleExitRequested = SidebarPromptYesNo("Quit ZZT? ", true);
                 } break;
             }
@@ -1621,4 +1653,48 @@ void Game::GameTitleLoop(void) {
             }
         } while (!boardChanged && !gameTitleExitRequested);
     } while (!gameTitleExitRequested);
+}
+
+int Game::HandleMenu(const MenuEntry *entries, bool simulate) {
+    if (input->joy_button_pressed(JoyButtonStart, simulate)) {
+        if (simulate) {
+            return 1;
+        }
+
+        sstring<10> numStr;
+        const MenuEntry *entry = entries;
+        const char *name;
+        TextWindow window = TextWindow(video, input, sound);
+        StrCopy(window.title, "Menu");
+        int i = 0;
+        while (entry->id >= 0) {
+            name = entry->get_name(this);
+            if (name != NULL) {
+                StrFromInt(numStr, i);
+                window.Append(DynString("!") + numStr + ";" + name);
+            }
+            entry++; i++;
+        }
+        window.DrawOpen();
+        window.Select(true, false);
+        window.DrawClose();
+        if (!window.rejected && !StrEmpty(window.hyperlink)) {
+            int result = atoi(window.hyperlink);
+            return entries[result].id;
+        } else {
+            return -1;
+        }
+    } else {
+        const MenuEntry *entry = entries;
+        while (entry->id >= 0) {
+            if (entry->matches_key(UpCase(input->keyPressed))) {
+                return entry->id;
+            }
+            if (entry->joy_button != 0 && input->joy_button_pressed(entry->joy_button, simulate)) {
+                return entry->id;
+            }
+            entry++;
+        }
+    }
+    return -1;
 }

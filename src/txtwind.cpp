@@ -38,7 +38,7 @@ TextWindow::TextWindow(VideoDriver *video, InputDriver *input, SoundDriver *soun
     this->sound = sound;
     this->line_count = 0;
     this->line_pos = 0;
-    this->loaded_filename[0] = 0;
+    StrClear(this->loaded_filename);
     this->screenCopy = nullptr;
 }
 
@@ -193,7 +193,7 @@ void TextWindow::Draw(bool withoutFormatting, bool viewingFile) {
 
 void TextWindow::Select(bool hyperlinkAsSelect, bool viewingFile) {
     rejected = false;
-    hyperlink[0] = 0;
+    StrClear(hyperlink);
     Draw(false, viewingFile);
     do {
         sound->idle(IMUntilFrame);
@@ -285,6 +285,7 @@ void TextWindow::Select(bool hyperlinkAsSelect, bool viewingFile) {
             sound->delay(35);
         }
     } while (input->keyPressed != KeyEscape && input->keyPressed != KeyEnter && !input->shiftPressed);
+
     if (input->keyPressed == KeyEscape) {
         input->keyPressed = 0;
         rejected = true;
@@ -483,8 +484,8 @@ void TextWindow::OpenFile(const char *filename, bool errorIfMissing) {
     {
         sstring<255> line;
         int lpos = 0;
-        line[0] = 0;
 
+        StrClear(line);
         FileIOStream stream = FileIOStream(filename_joined, false);
         while (!stream.eof() && !stream.errored()) {
             char c = stream.read8();
@@ -492,7 +493,7 @@ void TextWindow::OpenFile(const char *filename, bool errorIfMissing) {
                 line[lpos] = 0;
                 Append(line);
                 lpos = 0;
-                line[0] = 0;
+                StrClear(line);
             } else {
                 if (lpos < StrSize(line)) {
                     line[lpos++] = c;

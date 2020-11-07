@@ -39,6 +39,9 @@ namespace ZZT {
         void wake(IdleMode mode);
         void update_keymod(uint16_t kmod);
 
+        // input
+        SDL_GameController *controller;
+
         // video
         SDL_Window *window;
         SDL_Renderer *renderer;

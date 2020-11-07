@@ -13,7 +13,7 @@ HighScoreList::HighScoreList(Game *game) {
 
 void HighScoreList::Clear(void) {
     for (int i = 0; i < HIGH_SCORE_COUNT; i++) {
-        entries[i].name[0] = 0;
+        StrClear(entries[i].name);
         entries[i].score = -1;
     }
 }
@@ -118,7 +118,7 @@ void HighScoreList::Add(const char *worldName, int16_t score) {
         window.DrawOpen();
         window.Draw(false, false);
 
-        name[0] = 0;
+        StrClear(name);
         game->PopupPromptString("Congratulations!  Enter your name:", name, sizeof(name));
         StrCopy(entries[list_pos].name, name);
         Save(worldName);
