@@ -13,15 +13,18 @@ using namespace ZZT;
   - currently hardcoded to 48000Hz unsigned 8-bit samples
 */
 
-#define PIT_DIVISOR 1193182.0
-#define AUDIO_FREQUENCY 48000.0
+#define PIT_DIVISOR 1193182
+#define AUDIO_FREQUENCY 48000
 #define SAMPLES_PER_PIT 2640
 #define SAMPLES_PER_DRUM 48
 #define SAMPLES_NOTE_DELAY 16
 #define AUDIO_MIN 64
 #define AUDIO_NONE 128
 #define AUDIO_MAX 192
-    
+
+// longest sample would be 2640 * 256 = 675840 samples
+#define FIXED_SHIFT 8
+
 uint32_t AudioSimulator::calc_jump(uint32_t targetNotePos, int32_t streamPos, int32_t streamLen) {
     int32_t maxTargetChange = targetNotePos - current_note_pos;
     if (maxTargetChange < 0) {
@@ -43,20 +46,37 @@ void AudioSimulator::jump_by(uint32_t amount, int32_t &streamPos) {
     }
 }
 
-// TODO: fixed-point?
 void AudioSimulator::note_to(uint32_t targetNotePos, uint32_t frequency, uint8_t *stream, int32_t &streamPos, int32_t streamLen) {
     uint32_t iMax = calc_jump(targetNotePos, streamPos, streamLen);
-    double samplesPerChange = AUDIO_FREQUENCY / (PIT_DIVISOR / (uint32_t)(PIT_DIVISOR / frequency));
 
     if (iMax > 0) {
-        for (uint32_t i = 0; i < iMax; i++) {
-            uint32_t samplePos = current_note_pos + i;
-            if ((fmod(samplePos, samplesPerChange)) < (samplesPerChange / 2.0)) {
-                stream[streamPos + i] = AUDIO_MIN;                
+#if 1
+        // floating-point implementation
+        double samplesPerChange = ((double) AUDIO_FREQUENCY) / (((double) PIT_DIVISOR) / (uint32_t) (PIT_DIVISOR / frequency));
+
+        uint32_t samplePos = current_note_pos;
+        for (uint32_t i = 0; i < iMax; i++, samplePos++) {
+            if (fmod(samplePos, samplesPerChange) < (samplesPerChange / 2.0)) {
+                stream[streamPos + i] = AUDIO_MIN;
             } else {
                 stream[streamPos + i] = AUDIO_MAX;
             }
         }
+#else
+        // fixed-point implementation
+        uint32_t pit_ticks = PIT_DIVISOR / frequency;
+        uint32_t samplesPerChange = ((uint64_t) (AUDIO_FREQUENCY * pit_ticks) << FIXED_SHIFT) / PIT_DIVISOR;
+
+        uint32_t samplePos = (current_note_pos << FIXED_SHIFT) % samplesPerChange;
+        for (uint32_t i = 0; i < iMax; i++, samplePos += (1 << FIXED_SHIFT)) {
+            while (samplePos >= samplesPerChange) samplePos -= samplesPerChange;
+            if (samplePos < (samplesPerChange >> 1)) {
+                stream[streamPos + i] = AUDIO_MIN;
+            } else {
+                stream[streamPos + i] = AUDIO_MAX;
+            }
+        }
+#endif
     }
 
     jump_by(iMax, streamPos);
