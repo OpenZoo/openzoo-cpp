@@ -210,10 +210,11 @@ void ElementCentipedeHeadTick(Game &game, int16_t stat_id) {
             stat_id = tmp;
         }
         game.board.stats[stat_id].follower = game.board.stats[stat_id].leader;
+        game.board.stats[stat_id].leader = -1; // OpenZoo: Tim's Super ZZT centipede fixes.
         game.board.tiles.set_element(game.board.stats[stat_id].x, game.board.stats[stat_id].y, ECentipedeHead);
     } else if (game.board.tiles.get(stat.x + stat.step_x, stat.y + stat.step_y).element == EPlayer) {
         // attack player
-        if (stat.follower != -1) {
+        if (stat.follower > 0) { // OpenZoo: Tim's Super ZZT centipede fixes.
             game.board.tiles.set_element(game.board.stats[stat.follower].x, game.board.stats[stat.follower].y, ECentipedeHead);
             game.board.stats[stat.follower].step_x = stat.step_x;
             game.board.stats[stat.follower].step_y = stat.step_y;
@@ -240,12 +241,15 @@ void ElementCentipedeHeadTick(Game &game, int16_t stat_id) {
 
             if (it.follower > 0) {
                 Stat& follower = game.board.stats[it.follower];
-                follower.leader = stat_id;
-                follower.p1 = it.p1;
-                follower.p2 = it.p2;
-                follower.step_x = tx - follower.x;
-                follower.step_y = ty - follower.y;
-                game.MoveStat(it.follower, tx, ty);
+                // OpenZoo: Tim's Super ZZT centipede fixes.
+                if (game.board.tiles.get(follower.x, follower.y).element == ECentipedeSegment) {
+                    follower.leader = stat_id;
+                    follower.p1 = it.p1;
+                    follower.p2 = it.p2;
+                    follower.step_x = tx - follower.x;
+                    follower.step_y = ty - follower.y;
+                    game.MoveStat(it.follower, tx, ty);
+                }
             }
 
             stat_id = it.follower;
