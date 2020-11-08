@@ -375,6 +375,7 @@ void ElementSpinningGunTick(Game &game, int16_t stat_id) {
 
 void ElementConveyorTick(Game &game, int16_t x, int16_t y, int16_t direction) {
     Tile tiles[8];
+    int16_t stat_ids[8];
     int16_t iMin = (direction == 1) ? 0 : 7;
     int16_t iMax = (direction == 1) ? 8 : -1;
     bool canMove = true;
@@ -385,6 +386,11 @@ void ElementConveyorTick(Game &game, int16_t x, int16_t y, int16_t direction) {
             canMove = true;
         } else if (!game.elementDefs[tiles[i].element].pushable) {
             canMove = false;
+        }
+        // OpenZoo: In some cases, a movement could cause two stats to briefly overlap each other.
+        // Pre-copy stat IDs to prevent "stat swapping" from occuring, potentially involving the player.
+        if (game.elementDefs[tiles[i].element].cycle > -1) {
+            stat_ids[i] = game.board.stats.id_at(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
         }
     }
 
@@ -397,7 +403,8 @@ void ElementConveyorTick(Game &game, int16_t x, int16_t y, int16_t direction) {
                 int16_t iy = y + DiagonalDeltaY[(i - direction) & 7];
                 if (game.elementDefs[tile.element].cycle > -1) {
                     Tile tmpTile = game.board.tiles.get(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
-                    int16_t iStat = game.board.stats.id_at(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
+                    // OpenZoo: "stat swapping" fix, part 2.
+                    int16_t iStat = stat_ids[i];
                     game.board.tiles.set(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i], tiles[i]);
                     game.board.tiles.set_element(ix, iy, EEmpty);
                     game.MoveStat(iStat, ix, iy);
