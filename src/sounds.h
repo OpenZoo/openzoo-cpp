@@ -36,7 +36,7 @@ namespace ZZT {
         SoundQueue();
 
         void queue(int16_t priority, const uint8_t *pattern, int len);
-        bool pop(uint8_t &note, uint8_t &duration);
+        bool pop(uint16_t &note, uint16_t &duration);
         void clear(void);
     };
 

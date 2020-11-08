@@ -45,7 +45,7 @@ void SoundQueue::queue(int16_t priority, const uint8_t *pattern, int len) {
             )
         )
     ) {
-        if (priority >= 0 || !is_playing) {
+         if (priority >= 0 || !is_playing) {
             current_priority = priority;
             memcpy(buffer, pattern, len);
             bufpos = 0;
@@ -71,12 +71,16 @@ void SoundQueue::clear(void) {
     is_playing = false;
 }
 
-bool SoundQueue::pop(uint8_t &note, uint8_t &duration) {
+bool SoundQueue::pop(uint16_t &note, uint16_t &duration) {
     if (bufpos >= buflen) {
         return false;
     } else {
         note = buffer[bufpos++];
         duration = buffer[bufpos++];
+        if (duration == 0) {
+            // emulate ZZT overflow
+            duration = 256;
+        }
         return true;
     }
 }

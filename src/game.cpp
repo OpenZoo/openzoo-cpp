@@ -1146,7 +1146,7 @@ void Game::DisplayMessage(int16_t time, const char *message) {
 }
 
 void Game::DamageStat(int16_t attacker_stat_id) {
-    Stat& attacker_stat = board.stats[0];
+    Stat& attacker_stat = board.stats[attacker_stat_id];
     if (attacker_stat_id == 0) {
         if (world.info.health > 0) {
             world.info.health -= 10;
