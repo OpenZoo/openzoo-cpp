@@ -402,6 +402,8 @@ void ElementConveyorTick(Game &game, int16_t x, int16_t y, int16_t direction) {
                     game.board.tiles.set_element(ix, iy, EEmpty);
                     game.MoveStat(iStat, ix, iy);
                     game.board.tiles.set(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i], tmpTile);
+                    // OpenZoo: Added missing BoardDrawTile() call.
+                    game.BoardDrawTile(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
                 } else {
                     game.board.tiles.set(ix, iy, tile);
                     game.BoardDrawTile(ix, iy);
