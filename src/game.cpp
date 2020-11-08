@@ -1443,7 +1443,8 @@ void Game::GamePlayLoop(bool boardChanged) {
             sound->idle(IMUntilFrame);
             input->update_input();
 
-            if (input->keyPressed == KeyEscape) {
+            // OpenZoo: Add "Q" and START to the list of allowed keys for exiting.
+            if (input->keyPressed == KeyEscape || UpCase(input->keyPressed) == 'Q' || input->joy_button_pressed(JoyButtonStart, false)) {
                 GamePromptEndPlay();
             }
 
