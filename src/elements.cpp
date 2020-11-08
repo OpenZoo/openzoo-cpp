@@ -554,10 +554,12 @@ void ElementTransporterTick(Game &game, int16_t stat_id) {
 
 void ElementTransporterDraw(Game &game, int16_t x, int16_t y, uint8_t &ch) {
     Stat &stat = game.board.stats.at(x, y);
+    // OpenZoo: Prevent division by zero on 0-cycle transporters.
+    int i = stat.cycle == 0 ? 0 : (game.currentTick / stat.cycle) % 4;
     if (stat.step_x == 0) {
-        ch = TransporterNSChars[stat.step_y * 2 + 2 + (game.currentTick / stat.cycle) % 4];
+        ch = TransporterNSChars[stat.step_y * 2 + 2 + i];
     } else {
-        ch = TransporterEWChars[stat.step_x * 2 + 2 + (game.currentTick / stat.cycle) % 4];
+        ch = TransporterEWChars[stat.step_x * 2 + 2 + i];
     }
 }
 
