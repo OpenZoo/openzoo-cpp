@@ -119,12 +119,42 @@ namespace Utils {
 
     // I/O - Memory
 
+    ErroredIOStream::ErroredIOStream() {
+        this->error_condition = true;
+    }
+
+    size_t ErroredIOStream::read(uint8_t *ptr, size_t len) {
+        return 0;
+    }
+
+    size_t ErroredIOStream::write(const uint8_t *ptr, size_t len) {
+        return 0;
+    }
+
+    size_t ErroredIOStream::skip(size_t len) {
+        return 0;
+    }
+
+    size_t ErroredIOStream::tell(void) {
+        return 0;
+    }
+
+    bool ErroredIOStream::eof(void) {
+        return false;
+    }
+
     MemoryIOStream::MemoryIOStream(uint8_t *buf, size_t len, bool write) {
         this->memory = buf;
         this->mem_pos = 0;
         this->mem_len = len;
         this->is_write = write;
         this->error_condition = this->memory == NULL;
+    }
+
+    MemoryIOStream::~MemoryIOStream() {
+        if (this->memory != NULL) {
+            this->memory = NULL;
+        }
     }
 
     size_t MemoryIOStream::read(uint8_t *ptr, size_t len) {
@@ -172,12 +202,6 @@ namespace Utils {
 
     bool MemoryIOStream::eof(void) {
         return mem_pos < mem_len;
-    }
-
-    MemoryIOStream::~MemoryIOStream() {
-        if (this->memory != NULL) {
-            this->memory = NULL;
-        }
     }
 
     // Dynamic strings

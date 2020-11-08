@@ -23,6 +23,11 @@ FileSelector::~FileSelector() {
 bool FileSelector::select() {
     size_t ext_len = strlen(this->extension);
     PathFilesystemDriver *path_fs = filesystem->is_path_driver() ? static_cast<PathFilesystemDriver*>(filesystem) : nullptr;
+    char *past_path = nullptr;
+    if (path_fs != nullptr) {
+        past_path = (char*) malloc(path_fs->get_max_path_length() + 1);
+        strcpy(past_path, path_fs->get_current_path());
+    }
 
     while (true) {
         window.Clear();
@@ -70,6 +75,10 @@ bool FileSelector::select() {
         window.DrawClose();
 
         if (window.line_pos == (window.line_count - 1) || window.rejected) {
+            if (past_path != nullptr) {
+                path_fs->set_current_path(past_path);
+                free(past_path);
+            }
             return false;            
         } else if (!StrEmpty(window.hyperlink)) {
             // directory
@@ -79,8 +88,10 @@ bool FileSelector::select() {
         } else {
             // file
             StrCopy(filename, window.lines[window.line_pos]->c_str());
+            if (past_path != nullptr) {
+                free(past_path);
+            }
             return true;
         }
     }
 }
-

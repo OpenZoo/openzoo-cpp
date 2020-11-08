@@ -150,6 +150,17 @@ public:
         bool write_pstring(const char *ptr, size_t str_len, bool packed);
     };
 
+    class ErroredIOStream : public IOStream {
+    public:
+        ErroredIOStream();
+
+        size_t read(uint8_t *ptr, size_t len) override;
+        size_t write(const uint8_t *ptr, size_t len) override;
+        size_t skip(size_t len) override;
+        size_t tell(void) override;
+        bool eof(void) override;
+    };
+
     class MemoryIOStream : public IOStream {
         uint8_t *memory;
         size_t mem_pos;
@@ -157,6 +168,8 @@ public:
         bool is_write;
 
     public:
+        MemoryIOStream(const uint8_t *memory, size_t mem_len)
+            : MemoryIOStream((uint8_t *) memory, mem_len, false) {}
         MemoryIOStream(uint8_t *memory, size_t mem_len, bool write);
         ~MemoryIOStream();
 
@@ -168,7 +181,6 @@ public:
     };
 
     // Dynamic strings
-
 
     class DynString {
     private:

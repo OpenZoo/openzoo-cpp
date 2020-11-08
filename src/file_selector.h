@@ -9,7 +9,7 @@ namespace ZZT {
         const char *title;
         const char *extension;
         TextWindow window;
-        sstring<255> filename;
+        sstring<64> filename;
 
     public:
         FileSelector(VideoDriver *video, InputDriver *input, SoundDriver *sound, FilesystemDriver *filesystem, const char *title, const char *extension);

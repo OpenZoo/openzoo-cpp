@@ -51,6 +51,9 @@ namespace ZZT {
             strncpy(current_path, path, max_path_length);
             current_path[max_path_length] = 0;
         }
+        inline size_t get_max_path_length() const {
+            return max_path_length;
+        }
 
         // required
         virtual Utils::IOStream *open_file_absolute(const char *filename, bool write) = 0;
