@@ -2,6 +2,7 @@
 #define __TXTWIND_H__
 
 #include <cstdint>
+#include "filesystem.h"
 #include "input.h"
 #include "sounds.h"
 #include "utils.h"
@@ -26,6 +27,7 @@ namespace ZZT {
         InputDriver *input;
         VideoDriver *video;
         SoundDriver *sound;
+        FilesystemDriver *filesystem;
 
         void DrawTitle(uint8_t color, const char *title);
         void DrawLine(int16_t lpos, bool withoutFormatting, bool viewingFile);
@@ -42,7 +44,7 @@ namespace ZZT {
         VideoCopy *screenCopy;
         bool rejected;
 
-        TextWindow(VideoDriver *video, InputDriver *input, SoundDriver *sound);
+        TextWindow(VideoDriver *video, InputDriver *input, SoundDriver *sound, FilesystemDriver *filesystem);
         ~TextWindow();
 
         void Clear(void);
@@ -55,10 +57,11 @@ namespace ZZT {
         void Edit(void);
         void OpenFile(const char *filename, bool errorIfMissing);
         void SaveFile(const char *filename);
+        void Sort(int16_t start, int16_t count);
     };
 
     void TextWindowDrawPattern(VideoDriver *video, int16_t x, int16_t y, int16_t width, uint8_t color, WindowPatternType ptype);
-    void TextWindowDisplayFile(VideoDriver *video, InputDriver *input, SoundDriver *sound, const char *filename, const char *title);
+    void TextWindowDisplayFile(VideoDriver *video, InputDriver *input, SoundDriver *sound, FilesystemDriver *filesystem, const char *filename, const char *title);
     void TextWindowInit(int16_t x, int16_t y, int16_t width, int16_t height);
 }
 

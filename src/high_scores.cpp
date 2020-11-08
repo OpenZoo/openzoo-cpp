@@ -22,34 +22,38 @@ void HighScoreList::Load(const char *filename) {
     sstring<255> filename_joined;
     StrJoin(filename_joined, 2, filename, ".HI");
 
-    FileIOStream stream = FileIOStream(filename_joined, false);
+    IOStream *stream = game->filesystem->open_file(filename_joined, false);
 
     for (int i = 0; i < HIGH_SCORE_COUNT; i++) {
-        if (stream.errored()) break;
-        stream.read_pstring(entries[i].name, StrSize(entries[i].name), 50, false);
-        entries[i].score = stream.read16();
+        if (stream->errored()) break;
+        stream->read_pstring(entries[i].name, StrSize(entries[i].name), 50, false);
+        entries[i].score = stream->read16();
     }
 
-    if (stream.errored()) {
+    if (stream->errored()) {
         Clear();
     }
+
+    delete stream;
 }
 
 void HighScoreList::Save(const char *filename) {
     sstring<255> filename_joined;
     StrJoin(filename_joined, 2, filename, ".HI");
 
-    FileIOStream stream = FileIOStream(filename_joined, true);
+    IOStream *stream = game->filesystem->open_file(filename_joined, true);
 
     for (int i = 0; i < HIGH_SCORE_COUNT; i++) {
-        if (stream.errored()) break;
-        stream.write_pstring(entries[i].name, 50, false);
-        stream.write16(entries[i].score);
+        if (stream->errored()) break;
+        stream->write_pstring(entries[i].name, 50, false);
+        stream->write16(entries[i].score);
     }
 
-    if (stream.errored()) {
-        game->DisplayIOError(stream);
+    if (stream->errored()) {
+        game->DisplayIOError(*stream);
     }
+
+    delete stream;
 }
 
 void HighScoreList::InitTextWindow(TextWindow &window) {
@@ -80,7 +84,7 @@ void HighScoreList::InitTextWindow(TextWindow &window) {
 }
 
 void HighScoreList::Display(const char *worldName, int16_t line_pos) {
-    TextWindow window = TextWindow(game->video, game->input, game->sound);
+    TextWindow window = TextWindow(game->video, game->input, game->sound, game->filesystem);
 
     window.line_pos = line_pos;
     InitTextWindow(window);
@@ -103,7 +107,7 @@ void HighScoreList::Add(const char *worldName, int16_t score) {
     }
     
     if (list_pos < HIGH_SCORE_COUNT) {
-        TextWindow window = TextWindow(game->video, game->input, game->sound);
+        TextWindow window = TextWindow(game->video, game->input, game->sound, game->filesystem);
 
         for (int i = (HIGH_SCORE_COUNT - 2); i >= list_pos; i--) {
             entries[i + 1] = entries[i];

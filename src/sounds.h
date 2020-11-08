@@ -46,9 +46,6 @@ namespace ZZT {
 
     public:
         // required
-        virtual bool configure(void) = 0;
-        virtual void install(void) = 0;
-        virtual void uninstall(void) = 0;
         virtual uint16_t get_hsecs(void) = 0;
         virtual void delay(int ms) = 0;
         virtual void idle(IdleMode mode) = 0;
@@ -64,10 +61,10 @@ namespace ZZT {
         }
 
         void sound_clear_queue(void);
-        bool sound_is_enabled(void) { return _queue.enabled; }
-        void sound_set_enabled(bool value) { _queue.enabled = value; }
-        bool sound_is_block_queueing(void) { return _queue.block_queueing; }
-        void sound_set_block_queueing(bool value) { _queue.block_queueing = value; }
+        inline bool sound_is_enabled(void) { return _queue.enabled; }
+        inline void sound_set_enabled(bool value) { _queue.enabled = value; }
+        inline bool sound_is_block_queueing(void) { return _queue.block_queueing; }
+        inline void sound_set_block_queueing(bool value) { _queue.block_queueing = value; }
 
         // extra
         template<size_t i> inline void sound_queue(int16_t priority, const char (&str)[i]) {

@@ -24,9 +24,6 @@ namespace ZZT {
         bool monochrome;
 
         // required
-        virtual bool configure(void) = 0;
-        virtual void install(void) = 0;
-        virtual void uninstall(void) = 0;
         virtual void draw_char(int16_t x, int16_t y, uint8_t col, uint8_t chr) = 0;
         virtual void read_char(int16_t x, int16_t y, uint8_t &col, uint8_t &chr) = 0;
 

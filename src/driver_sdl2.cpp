@@ -2,6 +2,7 @@
 #include <cstring>
 #include <SDL.h>
 #include "driver_sdl2.h"
+#include "filesystem_posix.h"
 
 #define PIT_SPEED_MS 55
 
@@ -256,10 +257,6 @@ void ZZT::audioCallback(SDL2Driver *driver, uint8_t *stream, int32_t len) {
 
 SDL2Driver::SDL2Driver(): soundSimulator(&_queue) {
     installed = false;
-}
-
-bool SDL2Driver::configure(void) {
-    return true;
 }
 
 void SDL2Driver::install(void) {
@@ -550,18 +547,16 @@ int main(int argc, char** argv) {
 	game.input = &driver;
 	game.sound = &driver;
 	game.video = &driver;
+    game.filesystem = new PosixFilesystemDriver();
 
 	driver.install();
 
-	game.video->set_cursor(false);
 	game.video->clrscr();
-
 	game.GameTitleLoop();
 
-	game.video->clrscr();
-	game.video->set_cursor(true);
-
 	driver.uninstall();
+
+    delete game.filesystem;
 
 	return 0;
 }

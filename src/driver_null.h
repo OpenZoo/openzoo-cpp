@@ -14,10 +14,8 @@ namespace ZZT {
     public:
         NullDriver();
 
-        // required (global)
-        bool configure(void) override;
-        void install(void) override;
-        void uninstall(void) override;
+        void install(void);
+        void uninstall(void);
 
         // required (input)
         void update_input(void) override;

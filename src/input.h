@@ -77,12 +77,10 @@ namespace ZZT {
         bool keyNumLockHeld;
 
         // required
-        virtual bool configure(void) = 0;
-        virtual void install(void) = 0;
-        virtual void uninstall(void) = 0;
         virtual void update_input(void) = 0;
         virtual void read_wait_key(void) = 0;
 
+        // optional
         virtual bool joy_button_pressed(JoyButton button, bool simulate);
         virtual bool joy_button_held(JoyButton button);
     };

@@ -8,10 +8,6 @@ NullDriver::NullDriver(void) {
 
 }
 
-bool NullDriver::configure(void) {
-    return true;
-}
-
 void NullDriver::install(void) {
     
 }

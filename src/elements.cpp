@@ -1305,7 +1305,7 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
             game.input->keyPressed = ' ';
         } break;
         case 'H': {
-            TextWindowDisplayFile(game.video, game.input, game.sound, "GAME.HLP", "Playing ZZT");
+            TextWindowDisplayFile(game.video, game.input, game.sound, game.filesystem, "GAME.HLP", "Playing ZZT");
         } break;
         case '?': {
             game.GameDebugPrompt();

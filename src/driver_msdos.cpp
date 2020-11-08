@@ -48,10 +48,6 @@ MSDOSDriver::MSDOSDriver(void) {
 
 }
 
-bool MSDOSDriver::configure(void) {
-    return true;
-}
-
 void MSDOSDriver::install(void) {
 	if (driver == nullptr) {
     	driver = this;
@@ -189,6 +185,7 @@ int main(int argc, char** argv) {
 	game.input = &driver;
 	game.sound = &driver;
 	game.video = &driver;
+    game.filesystem = new PosixFilesystemDriver();
 
 	driver.install();
 
@@ -201,6 +198,8 @@ int main(int argc, char** argv) {
 	game.video->set_cursor(true);
 
 	driver.uninstall();
+	
+    delete game.filesystem;
 
 	return 0;
 }

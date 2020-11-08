@@ -37,6 +37,12 @@ AC_CHECK_FUNCS([vsniprintf])
 
 AC_CHECK_FUNCS([strnlen])
 
+dnl filesystem_posix.cpp
+AC_CHECK_FUNCS([getcwd])
+
+dnl txtwind.cpp
+AC_CHECK_FUNCS([qsort])
+
 AX_CHECK_COMPILE_FLAG([-fno-exceptions], [AX_APPEND_FLAG([-fno-exceptions])], [])
 AX_CHECK_COMPILE_FLAG([-fno-rtti], [AX_APPEND_FLAG([-fno-rtti])], [])
 AX_CHECK_COMPILE_FLAG([-fno-unwind-tables], [AX_APPEND_FLAG([-fno-unwind-tables])], [])

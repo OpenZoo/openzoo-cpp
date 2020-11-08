@@ -5,7 +5,6 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdarg>
-#include <new>
 #include "config.h"
 
 template <size_t N>
@@ -151,21 +150,6 @@ public:
         bool write_pstring(const char *ptr, size_t str_len, bool packed);
     };
 
-    class FileIOStream : public IOStream {
-        FILE *file;
-        bool is_write;
-
-    public:
-        FileIOStream(const char *name, bool write);
-        ~FileIOStream();
-
-        size_t read(uint8_t *ptr, size_t len) override;
-        size_t write(const uint8_t *ptr, size_t len) override;
-        size_t skip(size_t len) override;
-        size_t tell(void) override;
-        bool eof(void) override;
-    };
-
     class MemoryIOStream : public IOStream {
         uint8_t *memory;
         size_t mem_pos;
@@ -208,15 +192,15 @@ public:
         DynString operator+(char rhs);
         DynString substr(size_t from, size_t length);
 
-        inline const char* c_str() {
+        inline const char* c_str() const {
             return data;
         }
 
-        inline size_t length() {
+        inline size_t length() const {
             return len;
         }
 
-        inline char operator[](int idx) {
+        inline char operator[](int idx) const {
             return data[idx];
         }
     };

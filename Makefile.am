@@ -6,6 +6,7 @@ openzoo_SOURCES = \
 	src/editor.cpp \
 	src/elements.cpp \
 	src/file_selector.cpp \
+	src/filesystem.cpp \
 	src/game.cpp \
 	src/high_scores.cpp \
 	src/input.cpp \
@@ -18,6 +19,7 @@ openzoo_SOURCES = \
 if DRIVER_SDL2
 openzoo_SOURCES += \
 	src/driver_sdl2.cpp \
+	src/filesystem_posix.cpp \
 	src/audio_simulator.cpp
 endif
 
@@ -26,7 +28,9 @@ openzoo_SOURCES += src/driver_null.cpp
 endif
 
 if DRIVER_MSDOS
-openzoo_SOURCES += src/driver_msdos.cpp
+openzoo_SOURCES += \
+	src/driver_msdos.cpp \
+	src/filesystem_posix.cpp
 endif
 
 openzoo_CFLAGS = $(DRIVER_CFLAGS)

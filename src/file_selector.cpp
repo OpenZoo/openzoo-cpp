@@ -8,8 +8,9 @@
 using namespace ZZT;
 using namespace ZZT::Utils;
 
-FileSelector::FileSelector(VideoDriver *video, InputDriver *input, SoundDriver *sound, const char *title, const char *extension)
-    : window(TextWindow(video, input, sound)) {
+FileSelector::FileSelector(VideoDriver *video, InputDriver *input, SoundDriver *sound, FilesystemDriver *filesystem, const char *title, const char *extension)
+    : window(TextWindow(video, input, sound, filesystem)) {
+    this->filesystem = filesystem;
     this->title = title;
     this->extension = extension;
     StrClear(filename);
@@ -21,6 +22,7 @@ FileSelector::~FileSelector() {
 
 bool FileSelector::select() {
     size_t ext_len = strlen(this->extension);
+    PathFilesystemDriver *path_fs = filesystem->is_path_driver() ? static_cast<PathFilesystemDriver*>(filesystem) : nullptr;
 
     while (true) {
         window.Clear();
@@ -28,43 +30,56 @@ bool FileSelector::select() {
         window.selectable = true;
         StrClear(window.hyperlink);
 
-        DIR *dir;
-        struct dirent *entry;
-        struct stat st;
-
-        if ((dir = opendir(".")) == NULL) {
-            return false;
+        if (path_fs != nullptr) {
+            if (path_fs->has_parent()) {
+                window.Append("!..;[..]");
+            }
         }
 
-        while ((entry = readdir(dir)) != NULL) {
+        int listed_start = window.line_count;
+        filesystem->list_files([this, ext_len](FileEntry &entry) -> bool {
             sstring<20> wname;
+            int name_len = strlen(entry.filename);
+            if (name_len > StrSize(wname)) return true;
 
-            stat(entry->d_name, &st);
-            if (S_ISDIR(st.st_mode)) continue;
+            if (entry.is_dir) {
+                if (name_len > 0 && !StrEquals(entry.filename, ".") && !StrEquals(entry.filename, "..")) {
+                    window.Append(DynString("!") + entry.filename + ";[" + entry.filename + "]");
+                }
+            } else {
+                if (name_len < ext_len) return true;
 
-            int name_len = strlen(entry->d_name);
-            if (name_len < ext_len) continue;
-            if (name_len > StrSize(wname)) continue;
+                if (strcasecmp(entry.filename + name_len - ext_len, extension) != 0) {
+                    return true;
+                }
 
-            if (strcasecmp(entry->d_name + name_len - ext_len, extension) != 0) {
-                continue;
+                StrCopy(wname, entry.filename);
+                wname[name_len - ext_len] = 0;
+                window.Append(wname);
             }
 
-            StrCopy(wname, entry->d_name);
-            wname[name_len - ext_len] = 0;
-            window.Append(wname);
-        }
+            return true;
+        });
+        int listed_end = window.line_count;
+        window.Sort(listed_start, listed_end - listed_start);
+
         window.Append("Exit");
 
         window.DrawOpen();
-        window.Select(false, false);
+        window.Select(true, false);
         window.DrawClose();
 
-        if (window.line_pos < (window.line_count - 1) && !window.rejected) {
+        if (window.line_pos == (window.line_count - 1) || window.rejected) {
+            return false;            
+        } else if (!StrEmpty(window.hyperlink)) {
+            // directory
+            if (path_fs != nullptr) {
+                path_fs->open_dir(window.hyperlink);
+            }
+        } else {
+            // file
             StrCopy(filename, window.lines[window.line_pos]->c_str());
             return true;
-        } else {
-            return false;
         }
     }
 }

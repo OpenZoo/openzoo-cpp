@@ -117,54 +117,6 @@ namespace Utils {
         return true;
     }
 
-    // I/O - File
-
-    FileIOStream::FileIOStream(const char *name, bool write) {
-        this->file = fopen(name, write ? "wb" : "rb");
-        this->is_write = write;
-        this->error_condition = this->file == NULL;
-    }
-
-    size_t FileIOStream::read(uint8_t *ptr, size_t len) {
-        if (errored() || is_write) return 0;
-        size_t result = fread((void*) ptr, 1, len, file);
-        this->error_condition |= (result != len);
-        return result;
-    }
-
-    size_t FileIOStream::write(const uint8_t *ptr, size_t len) {
-        if (errored() || !is_write) return 0;
-        size_t result = fwrite((void*) ptr, 1, len, file);
-        this->error_condition |= (result != len);
-        return result;
-    }
-
-    size_t FileIOStream::skip(size_t len) {
-        if (errored()) return 0;
-        if (fseek(file, len, SEEK_CUR) != 0) {
-            this->error_condition = true;
-        }
-        // TODO: return correct value
-        return len;
-    }
-
-    size_t FileIOStream::tell(void) {
-        if (errored()) return 0;
-        return ftell(file);
-    }
-
-    bool FileIOStream::eof(void) {
-        if (file == NULL) return false;
-        return feof(file) != 0;
-    }
-
-    FileIOStream::~FileIOStream() {
-        if (this->file != NULL) {
-            fclose(file);
-            this->file = NULL;
-        }
-    }
-
     // I/O - Memory
 
     MemoryIOStream::MemoryIOStream(uint8_t *buf, size_t len, bool write) {

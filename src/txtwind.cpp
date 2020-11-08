@@ -32,10 +32,11 @@ void TextWindow::DrawBorderLine(int16_t y, WindowPatternType ptype) {
 	TextWindowDrawPattern(video, window_x, y, window_width, 0x0F, ptype);
 }
 
-TextWindow::TextWindow(VideoDriver *video, InputDriver *input, SoundDriver *sound) {
+TextWindow::TextWindow(VideoDriver *video, InputDriver *input, SoundDriver *sound, FilesystemDriver *filesystem) {
     this->video = video;
     this->input = input;
     this->sound = sound;
+    this->filesystem = filesystem;
     this->line_count = 0;
     this->line_pos = 0;
     StrClear(this->loaded_filename);
@@ -52,6 +53,7 @@ TextWindow::~TextWindow() {
 void TextWindow::Clear(void) {
     for (int i = 0; i < this->line_count; i++)
         delete this->lines[i];
+    this->line_pos = 0;
     this->line_count = 0;
 }
 
@@ -486,9 +488,9 @@ void TextWindow::OpenFile(const char *filename, bool errorIfMissing) {
         int lpos = 0;
 
         StrClear(line);
-        FileIOStream stream = FileIOStream(filename_joined, false);
-        while (!stream.eof() && !stream.errored()) {
-            char c = stream.read8();
+        IOStream *stream = filesystem->open_file(filename_joined, false);
+        while (!stream->eof() && !stream->errored()) {
+            char c = stream->read8();
             if (c == '\r') {
                 line[lpos] = 0;
                 Append(line);
@@ -501,7 +503,7 @@ void TextWindow::OpenFile(const char *filename, bool errorIfMissing) {
             }
         }
 
-        if (stream.errored() && !stream.eof()) {
+        if (stream->errored() && !stream->eof()) {
             Clear();
             if (errorIfMissing) {
                 StrJoin(line, 2, "Error reading ", filename_joined);
@@ -514,20 +516,40 @@ void TextWindow::OpenFile(const char *filename, bool errorIfMissing) {
                 Append(line);
             }
         }
+
+        delete stream;
     }
 }
 
 void TextWindow::SaveFile(const char *filename) {
-    FileIOStream stream = FileIOStream(filename, true);
+    IOStream *stream = filesystem->open_file(filename, true);
     for (int i = 0; i < line_count; i++) {
-        stream.write_cstring((const char *) lines[i], false);
-        stream.write8('\r');
-        stream.write8('\n');
+        stream->write_cstring((const char *) lines[i], false);
+        stream->write8('\r');
+        stream->write8('\n');
     }
+    delete stream;
 }
 
-void ZZT::TextWindowDisplayFile(VideoDriver *video, InputDriver *input, SoundDriver *sound, const char *filename, const char *title) {
-    TextWindow window = TextWindow(video, input, sound);
+static int cmp_dynstring(const void *a, const void *b) {
+    const DynString *as = *((const DynString **) a);
+    const DynString *bs = *((const DynString **) b);
+    return strcmp(as->c_str(), bs->c_str());
+}
+
+void TextWindow::Sort(int16_t start, int16_t count) {
+#ifdef HAVE_QSORT
+    if (start < 0) start = 0;
+    if ((start + count) >= line_count) count = line_count - start;
+
+    if (count > 0) {
+        qsort(lines + start, count, sizeof(DynString*), cmp_dynstring);
+    }
+#endif
+}
+
+void ZZT::TextWindowDisplayFile(VideoDriver *video, InputDriver *input, SoundDriver *sound, FilesystemDriver *filesystem, const char *filename, const char *title) {
+    TextWindow window = TextWindow(video, input, sound, filesystem);
     StrCopy(window.title, title);
     window.OpenFile(filename, false);
     window.selectable = false;

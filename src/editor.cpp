@@ -373,7 +373,7 @@ static const char *boolToString(bool value) {
 void Editor::EditBoardInfo(void) {
     sstring<50> num_str;
 
-    TextWindow window = TextWindow(game->video, game->input, game->sound);
+    TextWindow window = TextWindow(game->video, game->input, game->sound, game->filesystem);
     window.DrawOpen();
     bool exit_requested = false;
     
@@ -472,7 +472,7 @@ void Editor::DrawTextEditSidebar(void) {
 void Editor::EditStatText(int16_t stat_id, const char *prompt) {
     bool affected_stats[MAX_STAT + 2];
     Stat &stat = game->board.stats[stat_id];
-    TextWindow window = TextWindow(game->video, game->input, game->sound);
+    TextWindow window = TextWindow(game->video, game->input, game->sound, game->filesystem);
     StrCopy(window.title, prompt);
     window.DrawOpen();
     window.selectable = false;
@@ -641,28 +641,29 @@ void Editor::TransferBoard(void) {
     game->SidebarPromptChoice(true, 3, "Transfer board:", "Import Export", i);
     if (game->input->keyPressed != KeyEscape) {
         if (i == 0) {
-            FileSelector *selector = new FileSelector(game->video, game->input, game->sound, "Import board", ".BRD");
+            FileSelector *selector = new FileSelector(game->video, game->input, game->sound, game->filesystem, "Import board", ".BRD");
 
             if (selector->select()) {
                 StrCopy(game->savedBoardFileName, selector->get_filename());
                 delete selector;
 
                 StrJoin(filename_joined, 2, game->savedBoardFileName, ".BRD");
-                FileIOStream stream = FileIOStream(filename_joined, false);
-                if (!stream.errored()) {
+                IOStream *stream = game->filesystem->open_file(filename_joined, false);
+
+                if (!stream->errored()) {
                     int board = game->world.info.current_board;
 
                     game->BoardClose();
                     free(game->world.board_data[board]);
-                    game->world.board_len[board] = stream.read16();
-                    if (!stream.errored()) {
+                    game->world.board_len[board] = stream->read16();
+                    if (!stream->errored()) {
                         game->world.board_data[board] = (uint8_t*) malloc(game->world.board_len[board]);
-                        stream.read(game->world.board_data[board], game->world.board_len[board]);
+                        stream->read(game->world.board_data[board], game->world.board_len[board]);
                     }
 
-                    if (stream.errored()) {
+                    if (stream->errored()) {
                         game->world.board_len[board] = 0;
-                        game->DisplayIOError(stream);
+                        game->DisplayIOError(*stream);
                         game->BoardCreate();
                         DrawRefresh();
                     } else {
@@ -672,7 +673,11 @@ void Editor::TransferBoard(void) {
                             game->board.info.neighbor_boards[i] = 0;
                         }
                     }
+                } else {
+                    game->DisplayIOError(*stream);
                 }
+
+                delete stream;
             } else {
                 delete selector;
             }
@@ -681,17 +686,18 @@ void Editor::TransferBoard(void) {
             game->SidebarPromptString("Export board", ".BRD", game->savedBoardFileName, sizeof(game->savedBoardFileName), PMAlphanum);
             if (game->input->keyPressed != KeyEscape && !StrEmpty(game->savedBoardFileName)) {
                 StrJoin(filename_joined, 2, game->savedBoardFileName, ".BRD");
-                FileIOStream stream = FileIOStream(filename_joined, true);
-                if (!stream.errored()) {
+                IOStream *stream = game->filesystem->open_file(filename_joined, false);
+
+                if (!stream->errored()) {
                     int board = game->world.info.current_board;
 
                     game->BoardClose();
-                    stream.write16(game->world.board_len[board]);
-                    stream.write(game->world.board_data[board], game->world.board_len[board]);
+                    stream->write16(game->world.board_len[board]);
+                    stream->write(game->world.board_data[board], game->world.board_len[board]);
                     game->BoardOpen(board);
-
-                    game->DisplayIOError(stream);
                 }
+
+                game->DisplayIOError(*stream);
             }
         }
     }
@@ -734,7 +740,7 @@ void Editor::EditHelpFile() {
     filename[0] = '*';
     game->SidebarPromptString("File to edit", ".HLP", filename + 1, sizeof(filename) - 5, PMAlphanum);
     if (filename[1] != 0) {
-        TextWindow window = TextWindow(game->video, game->input, game->sound);
+        TextWindow window = TextWindow(game->video, game->input, game->sound, game->filesystem);
         strcat(filename, ".HLP");
         window.OpenFile(filename, false);
         StrJoin(window.title, 2, "Editing ", filename);
@@ -763,7 +769,7 @@ void Editor::GetBoardName(int16_t board_id, bool title_screen_is_none, char *buf
 
 int Editor::SelectBoard(const char *title, int16_t current_board, bool title_screen_is_none) {
     sstring<50> boardName;
-    TextWindow window = TextWindow(game->video, game->input, game->sound);
+    TextWindow window = TextWindow(game->video, game->input, game->sound, game->filesystem);
     StrCopy(window.title, title);
     window.line_pos = current_board;
     window.selectable = true;
@@ -1129,7 +1135,7 @@ void Editor::Loop(void) {
                 UpdateDrawMode();
             } break;
             case 'H': {
-                TextWindowDisplayFile(game->video, game->input, game->sound, "editor.hlp", "World editor help");
+                TextWindowDisplayFile(game->video, game->input, game->sound, game->filesystem, "editor.hlp", "World editor help");
             } break;
             case 'X': {
                 FloodFill(cursor_x, cursor_y, game->board.tiles.get(cursor_x, cursor_y));

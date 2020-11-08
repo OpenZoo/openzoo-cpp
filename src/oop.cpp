@@ -488,7 +488,7 @@ static void freeDataIfUnused(Game &game, int16_t stat_id) {
 
 void Game::OopExecute(int16_t stat_id, int16_t &position, const char *default_name) {
 StartParsing:
-	TextWindow textWindow = TextWindow(video, input, sound);
+	TextWindow textWindow = TextWindow(video, input, sound, filesystem);
 	textWindow.selectable = false;
 	bool stopRunning = false;
 	bool repeatInsNextTick = false;

@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "utils.h"
+#include "filesystem.h"
 #include "input.h"
 #include "sounds.h"
 #include "video.h"
@@ -410,6 +411,7 @@ namespace ZZT {
         VideoDriver *video;
         InputDriver *input;
         SoundDriver *sound;
+        FilesystemDriver *filesystem;
 
         inline const ElementDef& elementDefAt(int16_t x, int16_t y) const {
             uint8_t element = board.tiles.get(x, y).element;

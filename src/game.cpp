@@ -609,7 +609,7 @@ void Game::PauseOnError(void) {
 void Game::DisplayIOError(IOStream &stream) {
     if (!stream.errored()) return;
 
-    TextWindow window = TextWindow(video, input, sound);
+    TextWindow window = TextWindow(video, input, sound, filesystem);
     StrCopy(window.title, "Error");
     window.Append("$I/O Error: ");
     window.Append("");
@@ -641,42 +641,43 @@ bool Game::WorldLoad(const char *filename, const char *extension, bool titleOnly
 
     char joinedName[256];
     StrJoin(joinedName, 2, filename, extension);
-    FileIOStream stream(joinedName, false);
+    IOStream *stream = filesystem->open_file(joinedName, false);
 
-    if (!stream.errored()) {
+    if (!stream->errored()) {
         WorldUnload();
-        world.board_count = stream.read16();
+        world.board_count = stream->read16();
         if (world.board_count < 0) {
             if (world.board_count != -1) {
                 video->draw_string(63, 5, 0x1E, "You need a newer");
                 video->draw_string(63, 6, 0x1E, " version of ZZT!");
+                delete stream;
                 return false;
             } else {
-                world.board_count = stream.read16();
+                world.board_count = stream->read16();
             }
         }
 
-        world.info.ammo = stream.read16();
-        world.info.gems = stream.read16();
+        world.info.ammo = stream->read16();
+        world.info.gems = stream->read16();
         for (int i = 0; i < 7; i++) {
-            world.info.keys[i] = stream.read_bool();
+            world.info.keys[i] = stream->read_bool();
         }
-        world.info.health = stream.read16();
-        world.info.current_board = stream.read16();
-        world.info.torches = stream.read16();
-        world.info.torch_ticks = stream.read16();
-        world.info.energizer_ticks = stream.read16();
-        stream.read16();
-        world.info.score = stream.read16();
-        stream.read_pstring(world.info.name, StrSize(world.info.name), 20, false);
+        world.info.health = stream->read16();
+        world.info.current_board = stream->read16();
+        world.info.torches = stream->read16();
+        world.info.torch_ticks = stream->read16();
+        world.info.energizer_ticks = stream->read16();
+        stream->read16();
+        world.info.score = stream->read16();
+        stream->read_pstring(world.info.name, StrSize(world.info.name), 20, false);
         for (int i = 0; i < MAX_FLAG; i++) {
-            stream.read_pstring(world.info.flags[i], StrSize(world.info.flags[i]), 20, false);
+            stream->read_pstring(world.info.flags[i], StrSize(world.info.flags[i]), 20, false);
         }
-        world.info.board_time_sec = stream.read16();
-        world.info.board_time_hsec = stream.read16();
-        world.info.is_save = stream.read_bool();
+        world.info.board_time_sec = stream->read16();
+        world.info.board_time_hsec = stream->read16();
+        world.info.is_save = stream->read_bool();
 
-        stream.skip(512 - stream.tell());
+        stream->skip(512 - stream->tell());
 
         if (titleOnly) {
             world.board_count = 0;
@@ -685,25 +686,28 @@ bool Game::WorldLoad(const char *filename, const char *extension, bool titleOnly
         }
 
         for (int bid = 0; bid <= world.board_count; bid++) {
-            world.board_len[bid] = stream.read16();
-            if (stream.errored()) break;
+            world.board_len[bid] = stream->read16();
+            if (stream->errored()) break;
 
             world.board_data[bid] = (uint8_t*) malloc(world.board_len[bid]);
-            stream.read(world.board_data[bid], world.board_len[bid]);
+            stream->read(world.board_data[bid], world.board_len[bid]);
         }
 
-        if (!stream.errored()) {
+        if (!stream->errored()) {
             BoardOpen(world.info.current_board);
             StrCopy(loadedGameFileName, filename);
             highScoreList.Load(world.info.name);
             SidebarClearLine(5);
+            delete stream;
             return true;
         }
     }
 
-    if (stream.errored()) {
-        DisplayIOError(stream);
+    if (stream->errored()) {
+        DisplayIOError(*stream);
     }
+
+    delete stream;
     return false;
 }
 
@@ -713,55 +717,59 @@ bool Game::WorldSave(const char *filename, const char *extension) {
 
     char joinedName[256];
     StrJoin(joinedName, 2, filename, extension);
-    FileIOStream stream(joinedName, true);
+    IOStream *stream = filesystem->open_file(joinedName, true);
 
-    if (!stream.errored()) {
-        stream.write16(-1); /* version */
-        stream.write16(world.board_count);
+    if (!stream->errored()) {
+        stream->write16(-1); /* version */
+        stream->write16(world.board_count);
 
-        stream.write16(world.info.ammo);
-        stream.write16(world.info.gems);
+        stream->write16(world.info.ammo);
+        stream->write16(world.info.gems);
         for (int i = 0; i < 7; i++) {
-            stream.write_bool(world.info.keys[i]);
+            stream->write_bool(world.info.keys[i]);
         }
-        stream.write16(world.info.health);
-        stream.write16(world.info.current_board);
-        stream.write16(world.info.torches);
-        stream.write16(world.info.torch_ticks);
-        stream.write16(world.info.energizer_ticks);
-        stream.write16(0);
-        stream.write16(world.info.score);
-        stream.write_pstring(world.info.name, 20, false);
+        stream->write16(world.info.health);
+        stream->write16(world.info.current_board);
+        stream->write16(world.info.torches);
+        stream->write16(world.info.torch_ticks);
+        stream->write16(world.info.energizer_ticks);
+        stream->write16(0);
+        stream->write16(world.info.score);
+        stream->write_pstring(world.info.name, 20, false);
         for (int i = 0; i < MAX_FLAG; i++) {
-            stream.write_pstring(world.info.flags[i], 20, false);
+            stream->write_pstring(world.info.flags[i], 20, false);
         }
-        stream.write16(world.info.board_time_sec);
-        stream.write16(world.info.board_time_hsec);
-        stream.write_bool(world.info.is_save);
+        stream->write16(world.info.board_time_sec);
+        stream->write16(world.info.board_time_hsec);
+        stream->write_bool(world.info.is_save);
 
-        stream.skip(512 - stream.tell());
+        stream->skip(512 - stream->tell());
 
-        if (!stream.errored()) {
+        if (!stream->errored()) {
             for (int bid = 0; bid <= world.board_count; bid++) {
-                stream.write16(world.board_len[bid]);
-                if (stream.errored()) break;
-                stream.write(world.board_data[bid], world.board_len[bid]);
-                if (stream.errored()) break;
+                stream->write16(world.board_len[bid]);
+                if (stream->errored()) break;
+                stream->write(world.board_data[bid], world.board_len[bid]);
+                if (stream->errored()) break;
             }
 
-            if (!stream.errored()) {
+            if (!stream->errored()) {
                 BoardOpen(world.info.current_board);
                 SidebarClearLine(5);
+                delete stream;
                 return true;
             }
         }
     }
 
-    if (stream.errored()) {
-        stream = FileIOStream(joinedName, true);
+    if (stream->errored()) {
+        delete stream;
+        stream = filesystem->open_file(joinedName, true);
     }
+
     BoardOpen(world.info.current_board);
     SidebarClearLine(5);
+    delete stream;
     return false;
 }
 
@@ -783,7 +791,7 @@ void Game::GameWorldSave(const char *prompt, char* filename, size_t filename_len
 
 bool Game::GameWorldLoad(const char *extension) {
     const char *title = StrEquals(extension, ".ZZT") ? "ZZT Worlds" : "Saved Games";
-    FileSelector *selector = new FileSelector(video, input, sound, title, extension);
+    FileSelector *selector = new FileSelector(video, input, sound, filesystem, title, extension);
 
     if (selector->select()) {
         bool result = WorldLoad(selector->get_filename(), extension, false);
@@ -792,6 +800,7 @@ bool Game::GameWorldLoad(const char *extension) {
             delete selector;
             return true;
         } else {
+            // FIXME: at this point, the world has a player on it - should have a monitor
             TransitionDrawBoardChange();
         }
     }
@@ -1369,7 +1378,7 @@ void Game::GameDebugPrompt(void) {
 }
 
 void Game::GameAboutScreen(void) {
-    TextWindowDisplayFile(video, input, sound, "ABOUT.HLP", "About ZZT...");
+    TextWindowDisplayFile(video, input, sound, filesystem, "ABOUT.HLP", "About ZZT...");
 }
 
 void Game::GamePlayLoop(bool boardChanged) {
@@ -1632,7 +1641,7 @@ int Game::HandleMenu(const MenuEntry *entries, bool simulate) {
         sstring<10> numStr;
         const MenuEntry *entry = entries;
         const char *name;
-        TextWindow window = TextWindow(video, input, sound);
+        TextWindow window = TextWindow(video, input, sound, filesystem);
         StrCopy(window.title, "Menu");
         int i = 0;
         while (entry->id >= 0) {
