@@ -909,7 +909,11 @@ void ElementScrollTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id
     stat.data_pos = 0;
     game.OopExecute(stat_id, stat.data_pos, "Scroll");
 
-    game.RemoveStat(game.board.stats.id_at(x, y));
+    // OpenZoo: OopExecute may call RemoveStat before we do.
+    stat_id = game.board.stats.id_at(x, y);
+    if (stat_id != -1) {
+        game.RemoveStat(stat_id);
+    }
 }
 
 void ElementKeyTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
