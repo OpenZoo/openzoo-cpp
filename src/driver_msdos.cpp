@@ -7,6 +7,7 @@
 #include <dpmi.h>
 #include <go32.h>
 #include "driver_msdos.h"
+#include "filesystem_msdos.h"
 
 using namespace ZZT;
 
@@ -21,7 +22,7 @@ void ZZT::timerCallback(void) {
 	} else if (driver->_queue.is_playing) {
 		if ((--driver->duration_counter) <= 0) {
 			nosound();
-			uint8_t note, duration;
+			uint16_t note, duration;
 			if (!driver->_queue.pop(note, duration)) {
 				driver->_queue.is_playing = false;
 			} else {
@@ -185,7 +186,7 @@ int main(int argc, char** argv) {
 	game.input = &driver;
 	game.sound = &driver;
 	game.video = &driver;
-    game.filesystem = new PosixFilesystemDriver();
+    game.filesystem = new MsdosFilesystemDriver();
 
 	driver.install();
 

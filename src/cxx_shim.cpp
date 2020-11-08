@@ -30,3 +30,10 @@ void operator delete(void *p, size_t size) {
         free(p);
     }
 }
+
+namespace std {
+    // std::function hack
+    void __throw_bad_function_call() {
+        while(true) { }
+    }
+}

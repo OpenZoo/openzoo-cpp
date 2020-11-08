@@ -30,6 +30,7 @@ endif
 if DRIVER_MSDOS
 openzoo_SOURCES += \
 	src/driver_msdos.cpp \
+	src/filesystem_msdos.cpp \
 	src/filesystem_posix.cpp
 endif
 

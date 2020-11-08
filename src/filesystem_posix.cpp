@@ -66,7 +66,13 @@ PosixIOStream::~PosixIOStream() {
 
 PosixFilesystemDriver::PosixFilesystemDriver()
     : PathFilesystemDriver(nullptr, FILENAME_MAX, PATH_SEPARATOR, false) {
-    getcwd(this->current_path, max_path_length);
+    char *cwd_path = (char*) malloc(max_path_length + 1);
+    getcwd(cwd_path, max_path_length);
+    if (StrEmpty(cwd_path)) {
+        strcpy(cwd_path, ".");
+    }
+    realpath(cwd_path, this->current_path);
+    free(cwd_path);
 }
 
 Utils::IOStream *PosixFilesystemDriver::open_file_absolute(const char *filename, bool write) {
