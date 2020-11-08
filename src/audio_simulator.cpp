@@ -110,7 +110,7 @@ void AudioSimulator::simulate(uint8_t *stream, size_t len) {
         int32_t pos = 0;
         while (pos < len) {
             if (current_note < 0) {
-                uint8_t note, duration;
+                uint16_t note, duration;
                 if (!queue->pop(note, duration)) {
                     queue->is_playing = false;
                     memset(stream + pos, AUDIO_NONE, len - pos);
