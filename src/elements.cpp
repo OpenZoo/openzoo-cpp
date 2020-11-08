@@ -788,7 +788,10 @@ void ZZT::ElementPushablePush(Game &game, int16_t x, int16_t y, int16_t delta_x,
         if (to.element == ETransporter) {
             ElementTransporterMove(game, x, y, delta_x, delta_y);
         } else if (to.element != EEmpty) {
-            ElementPushablePush(game, x + delta_x, y + delta_y, delta_x, delta_y);
+            // OpenZoo: Fix crashes based on an element recursively pushing itself.
+            if (delta_x != 0 || delta_y != 0) {
+                ElementPushablePush(game, x + delta_x, y + delta_y, delta_x, delta_y);
+            }
         }
 
         if (!game.elementDefs[to.element].walkable
