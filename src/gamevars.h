@@ -12,6 +12,7 @@
 #include "txtwind.h"
 #include "high_scores.h"
 #include "user_interface.h"
+#include "world_serializer.h"
 
 #define MAX_BOARD 100
 #define MAX_STAT 150
@@ -446,14 +447,14 @@ namespace ZZT {
         bool parsingConfigFile;
         bool justStarted;
 
-        uint8_t *ioTmpBuf;
-
         VideoDriver *video;
         InputDriver *input;
         SoundDriver *sound;
         FilesystemDriver *filesystem;
 
         UserInterface *interface;
+        BoardSerializer *boardSerializer;
+        WorldSerializer *worldSerializer;
 
         inline const ElementDef& elementDefAt(int16_t x, int16_t y) const {
             uint8_t element = board.tiles.get(x, y).element;
@@ -514,7 +515,6 @@ namespace ZZT {
         void GameAboutScreen(void);
         void GamePlayLoop(bool boardChanged);
         void GameTitleLoop(void);
-        int HandleMenu(const MenuEntry *entries, bool simulate);
 
         // oop.cpp
         void OopError(Stat& stat, const char *message);

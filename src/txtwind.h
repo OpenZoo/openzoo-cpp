@@ -35,6 +35,7 @@ namespace ZZT {
 
     public:
         bool selectable;
+        uint8_t color;
         int16_t line_count;
         int16_t line_pos;
         Utils::DynString **lines;

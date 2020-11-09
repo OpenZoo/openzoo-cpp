@@ -16,7 +16,8 @@ openzoo_SOURCES = \
 	src/user_interface.cpp \
 	src/user_interface_slim.cpp \
 	src/utils.cpp \
-	src/video.cpp
+	src/video.cpp \
+	src/world_serializer.cpp
 
 if DRIVER_SDL2
 openzoo_SOURCES += \

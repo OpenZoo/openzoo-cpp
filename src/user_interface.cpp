@@ -296,3 +296,47 @@ void UserInterface::SidebarShowMessage(uint8_t color, const char *message) {
         video->draw_string(62, 5, 0x10 | (color & 0x0F), message);
     }
 }
+
+int UserInterface::HandleMenu(Game &game, const MenuEntry *entries, bool simulate) {
+    if (input->joy_button_pressed(JoyButtonStart, simulate)) {
+        if (simulate) {
+            return 1;
+        }
+
+        sstring<10> numStr;
+        const MenuEntry *entry = entries;
+        const char *name;
+        TextWindow window = TextWindow(video, input, sound, nullptr);
+        StrCopy(window.title, "Menu");
+        int i = 0;
+        while (entry->id >= 0) {
+            name = entry->get_name(&game);
+            if (name != NULL) {
+                StrFromInt(numStr, i);
+                window.Append(DynString("!") + numStr + ";" + name);
+            }
+            entry++; i++;
+        }
+        window.DrawOpen();
+        window.Select(true, false);
+        window.DrawClose();
+        if (!window.rejected && !StrEmpty(window.hyperlink)) {
+            int result = atoi(window.hyperlink);
+            return entries[result].id;
+        } else {
+            return -1;
+        }
+    } else {
+        const MenuEntry *entry = entries;
+        while (entry->id >= 0) {
+            if (entry->matches_key(UpCase(input->keyPressed))) {
+                return entry->id;
+            }
+            if (entry->joy_button != 0 && input->joy_button_pressed(entry->joy_button, simulate)) {
+                return entry->id;
+            }
+            entry++;
+        }
+    }
+    return -1;
+}

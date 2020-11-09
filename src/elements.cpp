@@ -927,6 +927,7 @@ void ElementKeyTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, i
     int16_t key = (game.board.tiles.get(x, y).color) & 0x07; 
     uint8_t value = key == 0 ? (game.world.info.gems >> 8) : (game.world.info.keys[key - 1] ? 1 : 0);
 
+    // OpenZoo: Explicit handling for Black Keys/Doors (portability).
     if (value != 0) {
         if (key == 0) StrCopy(message, "You already have a Black key?");
         else StrJoin(message, 3, "You already have a ", ColorNames[key - 1], " key!");
@@ -987,6 +988,7 @@ void ElementDoorTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, 
     int16_t key = (game.board.tiles.get(x, y).color >> 4) & 0x07; 
     uint8_t value = key == 0 ? (game.world.info.gems >> 8) : (game.world.info.keys[key - 1] ? 1 : 0);
 
+    // OpenZoo: Explicit handling for Black Keys/Doors (portability).
     if (value != 0) {
         game.board.tiles.set_element(x, y, EEmpty);
         game.BoardDrawTile(x, y);
@@ -1285,7 +1287,7 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
         }
     }
 
-    switch (game.HandleMenu(PlayMenu, false)) {
+    switch (game.interface->HandleMenu(game, PlayMenu, false)) {
         case 'T': {
             if (game.world.info.torch_ticks <= 0) {
                 if (game.world.info.torches > 0) {
@@ -1374,7 +1376,7 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
 }
 
 void ElementMonitorTick(Game &game, int16_t stat_id) {
-    if (game.HandleMenu(TitleMenu, true) > 0) {
+    if (game.interface->HandleMenu(game, TitleMenu, true) > 0) {
         game.gamePlayExitRequested = true;
     }
 }

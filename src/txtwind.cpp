@@ -42,6 +42,7 @@ TextWindow::TextWindow(VideoDriver *video, InputDriver *input, SoundDriver *soun
     StrClear(this->loaded_filename);
     this->screenCopy = nullptr;
     lines = (DynString**) malloc(sizeof(DynString*) * MAX_TEXT_WINDOW_LINES);
+    this->color = 0x10;
 }
 
 TextWindow::~TextWindow() {
@@ -86,7 +87,7 @@ void TextWindow::DrawOpen(void) {
     }
 
     DrawBorderLine(window_y + 2, WinPatSeparator);
-    DrawTitle(0x1E, title);
+    DrawTitle(color | 0x0E, title);
 }
 
 void TextWindow::DrawClose(void) {
@@ -124,10 +125,10 @@ void TextWindow::DrawLine(int16_t lpos, bool withoutFormatting, bool viewingFile
 
 	line_y = (window_y + lpos - line_pos) + (window_height >> 1) + 1;
 	same_line = lpos == line_pos;
-	video->draw_char(window_x + 2, line_y, 0x1C, same_line ? '\xAF' : ' ');
-	video->draw_char(window_x + window_width - 3, line_y, 0x1C, same_line ? '\xAE' : ' ');
+	video->draw_char(window_x + 2, line_y, color | 0x0C, same_line ? '\xAF' : ' ');
+	video->draw_char(window_x + window_width - 3, line_y, color | 0x0C, same_line ? '\xAE' : ' ');
 
-	text_color = 0x1E;
+	text_color = color | 0x0E;
 	text_x = 0;
 	text_width = (window_width - 7);
 
@@ -144,16 +145,16 @@ void TextWindow::DrawLine(int16_t lpos, bool withoutFormatting, bool viewingFile
 				if (tmp != NULL) str = tmp + 1;
 				draw_arrow = true;
 				text_x += 5;
-				text_color = 0x1F;
+				text_color = color | 0x0F;
 				break;
 			case ':':
 				tmp = strchr(str, ';');
 				if (tmp != NULL) str = tmp + 1;
-				text_color = 0x1F;
+				text_color = color | 0x0F;
 				break;
 			case '$':
 				str++;
-				text_color = 0x1F;
+				text_color = color | 0x0F;
 				// (window_width - 8 - strlen(str)) / 2
 				text_x = (text_width - 1 - strlen(str)) >> 1;
 				break;
@@ -163,7 +164,7 @@ void TextWindow::DrawLine(int16_t lpos, bool withoutFormatting, bool viewingFile
     if (str != NULL) {
         for (int i = -text_x - 1; i < (text_width - text_x); i++) {
             if (draw_arrow && i == -3) {
-                video->draw_char(window_x + 4 + i + text_x, line_y, 0x1D, '\x10');
+                video->draw_char(window_x + 4 + i + text_x, line_y, color | 0x0D, '\x10');
             } else {
                 video->draw_char(window_x + 4 + i + text_x, line_y, text_color,
                     (i >= 0 && i < strlen(str)) ? str[i] : ' ');
@@ -179,11 +180,11 @@ void TextWindow::DrawLine(int16_t lpos, bool withoutFormatting, bool viewingFile
     
     if (viewingFile) {
         if (lpos == -4) {
-            video->draw_string(window_x + 2, line_y, 0x1A, "   Use            to view text,");
-            video->draw_string(window_x + 2 + 7, line_y, 0x1F, "\x18 \x19, Enter");
+            video->draw_string(window_x + 2, line_y, color | 0x0A, "   Use            to view text,");
+            video->draw_string(window_x + 2 + 7, line_y, color | 0x0F, "\x18 \x19, Enter");
         } else if (lpos == -3) {
-            video->draw_string(window_x + 2, line_y, 0x1A, "                  to print.");
-            video->draw_string(window_x + 2 + 12, line_y, 0x1F, "Alt-P");
+            video->draw_string(window_x + 2, line_y, color | 0x0A, "                  to print.");
+            video->draw_string(window_x + 2 + 12, line_y, color | 0x0F, "Alt-P");
         }
 	}
 }
@@ -192,7 +193,7 @@ void TextWindow::Draw(bool withoutFormatting, bool viewingFile) {
     for (int i = 0; i <= window_height - 4; i++) {
         DrawLine(line_pos - (window_height / 2) + i + 2, withoutFormatting, viewingFile);
     }
-    DrawTitle(0x1E, title);
+    DrawTitle(color | 0x0E, title);
 }
 
 void TextWindow::Select(bool hyperlinkAsSelect, bool viewingFile) {
@@ -278,7 +279,7 @@ void TextWindow::Select(bool hyperlinkAsSelect, bool viewingFile) {
             Draw(false, viewingFile);
 
             if (lines[line_pos]->length() > 0 && (*lines[line_pos])[0] == '!') {
-                DrawTitle(0x1E, hyperlinkAsSelect
+                DrawTitle(color | 0x0E, hyperlinkAsSelect
                     ? "\xAEPress ENTER to select this\xAF"
                     : "\xAEPress ENTER for more info\xAF"
                 );
@@ -325,7 +326,7 @@ void TextWindow::Edit(void) {
     int16_t char_pos = 0;
     Draw(true, false);
     do {
-        video->draw_string(77, 14, 0x1E, insert_mode ? "on " : "off");
+        video->draw_string(77, 14, color | 0x0E, insert_mode ? "on " : "off");
 
         if (char_pos >= lines[line_pos]->length()) {
             char_pos = lines[line_pos]->length();

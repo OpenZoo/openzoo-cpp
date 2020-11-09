@@ -29,7 +29,9 @@ const uint8_t ZZT::LineChars[16] = {
 };
 
 Game::Game(void): highScoreList(this) {
-    ioTmpBuf = (uint8_t*) malloc(20000);
+    boardSerializer = new SerializerFormatZZT();
+    worldSerializer = new SerializerFormatZZT();
+
     tickSpeed = 4;
     debugEnabled = false;
 #ifndef DISABLE_EDITOR
@@ -44,7 +46,8 @@ Game::Game(void): highScoreList(this) {
 }
 
 Game::~Game() {
-    free(ioTmpBuf);
+    free(boardSerializer);
+    free(worldSerializer);
 }
 
 void Game::GenerateTransitionTable(void) {
@@ -77,109 +80,25 @@ void Game::SidebarClear(void) {
     }
 }
 
-static Tile ioReadTile(IOStream &stream) {
-    uint8_t e = stream.read8();
-    uint8_t c = stream.read8();
-    return { .element = e, .color = c };
-}
-
-static void ioWriteTile(IOStream &stream, Tile &tile) {
-    stream.write8(tile.element);
-    stream.write8(tile.color);
-}
-
 void Game::BoardClose() {
-    MemoryIOStream stream(ioTmpBuf, 20000, true);
+    size_t buflen = boardSerializer->estimate_buffer_size(board);
+    uint8_t *buffer = (uint8_t*) malloc(buflen);
+    MemoryIOStream stream(buffer, buflen, true);
 
-    stream.write_pstring(board.name, 50, false);
+    boardSerializer->serialize(board, stream);
 
-    int16_t ix = 1;
-    int16_t iy = 1;
-    RLETile rle = {
-        .count = 1,
-        .tile = board.tiles.get(ix, iy)
-    };
-    do {
-        ix++;
-        if (ix > board.width()) {
-            ix = 1;
-            iy++;
-        }
-        Tile cur = board.tiles.get(ix, iy);
-        if (cur.color == rle.tile.color && cur.element == rle.tile.element && rle.count < 255 && iy <= board.height()) {
-            rle.count++;
-        } else {
-            stream.write8(rle.count);
-            ioWriteTile(stream, rle.tile);
-            rle.tile = cur;
-            rle.count = 1;
-        }
-    } while (iy <= board.height());
-
-    stream.write8(board.info.max_shots);
-    stream.write_bool(board.info.is_dark);
-    for (int i = 0; i < 4; i++)
-        stream.write8(board.info.neighbor_boards[i]);
-    stream.write_bool(board.info.reenter_when_zapped);
-    stream.write_pstring(board.info.message, 58, false);
-    stream.write8(board.info.start_player_x);
-    stream.write8(board.info.start_player_y);
-    stream.write16(board.info.time_limit_seconds);
-    stream.skip(16);
-
-    stream.write16(board.stats.count);
     for (int i = 0; i <= board.stats.count; i++) {
-        Stat& stat = board.stats[i];
-
-        if (stat.data.len > 0) {
-            // OpenZoo: Reverse order mimics ZZT's missing break.
-            for (int j = (i - 1); j >= 1; j--) {
-                if (board.stats[j].data == stat.data) {
-                    stat.data.len = -j;
-                    break;
-                }
-            }
-        }
-
-        stream.write8(stat.x);
-        stream.write8(stat.y);
-        stream.write16(stat.step_x);
-        stream.write16(stat.step_y);
-        stream.write16(stat.cycle);
-        stream.write8(stat.p1);
-        stream.write8(stat.p2);
-        stream.write8(stat.p3);
-        stream.write16(stat.follower);
-        stream.write16(stat.leader);
-        ioWriteTile(stream, stat.under);
-        stream.write32(0);
-        stream.write16(stat.data_pos);
-        stream.write16(stat.data.len);
-        stream.skip(8);
-
-        if (stat.data.len > 0) {
-            stream.write((uint8_t*) stat.data.data, stat.data.len);
-        }
-    }
-
-    // Reimplement free_data_if_unused using previous information
-    // to avoid unnecessary loops.
-    for (int i = 0; i <= board.stats.count; i++) {
-        Stat& stat = board.stats[i];
-        
-        if (stat.data.len > 0) {
-            stat.data.free_data();
-        } else {
-            stat.data.clear_data();
-        }
+        board.stats.free_data_if_unused(i);
     }
 
     if (world.board_len[world.info.current_board] > 0) {
         free(world.board_data[world.info.current_board]);
     }
     world.board_len[world.info.current_board] = stream.tell();
-    world.board_data[world.info.current_board] = (uint8_t*) malloc(world.board_len[world.info.current_board]);
-    memcpy(world.board_data[world.info.current_board], ioTmpBuf, world.board_len[world.info.current_board]);
+    world.board_data[world.info.current_board] = (uint8_t*) realloc(buffer, stream.tell());
+    if (world.board_data[world.info.current_board] == nullptr) {
+        world.board_data[world.info.current_board] = buffer;
+    }
 }
 
 void Game::BoardOpen(int16_t board_id) {
@@ -189,69 +108,8 @@ void Game::BoardOpen(int16_t board_id) {
 
     MemoryIOStream stream(world.board_data[board_id], world.board_len[board_id], false);
 
-    stream.read_pstring(board.name, StrSize(board.name), 50, false);
+    boardSerializer->deserialize(board, stream);
 
-    int16_t ix = 1;
-    int16_t iy = 1;
-    RLETile rle = {
-        .count = 0
-    };
-    do {
-        if (rle.count <= 0) {
-            rle.count = stream.read8();
-            rle.tile = ioReadTile(stream);
-        }
-        board.tiles.set(ix, iy, rle.tile);
-        ix++;
-        if (ix > board.width()) {
-            ix = 1;
-            iy++;
-        }
-        rle.count--;
-    } while (iy <= board.height());
-
-    board.info.max_shots = stream.read8();
-    board.info.is_dark = stream.read_bool();
-    for (int i = 0; i < 4; i++)
-        board.info.neighbor_boards[i] = stream.read8();
-    board.info.reenter_when_zapped = stream.read_bool();
-    stream.read_pstring(board.info.message, StrSize(board.info.message), 58, false);
-    board.info.start_player_x = stream.read8();
-    board.info.start_player_y = stream.read8();
-    board.info.time_limit_seconds = stream.read16();
-    stream.skip(16);
-
-    board.stats.count = stream.read16();
-
-    for (int i = 0; i <= board.stats.count; i++) {
-        Stat& stat = board.stats[i];
-
-        stat.x = stream.read8();
-        stat.y = stream.read8();
-        stat.step_x = stream.read16();
-        stat.step_y = stream.read16();
-        stat.cycle = stream.read16();
-        stat.p1 = stream.read8();
-        stat.p2 = stream.read8();
-        stat.p3 = stream.read8();
-        stat.follower = stream.read16();
-        stat.leader = stream.read16();
-        stat.under = ioReadTile(stream);
-        stream.skip(4);
-        stat.data_pos = stream.read16();
-        int16_t len = stream.read16();
-        stream.skip(8);
-
-        if (len < 0) {
-            stat.data = board.stats[-len].data;
-        } else {
-            stat.data.alloc_data(len);
-            if (len > 0) {
-                stream.read((uint8_t*) stat.data.data, len);
-            }
-        }
-    }
-    
     world.info.current_board = board_id;
 }
 
@@ -569,58 +427,12 @@ bool Game::WorldLoad(const char *filename, const char *extension, bool titleOnly
 
     if (!stream->errored()) {
         WorldUnload();
-        world.board_count = stream->read16();
-        if (world.board_count < 0) {
-            if (world.board_count != -1) {
-                // TODO UserInterface
-                // video->draw_string(63, 5, 0x1E, "You need a newer");
-                // video->draw_string(63, 6, 0x1E, " version of ZZT!");
-                delete stream;
-                return false;
-            } else {
-                world.board_count = stream->read16();
-            }
-        }
-
-        world.info.ammo = stream->read16();
-        world.info.gems = stream->read16();
-        for (int i = 0; i < 7; i++) {
-            world.info.keys[i] = stream->read_bool();
-        }
-        world.info.health = stream->read16();
-        world.info.current_board = stream->read16();
-        world.info.torches = stream->read16();
-        world.info.torch_ticks = stream->read16();
-        world.info.energizer_ticks = stream->read16();
-        stream->read16();
-        world.info.score = stream->read16();
-        stream->read_pstring(world.info.name, StrSize(world.info.name), 20, false);
-        for (int i = 0; i < MAX_FLAG; i++) {
-            stream->read_pstring(world.info.flags[i], StrSize(world.info.flags[i]), 20, false);
-        }
-        world.info.board_time_sec = stream->read16();
-        world.info.board_time_hsec = stream->read16();
-        world.info.is_save = stream->read_bool();
-
-        stream->skip(512 - stream->tell());
-
-        if (titleOnly) {
-            world.board_count = 0;
-            world.info.current_board = 0;
-            world.info.is_save = true;
-        }
-
-        for (int bid = 0; bid <= world.board_count; bid++) {
+        
+        bool result = worldSerializer->deserialize(world, *stream, titleOnly, [this](auto bid) {
             interface->SidebarShowMessage(ProgressAnimColors[bid & 7], ProgressAnimStrings[bid & 7]);
+        });
 
-            world.board_len[bid] = stream->read16();
-            if (stream->errored()) break;
-
-            world.board_data[bid] = (uint8_t*) malloc(world.board_len[bid]);
-            stream->read(world.board_data[bid], world.board_len[bid]);
-        }
-
-        if (!stream->errored()) {
+        if (result) {
             BoardOpen(world.info.current_board);
             StrCopy(loadedGameFileName, filename);
             highScoreList.Load(world.info.name);
@@ -647,45 +459,13 @@ bool Game::WorldSave(const char *filename, const char *extension) {
     IOStream *stream = filesystem->open_file(joinedName, true);
 
     if (!stream->errored()) {
-        stream->write16(-1); /* version */
-        stream->write16(world.board_count);
+        bool result = worldSerializer->serialize(world, *stream, [](auto i){});
 
-        stream->write16(world.info.ammo);
-        stream->write16(world.info.gems);
-        for (int i = 0; i < 7; i++) {
-            stream->write_bool(world.info.keys[i]);
-        }
-        stream->write16(world.info.health);
-        stream->write16(world.info.current_board);
-        stream->write16(world.info.torches);
-        stream->write16(world.info.torch_ticks);
-        stream->write16(world.info.energizer_ticks);
-        stream->write16(0);
-        stream->write16(world.info.score);
-        stream->write_pstring(world.info.name, 20, false);
-        for (int i = 0; i < MAX_FLAG; i++) {
-            stream->write_pstring(world.info.flags[i], 20, false);
-        }
-        stream->write16(world.info.board_time_sec);
-        stream->write16(world.info.board_time_hsec);
-        stream->write_bool(world.info.is_save);
-
-        stream->skip(512 - stream->tell());
-
-        if (!stream->errored()) {
-            for (int bid = 0; bid <= world.board_count; bid++) {
-                stream->write16(world.board_len[bid]);
-                if (stream->errored()) break;
-                stream->write(world.board_data[bid], world.board_len[bid]);
-                if (stream->errored()) break;
-            }
-
-            if (!stream->errored()) {
-                BoardOpen(world.info.current_board);
-                interface->SidebarHideMessage();
-                delete stream;
-                return true;
-            }
+        if (result) {
+            BoardOpen(world.info.current_board);
+            interface->SidebarHideMessage();
+            delete stream;
+            return true;
         }
     }
 
@@ -1344,7 +1124,7 @@ void Game::GameTitleLoop(void) {
             GamePlayLoop(boardChanged);
             boardChanged = false;
 
-            switch (HandleMenu(TitleMenu, false)) {
+            switch (interface->HandleMenu(*this, TitleMenu, false)) {
                 case 'W': {
                     if (GameWorldLoad(".ZZT")) {
                         returnBoardId = world.info.current_board;
@@ -1407,48 +1187,4 @@ void Game::GameTitleLoop(void) {
             }
         } while (!boardChanged && !gameTitleExitRequested);
     } while (!gameTitleExitRequested);
-}
-
-int Game::HandleMenu(const MenuEntry *entries, bool simulate) {
-    if (input->joy_button_pressed(JoyButtonStart, simulate)) {
-        if (simulate) {
-            return 1;
-        }
-
-        sstring<10> numStr;
-        const MenuEntry *entry = entries;
-        const char *name;
-        TextWindow window = TextWindow(video, input, sound, filesystem);
-        StrCopy(window.title, "Menu");
-        int i = 0;
-        while (entry->id >= 0) {
-            name = entry->get_name(this);
-            if (name != NULL) {
-                StrFromInt(numStr, i);
-                window.Append(DynString("!") + numStr + ";" + name);
-            }
-            entry++; i++;
-        }
-        window.DrawOpen();
-        window.Select(true, false);
-        window.DrawClose();
-        if (!window.rejected && !StrEmpty(window.hyperlink)) {
-            int result = atoi(window.hyperlink);
-            return entries[result].id;
-        } else {
-            return -1;
-        }
-    } else {
-        const MenuEntry *entry = entries;
-        while (entry->id >= 0) {
-            if (entry->matches_key(UpCase(input->keyPressed))) {
-                return entry->id;
-            }
-            if (entry->joy_button != 0 && input->joy_button_pressed(entry->joy_button, simulate)) {
-                return entry->id;
-            }
-            entry++;
-        }
-    }
-    return -1;
 }
