@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib> // TODO
 #include "utils.h"
 #include "filesystem.h"
 #include "input.h"
@@ -109,6 +110,51 @@ namespace ZZT {
         Tile tile;
     };
 
+    class StatData {
+    public:
+        char *data = nullptr;
+        int16_t len = 0;
+    
+        StatData() = default;
+
+        inline bool operator==(const StatData &b) const {
+            return data == b.data;
+        }
+
+        inline bool operator!=(const StatData &b) const {
+            return data != b.data;
+        }
+
+        inline void duplicate() {
+            if (data != nullptr && len > 0) {
+                char *new_data = (char*) malloc(len);
+                memcpy(new_data, data, len);
+                data = new_data;
+            }
+        }
+
+        inline void clear_data() {
+            data = nullptr;
+            len = 0;
+        }
+
+        inline void free_data() {
+            if (data != nullptr && len > 0) {
+                free(data);
+                clear_data();
+            }
+        }
+
+        inline void alloc_data(int16_t length) {
+            if (len != length) {
+                len = length;
+                if (len > 0) {
+                    data = (char*) malloc(len);
+                }
+            }
+        }
+    };
+
     struct Stat {
         uint8_t x = 0, y = 0;
         int16_t step_x = 0, step_y = 0;
@@ -119,9 +165,8 @@ namespace ZZT {
             .element = 0,
             .color = 0x00
         };
-        char *data = nullptr;
+        StatData data = StatData();
         int16_t data_pos = 0;
-        int16_t data_len = 0;
     };
 
     struct BoardInfo {
@@ -208,8 +253,10 @@ namespace ZZT {
                     .element = 1,
                     .color = 0x00
                 },
-                .data_pos = 1,
-                .data_len = 1
+                .data = {
+                    .len = 1
+                },
+                .data_pos = 1
             };
         }
 
@@ -245,6 +292,26 @@ namespace ZZT {
 
         bool valid(int16_t value) {
             return value >= -1 && value <= (size + 1);
+        }
+
+        void free_data_if_unused(int16_t stat_id) {
+            if (!valid(stat_id)) return;
+            Stat &stat = stats[stat_id + 1];
+            if (stat.data.len != 0) {
+                bool found = false;
+                for (int i = 0; i <= count; i++) {
+                    if (i == stat_id) continue;
+                    if (stats[i + 1].data == stat.data) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (found) {
+                    stat.data.clear_data();
+                } else {
+                    stat.data.free_data();
+                }
+            }
         }
     };
 

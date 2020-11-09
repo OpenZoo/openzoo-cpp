@@ -16,8 +16,8 @@ void Game::OopError(Stat& stat, const char *message) {
 }
 
 void Game::OopReadChar(Stat& stat, int16_t& position) {
-	if (position >= 0 && position < stat.data_len) {
-		oopChar = stat.data[position++];
+	if (position >= 0 && position < stat.data.len) {
+		oopChar = stat.data.data[position++];
 	} else {
 		oopChar = 0;
 	}
@@ -154,7 +154,7 @@ int16_t Game::OopFindString(Stat& stat, const char *str) {
 	int16_t pos = 0;
 	size_t str_len = strlen(str);
 
-	while (pos <= stat.data_len) {
+	while (pos <= stat.data.len) {
 		size_t word_pos = 0;
 		int16_t cmp_pos = pos;
 		do {
@@ -204,7 +204,7 @@ bool Game::OopIterateStat(int16_t stat_id, int16_t &i_stat, const char *lookup) 
 	} else {
 		while (i_stat <= board.stats.count) {
 			Stat &stat = board.stats[i_stat];
-			if (stat.data != nullptr) {
+			if (stat.data.len > 0) {
 				int16_t pos = 0;
 				OopReadChar(stat, pos);
 				if (oopChar == '@') {
@@ -470,22 +470,6 @@ bool Game::OopSend(int16_t stat_id, const char *sendLabel, bool ignoreLock) {
 	return result;
 }
 
-// FIX: Normal ZZT would free stat data, but the dangling pointer
-// (on DOS) would continue pointing to the old stat data.
-// We avoid this here.
-static void freeDataIfUnused(Game &game, int16_t stat_id) {
-	Stat &stat = game.board.stats[stat_id];
-
-	for (int i = 0; i <= game.board.stats.count; i++) {
-		if (i != stat_id && game.board.stats[i].data == stat.data) {
-			return;
-		}
-	}
-
-	free(stat.data);
-	stat.data = nullptr;
-}
-
 void Game::OopExecute(int16_t stat_id, int16_t &position, const char *default_name) {
 StartParsing:
 	TextWindow textWindow = TextWindow(video, input, sound, filesystem);
@@ -683,7 +667,7 @@ ReadCommand:
 						int16_t labelStatId = 0;
 						int16_t labelDataPos;
 						while (OopFindLabel(stat_id, oopWordCopy, labelStatId, labelDataPos, "\r:")) {
-							board.stats[labelStatId].data[labelDataPos + 1] = '\'';
+							board.stats[labelStatId].data.data[labelDataPos + 1] = '\'';
 						}
 					} else if (StrEquals(oopWord, "RESTORE")) {
 						OopReadWord(stat, position);
@@ -699,7 +683,7 @@ ReadCommand:
 							Stat &labelStat = board.stats[labelStatId];
 
 							do {
-								labelStat.data[labelDataPos + 1] = ':';
+								labelStat.data.data[labelDataPos + 1] = ':';
 								labelDataPos = OopFindString(labelStat, oopSearchStr);
 							} while (labelDataPos > 0);
 						}
@@ -800,9 +784,8 @@ ReadCommand:
 						StrCopy(oopWordCopy, oopWord);
 						int16_t bindStatId = 0;
 						if (OopIterateStat(stat_id, bindStatId, oopWordCopy)) {
-							freeDataIfUnused(*this, stat_id);
+							board.stats.free_data_if_unused(stat_id);
 							stat.data = board.stats[bindStatId].data;
-							stat.data_len = board.stats[bindStatId].data_len;
 							position = 0;
 						}
 					} else {

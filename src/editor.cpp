@@ -27,14 +27,12 @@ static const char NeighborBoardStrs[4][8] = {
 };
 
 EditorCopiedTile::EditorCopiedTile() {
-    stat.data = nullptr;
+    stat.data.free_data();
     Clear();
 }
 
 EditorCopiedTile::~EditorCopiedTile() {
-    if (stat.data != nullptr) {
-        free(stat.data);
-    }
+    stat.data.free_data();
 }
 
 void EditorCopiedTile::Clear(void) {
@@ -43,10 +41,7 @@ void EditorCopiedTile::Clear(void) {
     tile.color = 0x0F;
     preview_char = 0;
     preview_color = 0x0F;
-    if (stat.data != nullptr) {
-        free(stat.data);
-        stat.data = nullptr;
-    }
+    stat.data.free_data();
 }
 
 Editor::Editor(Game *game) {
@@ -171,12 +166,7 @@ void Editor::CopyPattern(int16_t x, int16_t y, EditorCopiedTile &copied) {
     if (copied.has_stat) {
         const Stat &stat = game->board.stats[stat_id];
         copied.stat = stat;
-        if (copied.stat.data_len > 0) {
-            copied.stat.data = (char*) malloc(copied.stat.data_len);
-            memcpy(copied.stat.data, stat.data, copied.stat.data_len);
-        } else {
-            copied.stat.data_len = 0;
-        }
+        copied.stat.data.duplicate();
     }
     
     // generate preview
@@ -479,12 +469,11 @@ void Editor::EditStatText(int16_t stat_id, const char *prompt) {
     window.selectable = false;
     CopyStatDataToTextWindow(stat, window);
 
-    if (stat.data_len > 0) {
+    if (stat.data.len > 0) {
         for (int i = 0; i <= game->board.stats.count; i++) {
             affected_stats[i] = game->board.stats[i].data == stat.data;
         }
-        free(stat.data);
-        stat.data_len = 0;
+        stat.data.free_data();
     } else {
         memset(affected_stats, 0, game->board.stats.count + 2);
     }
@@ -492,21 +481,20 @@ void Editor::EditStatText(int16_t stat_id, const char *prompt) {
     DrawTextEditSidebar();
     window.Edit();
 
-    stat.data_len = 0;
+    int16_t len = 0;
     for (int i = 0; i < window.line_count; i++) {
-        stat.data_len += window.lines[i]->length() + 1;
+        len += window.lines[i]->length() + 1;
     }
-    stat.data = (char*) malloc(stat.data_len);
+    stat.data.alloc_data(len);
 
     for (int i = 0; i <= game->board.stats.count; i++) {
         if (i == stat_id) continue;
         if (affected_stats[i]) {
             game->board.stats[i].data = stat.data;
-            game->board.stats[i].data_len = stat.data_len;
         }
     }
 
-    char *data_ptr = stat.data;
+    char *data_ptr = stat.data.data;
     for (int i = 0; i < window.line_count; i++) {
         int len = window.lines[i]->length();
         memcpy(data_ptr, window.lines[i]->c_str(), len);

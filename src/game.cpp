@@ -130,10 +130,13 @@ void Game::BoardClose() {
     stream.write16(board.stats.count);
     for (int i = 0; i <= board.stats.count; i++) {
         Stat& stat = board.stats[i];
-        if (stat.data_len > 0) {
-            for (int j = 1; j <= (i - 1); j++) {
+
+        if (stat.data.len > 0) {
+            // OpenZoo: Reverse order mimics ZZT's missing break.
+            for (int j = (i - 1); j >= 1; j--) {
                 if (board.stats[j].data == stat.data) {
-                    stat.data_len = -j;
+                    stat.data.len = -j;
+                    break;
                 }
             }
         }
@@ -151,11 +154,23 @@ void Game::BoardClose() {
         ioWriteTile(stream, stat.under);
         stream.write32(0);
         stream.write16(stat.data_pos);
-        stream.write16(stat.data_len);
+        stream.write16(stat.data.len);
         stream.skip(8);
 
-        if (stat.data_len > 0) {
-            stream.write((uint8_t*) stat.data, stat.data_len);
+        if (stat.data.len > 0) {
+            stream.write((uint8_t*) stat.data.data, stat.data.len);
+        }
+    }
+
+    // Reimplement free_data_if_unused using previous information
+    // to avoid unnecessary loops.
+    for (int i = 0; i <= board.stats.count; i++) {
+        Stat& stat = board.stats[i];
+        
+        if (stat.data.len > 0) {
+            stat.data.free_data();
+        } else {
+            stat.data.clear_data();
         }
     }
 
@@ -207,6 +222,7 @@ void Game::BoardOpen(int16_t board_id) {
     stream.skip(16);
 
     board.stats.count = stream.read16();
+
     for (int i = 0; i <= board.stats.count; i++) {
         Stat& stat = board.stats[i];
 
@@ -223,15 +239,16 @@ void Game::BoardOpen(int16_t board_id) {
         stat.under = ioReadTile(stream);
         stream.skip(4);
         stat.data_pos = stream.read16();
-        stat.data_len = stream.read16();
+        int16_t len = stream.read16();
         stream.skip(8);
 
-        if (stat.data_len > 0) {
-            stat.data = (char*) malloc(stat.data_len);
-            stream.read((uint8_t*) stat.data, stat.data_len);
-        } else if (stat.data_len < 0) {
-            stat.data = board.stats[-stat.data_len].data;
-            stat.data_len = board.stats[-stat.data_len].data_len;
+        if (len < 0) {
+            stat.data = board.stats[-len].data;
+        } else {
+            stat.data.alloc_data(len);
+            if (len > 0) {
+                stream.read((uint8_t*) stat.data.data, len);
+            }
         }
     }
     
@@ -720,14 +737,13 @@ bool Game::GameWorldLoad(const char *extension) {
 }
 
 void ZZT::CopyStatDataToTextWindow(const Stat &stat, TextWindow &window) {
-    const char *data_ptr = stat.data;
     DynString s = "";
     int data_str_pos = 0;
     
     window.Clear();
 
-    for (int i = 0; i < stat.data_len; i++, data_ptr++) {
-        char ch = *data_ptr;
+    for (int i = 0; i < stat.data.len; i++) {
+        char ch = stat.data.data[i];
         if (ch == '\r') {
             window.Append(s);
             s = "";
@@ -751,12 +767,8 @@ void Game::AddStat(int16_t x, int16_t y, uint8_t element, uint8_t color, int16_t
         stat.y = y;
         stat.cycle = cycle;
         stat.under = board.tiles.get(x, y);
+        stat.data.duplicate();
         stat.data_pos = 0;
-
-        if (tpl.data != nullptr) {
-            stat.data = (char*) malloc(tpl.data_len);
-            memcpy(stat.data, tpl.data, stat.data_len);
-        }
 
         board.tiles.set(x, y, {
             .element = element,
@@ -773,21 +785,7 @@ void Game::AddStat(int16_t x, int16_t y, uint8_t element, uint8_t color, int16_t
 
 void Game::RemoveStat(int16_t stat_id) {
     Stat& stat = board.stats[stat_id];
-
-    if (stat.data_len != 0) {
-        bool found = false;
-        for (int i = 1; i <= board.stats.count; i++) {
-            if (i == stat_id) continue;
-            if (board.stats[i].data == stat.data) {
-                found = true;
-                break;
-            }
-        }
-        if (!found) {
-            free(stat.data);
-            stat.data = nullptr;
-        }
-    }
+    board.stats.free_data_if_unused(stat_id);
 
     if (stat_id < currentStatTicked) {
         currentStatTicked--;
