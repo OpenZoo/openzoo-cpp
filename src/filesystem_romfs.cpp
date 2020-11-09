@@ -24,10 +24,12 @@ static inline uint32_t romfs_read32(const uint8_t *ptr) {
 }
 
 RomfsFilesystemDriver::RomfsFilesystemDriver(const void *ptr)
-    : PathFilesystemDriver("/", 255, '/', true) {
+    : PathFilesystemDriver("/", 128, '/', true) {
     this->ptr = (const uint8_t *) ptr;
-	this->root_ptr = this->root_ptr + ((16 + strlen((char*) (this->root_ptr + 16)) + 16) & (~15));
     this->valid = memcmp(this->ptr, "-rom1fs-", 8) == 0;
+	if (this->valid) {
+		this->root_ptr = this->ptr + ((16 + strlen((char*) (this->ptr + 16)) + 16) & (~15));
+	}
 }
 
 Utils::IOStream *RomfsFilesystemDriver::open_file_absolute(const char *name, bool write) {

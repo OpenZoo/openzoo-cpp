@@ -1189,7 +1189,7 @@ void Game::GamePromptEndPlay(void) {
         gamePlayExitRequested = true;
         BoardDrawBorder();
     } else {
-        gamePlayExitRequested = SidebarPromptYesNo("End this game?", true);
+        gamePlayExitRequested = interface->SidebarPromptYesNo("End this game?", true);
         if (input->keyPressed == KeyEscape) {
             gamePlayExitRequested = false;
         }

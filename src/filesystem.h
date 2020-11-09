@@ -18,6 +18,8 @@ namespace ZZT {
         FilesystemDriver(bool read_only);
 
     public:
+        virtual ~FilesystemDriver() { }
+
         // required
         virtual Utils::IOStream *open_file(const char *filename, bool write) = 0;
         virtual bool list_files(std::function<bool(FileEntry&)> callback) = 0;
@@ -27,6 +29,14 @@ namespace ZZT {
         inline bool is_read_only() {
             return read_only;
         }
+    };
+
+    class NullFilesystemDriver: public FilesystemDriver {
+    public:
+        NullFilesystemDriver();
+
+        virtual Utils::IOStream *open_file(const char *filename, bool write) override;
+        virtual bool list_files(std::function<bool(FileEntry&)> callback) override;
     };
 
     class PathFilesystemDriver: public FilesystemDriver {

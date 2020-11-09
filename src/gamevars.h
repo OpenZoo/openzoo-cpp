@@ -10,6 +10,7 @@
 #include "video.h"
 #include "txtwind.h"
 #include "high_scores.h"
+#include "user_interface.h"
 
 #define MAX_BOARD 100
 #define MAX_STAT 150
@@ -89,19 +90,13 @@ namespace ZZT {
         ElementCount
     } ElementType;
 
-    typedef enum {
-        PMNumeric = 0,
-        PMAlphanum = 1,
-        PMAny = 2
-    } PromptMode;
-
     static constexpr const uint8_t ColorSpecialMin = 0xF0;
     static constexpr const uint8_t ColorChoiceOnBlack = 0xFF;
     static constexpr const uint8_t ColorWhiteOnChoice = 0xFE;
     static constexpr const uint8_t ColorChoiceOnChoice = 0xFD;
 
     struct Coord {
-        int16_t x, y;
+        uint8_t x, y;
     };
 
     struct Tile {
@@ -262,8 +257,8 @@ namespace ZZT {
         StatList<MAX_STAT> stats;
         BoardInfo info;
 
-        int width(void) { return 60; }
-        int height(void) { return 25; }
+        constexpr int width(void) { return 60; }
+        constexpr int height(void) { return 25; }
     };
 
     class World {
@@ -318,29 +313,6 @@ namespace ZZT {
 		bool EnergizerNotShown;
     };
 
-    struct MenuEntry {
-        const int id;
-        const uint16_t keys[4];
-        const JoyButton joy_button;
-        const char *name;
-        const char *(*name_func)(Game*);
-
-        const char *get_name(Game *game) const {
-            return name_func != nullptr ? name_func(game) : name;
-        }
-
-        bool matches_key(uint16_t key) const {
-            const uint16_t *keyptr = keys;
-            while (*keyptr != 0) {
-                if (key == *keyptr) {
-                    return true;
-                }
-                keyptr++;
-            }
-            return false;
-        }
-    };
-
     void ElementMove(Game &game, int16_t old_x, int16_t old_y, int16_t new_x, int16_t new_y);
     void ElementPushablePush(Game &game, int16_t x, int16_t y, int16_t delta_x, int16_t delta_y);
 
@@ -355,7 +327,7 @@ namespace ZZT {
         int16_t playerDirX;
         int16_t playerDirY;
 
-        Coord transitionTable[80 * 25];
+        Coord transitionTable[60 * 25];
         sstring<50> loadedGameFileName;
         sstring<50> savedGameFileName;
         sstring<50> savedBoardFileName;
@@ -397,21 +369,24 @@ namespace ZZT {
         HighScoreList highScoreList;
         sstring<255> configRegistration;
         sstring<50> configWorldFile;
+// TODO: expose as configure flag
+#ifdef DISABLE_EDITOR
+        constexpr static bool editorEnabled = false;
+#else
         bool editorEnabled;
+#endif
         sstring<50> gameVersion;
         bool parsingConfigFile;
         bool justStarted;
 
-        int16_t worldFileDescCount;
-        sstring<50> worldFileDescKeys[10];
-        sstring<50> worldFileDescValues[10];
-
-        uint8_t ioTmpBuf[20000];
+        uint8_t *ioTmpBuf;
 
         VideoDriver *video;
         InputDriver *input;
         SoundDriver *sound;
         FilesystemDriver *filesystem;
+
+        UserInterface *interface;
 
         inline const ElementDef& elementDefAt(int16_t x, int16_t y) const {
             uint8_t element = board.tiles.get(x, y).element;
@@ -419,6 +394,7 @@ namespace ZZT {
         }
 
         Game(void);
+        ~Game();
 
         // elements.cpp
         void DrawPlayerSurroundings(int16_t x, int16_t y, int16_t bomb_phase);
@@ -428,8 +404,8 @@ namespace ZZT {
         void InitElementsEditor(void);
 
         // game.cpp
-        void SidebarClearLine(int16_t y);
-        void SidebarClear(void);
+        void SidebarClearLine(int y);
+        void SidebarClear();
         void GenerateTransitionTable(void);
         void BoardClose();
         void BoardOpen(int16_t board_id);
@@ -444,9 +420,6 @@ namespace ZZT {
         void SidebarPromptSlider(bool editable, int16_t x, int16_t y,  const char *prompt, uint8_t &value);
         void SidebarPromptChoice(bool editable, int16_t y, const char *prompt, const char *choiceStr, uint8_t &result);
         void SidebarPromptDirection(bool editable, int16_t y, const char *prompt, int16_t &dx, int16_t &dy);
-        void PromptString(int16_t x, int16_t y, uint8_t arrowColor, uint8_t color, int16_t width, PromptMode mode, char *buffer, int buflen);
-        bool SidebarPromptYesNo(const char *message, bool defaultReturn);
-        void SidebarPromptString(const char *prompt, const char *extension, char *filename, int filenameLen, PromptMode mode);
         void PauseOnError(void);
         void DisplayIOError(Utils::IOStream &stream);
         void WorldUnload(void);
@@ -458,7 +431,6 @@ namespace ZZT {
         void RemoveStat(int16_t stat_id);
         bool BoardPrepareTileForPlacement(int16_t x, int16_t y);
         void MoveStat(int16_t stat_id, int16_t newX, int16_t newY);
-        void PopupPromptString(const char *question, char *buffer, size_t buffer_len);
         void GameDrawSidebar(void);
         void GameUpdateSidebar(void);
         void DisplayMessage(int16_t time, const char *message);

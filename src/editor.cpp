@@ -100,7 +100,7 @@ void Editor::AppendBoard(void) {
         game->TransitionDrawToBoard();
 
         do {
-            game->PopupPromptString("Room's Title:", game->board.name, StrSize(game->board.name));
+            game->interface->PopupPromptString("Room's Title:", game->board.name, StrSize(game->board.name));
         } while (StrEmpty(game->board.name));
 
         game->TransitionDrawToBoard();
@@ -136,6 +136,7 @@ void Editor::UpdateDrawMode(void) {
         case EDMDrawingOn: desc = "Draw"; break;
         case EDMTextEntry: desc = "Text"; break;
         case EDMDrawingOff: desc = "None"; color = 0x1E; break;
+        default: return;
     }
 
     game->video->draw_string(75, 16, color, desc);
@@ -304,7 +305,7 @@ void Editor::SetAndCopyTile(int16_t x, int16_t y, Tile tile) {
 void Editor::AskSaveChanged(void) {
     game->input->keyPressed = 0;
     if (was_modified) {
-        if (game->SidebarPromptYesNo("Save first? ", true)) {
+        if (game->interface->SidebarPromptYesNo("Save first? ", true)) {
             if (game->input->keyPressed != KeyEscape) {
                 game->GameWorldSave("Save world", game->loadedGameFileName, sizeof(game->loadedGameFileName), ".ZZT");
             }
@@ -403,11 +404,11 @@ void Editor::EditBoardInfo(void) {
         if (game->input->keyPressed == KeyEnter) {
             switch (window.line_pos) {
                 case 0: { // title
-                    game->PopupPromptString("New title for board:", game->board.name, sizeof(game->board.name));
+                    game->interface->PopupPromptString("New title for board:", game->board.name, sizeof(game->board.name));
                 } break;
                 case 1: { // max shots
                     StrFromInt(num_str, game->board.info.max_shots);
-                    game->SidebarPromptString("Maximum shots?", "", num_str, sizeof(num_str), PMNumeric);
+                    game->interface->SidebarPromptString("Maximum shots?", "", num_str, sizeof(num_str), PMNumeric);
                     if (!StrEmpty(num_str)) {
                         game->board.info.max_shots = atoi(num_str);
                     }
@@ -435,7 +436,7 @@ void Editor::EditBoardInfo(void) {
                 } break;
                 case 8: { // time limit
                     StrFromInt(num_str, game->board.info.time_limit_seconds);
-                    game->SidebarPromptString("Time limit?", " Sec", num_str, sizeof(num_str), PMNumeric);
+                    game->interface->SidebarPromptString("Time limit?", " Sec", num_str, sizeof(num_str), PMNumeric);
                     if (!StrEmpty(num_str)) {
                         game->board.info.time_limit_seconds = atoi(num_str);
                     }
@@ -683,7 +684,7 @@ void Editor::TransferBoard(void) {
             }
         } else if (i == 1) {
             // export
-            game->SidebarPromptString("Export board", ".BRD", game->savedBoardFileName, sizeof(game->savedBoardFileName), PMAlphanum);
+            game->interface->SidebarPromptString("Export board", ".BRD", game->savedBoardFileName, sizeof(game->savedBoardFileName), PMAlphanum);
             if (game->input->keyPressed != KeyEscape && !StrEmpty(game->savedBoardFileName)) {
                 StrJoin(filename_joined, 2, game->savedBoardFileName, ".BRD");
                 IOStream *stream = game->filesystem->open_file(filename_joined, false);
@@ -738,7 +739,7 @@ void Editor::FloodFill(int16_t x, int16_t y, Tile from) {
 void Editor::EditHelpFile() {
     sstring<50> filename;
     filename[0] = '*';
-    game->SidebarPromptString("File to edit", ".HLP", filename + 1, sizeof(filename) - 5, PMAlphanum);
+    game->interface->SidebarPromptString("File to edit", ".HLP", filename + 1, sizeof(filename) - 5, PMAlphanum);
     if (filename[1] != 0) {
         TextWindow window = TextWindow(game->video, game->input, game->sound, game->filesystem);
         strcat(filename, ".HLP");
@@ -978,7 +979,7 @@ void Editor::Loop(void) {
                 DrawSidebar();
             } break;
             case 'Z': {
-                if (game->SidebarPromptYesNo("Clear board? ", false)) {
+                if (game->interface->SidebarPromptYesNo("Clear board? ", false)) {
                     for (int i = game->board.stats.count; i >= 1; i--) {
                         game->RemoveStat(i);
                     }
@@ -989,7 +990,7 @@ void Editor::Loop(void) {
                 }
             } break;
             case 'N': {
-                if (game->SidebarPromptYesNo("Make new world? ", false) && (game->input->keyPressed != KeyEscape)) {
+                if (game->interface->SidebarPromptYesNo("Make new world? ", false) && (game->input->keyPressed != KeyEscape)) {
                     AskSaveChanged();
                     if (game->input->keyPressed != KeyEscape) {
                         game->WorldUnload();
@@ -1008,7 +1009,7 @@ void Editor::Loop(void) {
                 i = SelectBoard("Switch boards", game->world.info.current_board, false);
                 if (game->input->keyPressed != KeyEscape) {
                     if (i > game->world.board_count) {
-                        if (game->SidebarPromptYesNo("Add new board? ", false)) {
+                        if (game->interface->SidebarPromptYesNo("Add new board? ", false)) {
                             AppendBoard();
                         }
                     }

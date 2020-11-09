@@ -37,7 +37,7 @@ namespace ZZT {
         bool selectable;
         int16_t line_count;
         int16_t line_pos;
-        Utils::DynString *lines[MAX_TEXT_WINDOW_LINES];
+        Utils::DynString **lines;
         sstring<20> hyperlink;
         sstring<50> title;
         sstring<50> loaded_filename;

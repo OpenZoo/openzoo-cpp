@@ -125,6 +125,8 @@ public:
         bool error_condition;
 
     public:
+        virtual ~IOStream() { }
+
         virtual size_t read(uint8_t *ptr, size_t len) = 0;
         virtual size_t write(const uint8_t *ptr, size_t len) = 0;
         virtual size_t skip(size_t len) = 0;

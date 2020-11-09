@@ -13,6 +13,8 @@ openzoo_SOURCES = \
 	src/oop.cpp \
 	src/sounds.cpp \
 	src/txtwind.cpp \
+	src/user_interface.cpp \
+	src/user_interface_slim.cpp \
 	src/utils.cpp \
 	src/video.cpp
 

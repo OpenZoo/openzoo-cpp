@@ -30,6 +30,7 @@ namespace ZZT {
         friend void audioCallback(SDL2Driver *driver, uint8_t *stream, int32_t len);
 
     private:
+        int width_chars, height_chars;
         bool installed;
         SDL_TimerID pit_timer_id;
         uint16_t timer_hsecs;
@@ -51,8 +52,8 @@ namespace ZZT {
         SDL_Thread *renderThread;
         bool renderThreadRunning;
 
-        uint8_t screen_buffer[4000];
-        bool screen_buffer_changed[4000];
+        uint8_t *screen_buffer;
+        bool *screen_buffer_changed;
 
         CharsetTexture* loadCharsetFromBMP(const char *path);
         CharsetTexture* loadCharsetFromBytes(const uint8_t *buf, size_t len);
@@ -67,7 +68,8 @@ namespace ZZT {
         SDL_AudioSpec audioSpec;
 
     public:
-        SDL2Driver();
+        SDL2Driver(int width_chars, int height_chars);
+        ~SDL2Driver();
 
         void install(void);
         void uninstall(void);

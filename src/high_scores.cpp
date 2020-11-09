@@ -123,7 +123,7 @@ void HighScoreList::Add(const char *worldName, int16_t score) {
         window.Draw(false, false);
 
         StrClear(name);
-        game->PopupPromptString("Congratulations!  Enter your name:", name, sizeof(name));
+        game->interface->PopupPromptString("Congratulations!  Enter your name:", name, sizeof(name));
         StrCopy(entries[list_pos].name, name);
         Save(worldName);
 

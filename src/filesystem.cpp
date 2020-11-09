@@ -12,6 +12,19 @@ bool FilesystemDriver::is_path_driver() {
     return false;
 }
 
+NullFilesystemDriver::NullFilesystemDriver()
+: FilesystemDriver(false) {
+    
+}
+
+Utils::IOStream *NullFilesystemDriver::open_file(const char *filename, bool write) {
+    return new ErroredIOStream();
+}
+
+bool NullFilesystemDriver::list_files(std::function<bool(FileEntry&)> callback) {
+    return true;
+}
+
 static void zoo_path_cat(char *dest, const char *src, size_t n, char separator) {
 	size_t len = strlen(dest);
 	if (len < n && dest[len - 1] != separator) {

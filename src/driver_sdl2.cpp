@@ -3,6 +3,7 @@
 #include <SDL.h>
 #include "driver_sdl2.h"
 #include "filesystem_posix.h"
+#include "user_interface_slim.h"
 
 #define PIT_SPEED_MS 55
 
@@ -165,7 +166,7 @@ uint32_t ZZT::pitTimerCallback(uint32_t interval, SDL2Driver *driver) {
 }
 
 void SDL2Driver::render_char_bg(int16_t x, int16_t y) {
-    int offset = (y * 80 + x) << 1;
+    int offset = (y * width_chars + x) << 1;
     uint8_t col = screen_buffer[offset + 1];
 
     if (col < 0x80 && !screen_buffer_changed[offset]) return;
@@ -185,7 +186,7 @@ void SDL2Driver::render_char_bg(int16_t x, int16_t y) {
 }
 
 void SDL2Driver::render_char_fg(int16_t x, int16_t y, bool blink) {
-    int offset = (y * 80 + x) << 1;
+    int offset = (y * width_chars + x) << 1;
     uint8_t chr = screen_buffer[offset];
     uint8_t col = screen_buffer[offset + 1];
 
@@ -224,19 +225,19 @@ uint32_t ZZT::videoRenderThread(SDL2Driver *driver) {
         SDL_LockMutex(driver->playfieldMutex);
         bool blink = (SDL_GetTicks() % TEXT_BLINK_RATE) >= (TEXT_BLINK_RATE / 2);
 
-        for (int iy = 0; iy < 25; iy++) {
-            for (int ix = 0; ix < 80; ix++) {
+        for (int iy = 0; iy < driver->height_chars; iy++) {
+            for (int ix = 0; ix < driver->width_chars; ix++) {
                 driver->render_char_bg(ix, iy);
             }
         }
 
-        for (int iy = 0; iy < 25; iy++) {
-            for (int ix = 0; ix < 80; ix++) {
+        for (int iy = 0; iy < driver->height_chars; iy++) {
+            for (int ix = 0; ix < driver->width_chars; ix++) {
                 driver->render_char_fg(ix, iy, blink);
             }
         }
 
-        memset(driver->screen_buffer_changed, 0, 4000);
+        memset(driver->screen_buffer_changed, 0, driver->width_chars * driver->height_chars * sizeof(bool) * 2);
         SDL_UnlockMutex(driver->playfieldMutex);
 
         SDL_SetRenderTarget(driver->renderer, nullptr);
@@ -255,8 +256,18 @@ void ZZT::audioCallback(SDL2Driver *driver, uint8_t *stream, int32_t len) {
     driver->sound_unlock();
 }
 
-SDL2Driver::SDL2Driver(): soundSimulator(&_queue) {
-    installed = false;
+SDL2Driver::SDL2Driver(int width_chars, int height_chars): soundSimulator(&_queue) {
+    this->installed = false;
+    this->width_chars = width_chars;
+    this->height_chars = height_chars;
+    this->screen_buffer = (uint8_t*) malloc(width_chars * height_chars * sizeof(uint8_t) * 2);
+    this->screen_buffer_changed = (bool*) malloc(width_chars * height_chars * sizeof(bool) * 2);
+    memset(this->screen_buffer_changed, 0, width_chars * height_chars * sizeof(bool) * 2);
+}
+
+SDL2Driver::~SDL2Driver() {
+    free(this->screen_buffer_changed);
+    free(this->screen_buffer);
 }
 
 void SDL2Driver::install(void) {
@@ -292,8 +303,8 @@ void SDL2Driver::install(void) {
         }
 
         playfieldTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
-            80 * charsetTexture->charWidth, 25 * charsetTexture->charHeight);
-        SDL_SetWindowSize(window, 80 * charsetTexture->charWidth, 25 * charsetTexture->charHeight);
+            width_chars * charsetTexture->charWidth, height_chars * charsetTexture->charHeight);
+        SDL_SetWindowSize(window, width_chars * charsetTexture->charWidth, height_chars * charsetTexture->charHeight);
 
         playfieldMutex = SDL_CreateMutex();
 
@@ -336,7 +347,7 @@ void SDL2Driver::uninstall(void) {
         renderThreadRunning = false;
         SDL_WaitThread(renderThread, nullptr);
 
-        free(charsetTexture);
+        delete charsetTexture;
         SDL_DestroyMutex(playfieldMutex);
         SDL_DestroyTexture(playfieldTexture);
         SDL_DestroyRenderer(renderer);
@@ -378,7 +389,7 @@ void SDL2Driver::idle(IdleMode mode) {
 }
 
 void SDL2Driver::draw_char(int16_t x, int16_t y, uint8_t col, uint8_t chr) {
-    int offset = (y * 80 + x) << 1;
+    int offset = (y * width_chars + x) << 1;
     SDL_LockMutex(playfieldMutex);
     screen_buffer[offset] = chr;
     screen_buffer_changed[offset++] = true;
@@ -387,13 +398,13 @@ void SDL2Driver::draw_char(int16_t x, int16_t y, uint8_t col, uint8_t chr) {
 }
 
 void SDL2Driver::read_char(int16_t x, int16_t y, uint8_t &col, uint8_t &chr) {
-    int offset = (y * 80 + x) << 1;
+    int offset = (y * width_chars + x) << 1;
     chr = screen_buffer[offset++];
     col = screen_buffer[offset];
 }
 
 void SDL2Driver::draw_string(int16_t x, int16_t y, uint8_t col, const char *str) {
-    int offset = (y * 80 + x) << 1;
+    int offset = (y * width_chars + x) << 1;
     SDL_LockMutex(playfieldMutex);
     while (*str != 0) {
         screen_buffer[offset] = *(str++);
@@ -405,8 +416,8 @@ void SDL2Driver::draw_string(int16_t x, int16_t y, uint8_t col, const char *str)
 
 void SDL2Driver::clrscr(void) {
     SDL_LockMutex(playfieldMutex);
-    memset(screen_buffer, 0, 4000);
-    memset(screen_buffer_changed, 1, 4000);
+    memset(screen_buffer, 0, width_chars * height_chars * 2);
+    memset(screen_buffer_changed, 1, width_chars * height_chars * 2);
     SDL_UnlockMutex(playfieldMutex);
 }
 
@@ -541,13 +552,15 @@ void SDL2Driver::sound_unlock(void) {
 #include "gamevars.h"
 
 int main(int argc, char** argv) {
-	SDL2Driver driver = SDL2Driver();
+	SDL2Driver driver = SDL2Driver(80, 25);
 	Game game = Game();
-	
+
 	game.input = &driver;
 	game.sound = &driver;
 	game.video = &driver;
     game.filesystem = new PosixFilesystemDriver();
+    game.interface = new UserInterface(&driver, &driver, &driver);
+//    game.interface = new UserInterfaceSlim(&driver, &driver, &driver);
 
 	driver.install();
 
@@ -556,6 +569,7 @@ int main(int argc, char** argv) {
 
 	driver.uninstall();
 
+    delete game.interface;
     delete game.filesystem;
 
 	return 0;

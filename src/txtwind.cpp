@@ -41,6 +41,7 @@ TextWindow::TextWindow(VideoDriver *video, InputDriver *input, SoundDriver *soun
     this->line_pos = 0;
     StrClear(this->loaded_filename);
     this->screenCopy = nullptr;
+    lines = (DynString**) malloc(sizeof(DynString*) * MAX_TEXT_WINDOW_LINES);
 }
 
 TextWindow::~TextWindow() {
@@ -48,6 +49,7 @@ TextWindow::~TextWindow() {
     if (this->screenCopy != nullptr) {
         delete this->screenCopy;
     }
+    free(lines);
 }
 
 void TextWindow::Clear(void) {
