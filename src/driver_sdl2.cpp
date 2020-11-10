@@ -453,10 +453,12 @@ void SDL2Driver::update_input(void) {
     deltaY = 0;
     shiftPressed = false;
     joystickMoved = false;
+    joy_buttons_pressed = 0;
 
     SDL_Event event;
     uint32_t scode, kcode;
     uint8_t k = 0;
+
     while (SDL_PollEvent(&event) != 0) {
         switch (event.type) {
             case SDL_TEXTINPUT: {
@@ -500,20 +502,15 @@ void SDL2Driver::update_input(void) {
     }
 
     set_key_pressed(k);
+    update_joy_buttons();
     shiftPressed = keyShiftHeld;
 
     if (controller != nullptr) {
         // emulate delta/shift behaviour on game controller
-        if (!set_dpad(
-            SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_UP),
-            SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_DOWN),
-            SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_LEFT),
-            SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_RIGHT)
-        )) {
-            int16_t axis_x = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX);
-            int16_t axis_y = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTY);
-            set_axis(axis_x, axis_y, -16384, 16384);
-        }
+        // TODO
+        /* int16_t axis_x = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX);
+        int16_t axis_y = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTY);
+        set_axis(axis_x, axis_y, -16384, 16384); */
 
         if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_B)) {
             if (!shiftAccepted) {

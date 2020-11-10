@@ -19,6 +19,8 @@ Driver::Driver(void) {
 
     joy_buttons_held = 0;
     joy_buttons_pressed = 0;
+    joy_repeat_hsecs_delay = 25;
+    joy_repeat_hsecs_delay_next = 10;
 
     /* SOUND/TIMER */
 
@@ -94,25 +96,45 @@ bool Driver::set_axis(int32_t axis_x, int32_t axis_y, int32_t axis_min, int32_t 
 
 void Driver::set_joy_button_state(JoyButton button, bool value) {
     if (value) {
-        joy_buttons_pressed |= button;
-        joy_buttons_held |= button;
+        joy_buttons_hsecs[button] = get_hsecs() + joy_repeat_hsecs_delay;
+        joy_buttons_pressed |= 1 << button;
+        joy_buttons_held |= 1 << button;
     } else {
-        joy_buttons_pressed &= ~button;
-        joy_buttons_held &= ~button;
+        joy_buttons_held &= ~(1 << button);
     }
+}
+
+void Driver::update_joy_buttons() {
+    uint16_t hsecs = get_hsecs();
+    // only autorepeat the D-pad
+    for (int button = 0; button <= JoyButtonRight; button++) {
+        if ((joy_buttons_held & (1 << button)) != 0) {
+            if (hsecs > joy_buttons_hsecs[button]) {
+                joy_buttons_hsecs[button] = hsecs + joy_repeat_hsecs_delay_next;
+                joy_buttons_pressed |= (1 << button);
+            }
+        }
+    }
+
+    set_dpad(
+        joy_button_pressed(JoyButtonUp, false),
+        joy_button_pressed(JoyButtonDown, false),
+        joy_button_pressed(JoyButtonLeft, false),
+        joy_button_pressed(JoyButtonRight, false)
+    );
 }
 
 bool Driver::joy_button_pressed(JoyButton button, bool simulate) {
-    bool result = (joy_buttons_pressed & button) != 0;
+    bool result = (joy_buttons_pressed & (1 << button)) != 0;
     if (!simulate) {
-        joy_buttons_pressed &= ~button;
+        joy_buttons_pressed &= ~(1 << button);
     }
     return result;
 }
 
-bool Driver::joy_button_held(JoyButton button) {
+bool Driver::joy_button_held(JoyButton button, bool simulate) {
     bool result = (joy_buttons_held & button) != 0;
-    return result;
+    return result || joy_button_pressed(button, simulate);
 }
 
 /* SOUND/TIMER */

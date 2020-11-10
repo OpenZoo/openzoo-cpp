@@ -51,6 +51,10 @@ TextWindow::~TextWindow() {
     free(lines);
 }
 
+int TextWindow::PageMoveHeightLines(void) {
+    return window_height - 4;
+}
+
 void TextWindow::Clear(void) {
     for (int i = 0; i < this->line_count; i++)
         delete this->lines[i];
@@ -255,12 +259,18 @@ void TextWindow::Select(bool hyperlinkAsSelect, bool viewingFile) {
                 }
             }
         } else {
+            if (driver->joy_button_pressed(JoyButtonL, false)) {
+                new_line_pos = line_pos - PageMoveHeightLines();
+            }
+            if (driver->joy_button_pressed(JoyButtonR, false)) {
+                new_line_pos = line_pos + PageMoveHeightLines();
+            }
             switch (driver->keyPressed) {
                 case KeyPageUp: {
-                    new_line_pos = line_pos - window_height + 4;
+                    new_line_pos = line_pos - PageMoveHeightLines();
                 } break;
                 case KeyPageDown: {
-                    new_line_pos = line_pos + window_height - 4;
+                    new_line_pos = line_pos + PageMoveHeightLines();
                 } break;
                 case KeyAltP: {
                     // TODO: Printing (in ZZT but I don't really care)
@@ -339,6 +349,12 @@ void TextWindow::Edit(void) {
 
         driver->read_wait_key();
         int16_t new_line_pos = line_pos;
+        if (driver->joy_button_pressed(JoyButtonL, false)) {
+            new_line_pos = line_pos - PageMoveHeightLines();
+        }
+        if (driver->joy_button_pressed(JoyButtonR, false)) {
+            new_line_pos = line_pos + PageMoveHeightLines();
+        }
         switch (driver->keyPressed) {
             case KeyUp:
                 new_line_pos = line_pos - 1;

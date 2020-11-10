@@ -6,19 +6,20 @@
 
 namespace ZZT {
     typedef enum {
-        JoyButtonNone = 0,
-        JoyButtonUp = 1 << 0,
-        JoyButtonDown = 1 << 1,
-        JoyButtonLeft = 1 << 2,
-        JoyButtonRight = 1 << 3,
-        JoyButtonA = 1 << 4,
-        JoyButtonB = 1 << 5,
-        JoyButtonX = 1 << 6,
-        JoyButtonY = 1 << 7,
-        JoyButtonSelect = 1 << 8,
-        JoyButtonStart = 1 << 9,
-        JoyButtonL = 1 << 10,
-        JoyButtonR = 1 << 11
+        JoyButtonNone = -1,
+        JoyButtonUp = 0,
+        JoyButtonDown = 1,
+        JoyButtonLeft = 2,
+        JoyButtonRight = 3,
+        JoyButtonA = 4,
+        JoyButtonB = 5,
+        JoyButtonX = 6,
+        JoyButtonY = 7,
+        JoyButtonSelect = 8,
+        JoyButtonStart = 9,
+        JoyButtonL = 10,
+        JoyButtonR = 11,
+        JoyButtonMax = 12
     } JoyButton;
 
     typedef enum {
@@ -75,7 +76,9 @@ namespace ZZT {
         bool set_dpad(bool up, bool down, bool left, bool right);
         bool set_axis(int32_t axis_x, int32_t axis_y, int32_t axis_min, int32_t axis_max);
         void set_joy_button_state(JoyButton button, bool value);
+        void update_joy_buttons();
 
+        uint16_t joy_buttons_hsecs[JoyButtonMax];
         uint32_t joy_buttons_pressed;
         uint32_t joy_buttons_held;
 
@@ -88,6 +91,9 @@ namespace ZZT {
     public:
 
         /* INPUT */
+
+        uint16_t joy_repeat_hsecs_delay;
+        uint16_t joy_repeat_hsecs_delay_next;
 
         int16_t deltaX, deltaY;
         bool shiftPressed;
@@ -109,7 +115,7 @@ namespace ZZT {
 
         // optional
         virtual bool joy_button_pressed(JoyButton button, bool simulate);
-        virtual bool joy_button_held(JoyButton button);
+        virtual bool joy_button_held(JoyButton button, bool simulate);
 
         /* SOUND/TIMER */
 

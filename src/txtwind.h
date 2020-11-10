@@ -25,6 +25,7 @@ namespace ZZT {
         Driver *driver;
         FilesystemDriver *filesystem;
 
+        int PageMoveHeightLines(void);
         void DrawTitle(uint8_t color, const char *title);
         void DrawLine(int16_t lpos, bool withoutFormatting, bool viewingFile);
         int16_t Edit_DeleteCurrLine(void);
