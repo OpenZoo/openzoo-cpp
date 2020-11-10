@@ -2,11 +2,8 @@
 #define __DRIVER_SDL2_H__
 
 #include <cstdint>
-#include "input.h"
-#include "sounds.h"
-#include "video.h"
+#include "driver.h"
 #include "audio_simulator.h"
-#include <SDL.h>
 
 namespace ZZT {
     class SDL2Driver;
@@ -24,7 +21,7 @@ namespace ZZT {
         ~CharsetTexture();
     };
 
-    class SDL2Driver: public InputDriver, public SoundDriver, public VideoDriver {
+    class SDL2Driver: public Driver {
         friend uint32_t pitTimerCallback(uint32_t interval, SDL2Driver *driver);
         friend uint32_t videoRenderThread(SDL2Driver *driver);
         friend void audioCallback(SDL2Driver *driver, uint8_t *stream, int32_t len);

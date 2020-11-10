@@ -11,7 +11,7 @@ void Game::OopError(Stat& stat, const char *message) {
 	char text[256];
 	StrJoin(text, 2, "ERR: ", message);
 	DisplayMessage(200, text);
-	sound->sound_queue(5, "\x50\x0A");
+	driver->sound_queue(5, "\x50\x0A");
 	stat.data_pos = -1;
 }
 
@@ -472,7 +472,7 @@ bool Game::OopSend(int16_t stat_id, const char *sendLabel, bool ignoreLock) {
 
 void Game::OopExecute(int16_t stat_id, int16_t &position, const char *default_name) {
 StartParsing:
-	TextWindow textWindow = TextWindow(video, input, sound, filesystem);
+	TextWindow textWindow = TextWindow(driver, filesystem);
 	textWindow.selectable = false;
 	bool stopRunning = false;
 	bool repeatInsNextTick = false;
@@ -603,7 +603,7 @@ ReadCommand:
 						int16_t deltaX, deltaY;
 						OopReadDirection(stat, position, deltaX, deltaY);
 						if (BoardShoot(EBullet, stat.x, stat.y, deltaX, deltaY, ShotSourceEnemy)) {
-							sound->sound_queue(2, "\x30\x01\x26\x01");
+							driver->sound_queue(2, "\x30\x01\x26\x01");
 						}
 						stopRunning = true;
 					} else if (StrEquals(oopWord, "THROWSTAR")) {
@@ -756,7 +756,7 @@ ReadCommand:
 							uint8_t buf[255];
 							int buflen = SoundParse(textLine, buf, sizeof(buf));
 							if (buflen > 0) {
-								sound->sound_queue(-1, buf, buflen);
+								driver->sound_queue(-1, buf, buflen);
 							}
 						}
 						lineFinished = false;

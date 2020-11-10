@@ -25,7 +25,7 @@ void ElementMessageTimerTick(Game &game, int16_t stat_id) {
     Stat &stat = game.board.stats[stat_id];
     if (stat.x == 0) {
         StrJoin(message, 3, " ", game.board.info.message, " ");
-        game.video->draw_string((60 - StrLength(game.board.info.message)) / 2, 24, 9 + (stat.p2 % 7), message);
+        game.driver->draw_string((60 - StrLength(game.board.info.message)) / 2, 24, 9 + (stat.p2 % 7), message);
 
         if (--stat.p2 <= 0) {
             game.RemoveStat(stat_id);
@@ -286,7 +286,7 @@ TryMove:
     if (tile.element == ERicochet && firstTry) {
         stat.step_x = -stat.step_x;
         stat.step_y = -stat.step_y;
-        game.sound->sound_queue(1, "\xF9\x01");
+        game.driver->sound_queue(1, "\xF9\x01");
         firstTry = false;
         goto TryMove;
     }
@@ -306,7 +306,7 @@ TryMove:
         int16_t tmp = stat.step_x;
         stat.step_x = -stat.step_y;
         stat.step_y = -tmp;
-        game.sound->sound_queue(1, "\xF9\x01");
+        game.driver->sound_queue(1, "\xF9\x01");
         firstTry = false;
         goto TryMove;
     }
@@ -315,7 +315,7 @@ TryMove:
         int16_t tmp = stat.step_x;
         stat.step_x = stat.step_y;
         stat.step_y = tmp;
-        game.sound->sound_queue(1, "\xF9\x01");
+        game.driver->sound_queue(1, "\xF9\x01");
         firstTry = false;
         goto TryMove;
     }
@@ -476,7 +476,7 @@ void ElementBombTick(Game &game, int16_t stat_id) {
         game.BoardDrawTile(stat.x, stat.y);
 
         if (stat.p1 == 1) {
-        	game.sound->sound_queue(1, "\x60\x01\x50\x01\x40\x01\x30\x01\x20\x01\x10\x01");
+        	game.driver->sound_queue(1, "\x60\x01\x50\x01\x40\x01\x30\x01\x20\x01\x10\x01");
             game.DrawPlayerSurroundings(stat.x, stat.y, 1);
         } else if (stat.p1 == 0) {
             int16_t old_x = stat.x;
@@ -484,7 +484,7 @@ void ElementBombTick(Game &game, int16_t stat_id) {
             game.RemoveStat(stat_id);
             game.DrawPlayerSurroundings(old_x, old_y, 2);
         } else {
-			game.sound->sound_queue(1, ((stat.p1 & 1) == 0) ? "\xF8\x01" : "\xF5\x01");
+			game.driver->sound_queue(1, ((stat.p1 & 1) == 0) ? "\xF8\x01" : "\xF5\x01");
         }
     }
 }
@@ -495,7 +495,7 @@ void ElementBombTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, 
         stat.p1 = 9;
         game.BoardDrawTile(x, y);
         game.DisplayMessage(200, "Bomb activated!");
-        game.sound->sound_queue(4, "\x30\x01\x35\x01\x40\x01\x45\x01\x50\x01");
+        game.driver->sound_queue(4, "\x30\x01\x35\x01\x40\x01\x45\x01\x50\x01");
     } else {
         ElementPushablePush(game, x, y, delta_x, delta_y);
     }
@@ -540,7 +540,7 @@ void ElementTransporterMove(Game &game, int16_t x, int16_t y, int16_t dx, int16_
         } while (!finish_search);
         if (new_x != -1) {
             ElementMove(game, stat.x - dx, stat.y - dy, new_x, new_y);
-			game.sound->sound_queue(3, "\x30\x01\x42\x01\x34\x01\x46\x01\x38\x01\x4A\x01\x40\x01\x52\x01");
+			game.driver->sound_queue(3, "\x30\x01\x42\x01\x34\x01\x46\x01\x38\x01\x4A\x01\x40\x01\x52\x01");
         }
     }
 }
@@ -598,7 +598,7 @@ void ElementStarTick(Game &game, int16_t stat_id) {
 }
 
 void ElementEnergizerTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
-	game.sound->sound_queue(9,
+	game.driver->sound_queue(9,
 		"\x20\x03\x23\x03\x24\x03\x25\x03\x35\x03\x25\x03\x23\x03\x20\x03"
 		"\x30\x03\x23\x03\x24\x03\x25\x03\x35\x03\x25\x03\x23\x03\x20\x03"
 		"\x30\x03\x23\x03\x24\x03\x25\x03\x35\x03\x25\x03\x23\x03\x20\x03"
@@ -669,7 +669,7 @@ void ElementSlimeTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id,
         .color = color
     });
     game.BoardDrawTile(x, y);
-	game.sound->sound_queue(2, "\x20\x01\x23\x01");
+	game.driver->sound_queue(2, "\x20\x01\x23\x01");
 }
 
 void ElementSharkTick(Game &game, int16_t stat_id) {
@@ -868,7 +868,7 @@ void ElementDuplicatorTick(Game &game, int16_t stat_id) {
 
         if (dest.element == EPlayer) {
             game.elementDefs[src.element]
-                .touch(game, src_x, src_y, 0, game.input->deltaX, game.input->deltaY);
+                .touch(game, src_x, src_y, 0, game.driver->deltaX, game.driver->deltaY);
         } else {
             if (dest.element != EEmpty) {
                 ElementPushablePush(game, dest_x, dest_y, -stat.step_x, -stat.step_y);
@@ -886,9 +886,9 @@ void ElementDuplicatorTick(Game &game, int16_t stat_id) {
                     game.board.tiles.set(dest_x, dest_y, src);
                     game.BoardDrawTile(dest_x, dest_y);
                 }
-				game.sound->sound_queue(3, "\x30\x02\x32\x02\x34\x02\x35\x02\x37\x02");
+				game.driver->sound_queue(3, "\x30\x02\x32\x02\x34\x02\x35\x02\x37\x02");
 			} else {
-				game.sound->sound_queue(3, "\x18\x01\x16\x01");
+				game.driver->sound_queue(3, "\x18\x01\x16\x01");
 			}
         }
 
@@ -911,7 +911,7 @@ void ElementScrollTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id
     Stat &stat = game.board.stats[stat_id];
     uint8_t buf[128];
 
-	game.sound->sound_queue(2, buf, SoundParse("c-c+d-d+e-e+f-f+g-g", buf, sizeof(buf) - 1));
+	game.driver->sound_queue(2, buf, SoundParse("c-c+d-d+e-e+f-f+g-g", buf, sizeof(buf) - 1));
     stat.data_pos = 0;
     game.OopExecute(stat_id, stat.data_pos, "Scroll");
 
@@ -933,7 +933,7 @@ void ElementKeyTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, i
         else StrJoin(message, 3, "You already have a ", ColorNames[key - 1], " key!");
 
         game.DisplayMessage(200, message);
-        game.sound->sound_queue(2, "\x30\x02\x20\x02");
+        game.driver->sound_queue(2, "\x30\x02\x20\x02");
     } else {
         if (key == 0) game.world.info.gems = (game.world.info.gems & 0xFF) | 0x100;
         else game.world.info.keys[key - 1] = true;
@@ -945,7 +945,7 @@ void ElementKeyTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, i
         else StrJoin(message, 3, "You now have the ", ColorNames[key - 1], " key.");
 
         game.DisplayMessage(200, message);
-        game.sound->sound_queue(2, "\x40\x01\x44\x01\x47\x01\x40\x01\x44\x01\x47\x01\x40\x01\x44\x01\x47\x01\x50\x02");
+        game.driver->sound_queue(2, "\x40\x01\x44\x01\x47\x01\x40\x01\x44\x01\x47\x01\x40\x01\x44\x01\x47\x01\x50\x02");
     }
 }
 
@@ -954,7 +954,7 @@ void ElementAmmoTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, 
 
     game.board.tiles.set_element(x, y, EEmpty);
     game.GameUpdateSidebar();
-	game.sound->sound_queue(2, "\x30\x01\x31\x01\x32\x01");
+	game.driver->sound_queue(2, "\x30\x01\x31\x01\x32\x01");
 
     if (game.msgFlags.AmmoNotShown) {
         game.DisplayMessage(200, "Ammunition - 5 shots per container.");
@@ -969,7 +969,7 @@ void ElementGemTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, i
 
     game.board.tiles.set_element(x, y, EEmpty);
     game.GameUpdateSidebar();
-	game.sound->sound_queue(2, "\x40\x01\x37\x01\x34\x01\x30\x01");
+	game.driver->sound_queue(2, "\x40\x01\x37\x01\x34\x01\x30\x01");
 
     if (game.msgFlags.GemNotShown) {
         game.DisplayMessage(200, "Gems give you Health!");
@@ -1001,19 +1001,19 @@ void ElementDoorTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, 
         else StrJoin(message, 3, "The ", ColorNames[key - 1], " door is now open.");
 
         game.DisplayMessage(200, message);
-        game.sound->sound_queue(3, "\x30\x01\x37\x01\x3B\x01\x30\x01\x37\x01\x3B\x01\x40\x04");
+        game.driver->sound_queue(3, "\x30\x01\x37\x01\x3B\x01\x30\x01\x37\x01\x3B\x01\x40\x04");
     } else {
         if (key == 0) StrCopy(message, "The Black door is locked?");
         else StrJoin(message, 3, "The ", ColorNames[key - 1], " door is locked!");
 
         game.DisplayMessage(200, message);
-        game.sound->sound_queue(3, "\x17\x01\x10\x01");
+        game.driver->sound_queue(3, "\x17\x01\x10\x01");
     }
 }
 
 void ElementPushableTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
     ElementPushablePush(game, x, y, delta_x, delta_y);
-	game.sound->sound_queue(2, "\x15\x01");
+	game.driver->sound_queue(2, "\x15\x01");
 }
 
 void ElementPusherDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
@@ -1047,7 +1047,7 @@ void ElementPusherTick(Game &game, int16_t stat_id) {
         Stat& stat = game.board.stats[stat_id];
         if (game.elementDefAt(stat.x + stat.step_x, stat.y + stat.step_y).walkable) {
             game.MoveStat(stat_id, stat.x + stat.step_x, stat.y + stat.step_y);
-			game.sound->sound_queue(2, "\x15\x01");
+			game.driver->sound_queue(2, "\x15\x01");
 
             int16_t behind_x = stat.x - (stat.step_x * 2);
             int16_t behind_y = stat.y - (stat.step_y * 2);
@@ -1072,14 +1072,14 @@ void ElementTorchTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id,
         game.msgFlags.TorchNotShown = false;
     }
 
-	game.sound->sound_queue(3, "\x30\x01\x39\x01\x34\x02");
+	game.driver->sound_queue(3, "\x30\x01\x39\x01\x34\x02");
 }
 
 void ElementInvisibleTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
     game.board.tiles.set_element(x, y, ENormal);
     game.BoardDrawTile(x, y);
 
-	game.sound->sound_queue(3, "\x12\x01\x10\x01");
+	game.driver->sound_queue(3, "\x12\x01\x10\x01");
     game.DisplayMessage(100, "You are blocked by an invisible wall.");
 }
 
@@ -1087,7 +1087,7 @@ void ElementForestTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id
     game.board.tiles.set_element(x, y, EEmpty);
     game.BoardDrawTile(x, y);
 
-	game.sound->sound_queue(3, "\x39\x01");
+	game.driver->sound_queue(3, "\x39\x01");
 
     if (game.msgFlags.ForestNotShown) {
         game.DisplayMessage(200, "A path is cleared through the forest.");
@@ -1125,7 +1125,7 @@ void ElementBoardEdgeTouch(Game &game, int16_t x, int16_t y, int16_t source_stat
         int16_t board_id = game.world.info.current_board;
         game.BoardChange(game.board.info.neighbor_boards[neighbor_board_id]);
         if (game.board.tiles.get(entry_x, entry_y).element != EPlayer) {
-            game.elementDefAt(entry_x, entry_y).touch(game, entry_x, entry_y, source_stat_id, game.input->deltaX, game.input->deltaY);
+            game.elementDefAt(entry_x, entry_y).touch(game, entry_x, entry_y, source_stat_id, game.driver->deltaX, game.driver->deltaY);
         }
 
         const Tile &entryTile = game.board.tiles.get(entry_x, entry_y);
@@ -1145,7 +1145,7 @@ void ElementBoardEdgeTouch(Game &game, int16_t x, int16_t y, int16_t source_stat
 }
 
 void ElementWaterTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
-	game.sound->sound_queue(3, "\x40\x01\x50\x01");
+	game.driver->sound_queue(3, "\x40\x01\x50\x01");
     game.DisplayMessage(100, "Your way is blocked by water.");
 }
 
@@ -1192,11 +1192,11 @@ void Game::GamePromptEndPlay(void) {
         BoardDrawBorder();
     } else {
         gamePlayExitRequested = interface->SidebarPromptYesNo("End this game?", true);
-        if (input->keyPressed == KeyEscape) {
+        if (driver->keyPressed == KeyEscape) {
             gamePlayExitRequested = false;
         }
     }
-    input->keyPressed = 0;
+    driver->keyPressed = 0;
 }
 
 void ElementPlayerTick(Game &game, int16_t stat_id) {
@@ -1215,26 +1215,26 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
     }
 
     if (game.world.info.health <= 0) {
-        game.input->deltaX = 0;
-        game.input->deltaY = 0;
-        game.input->shiftPressed = false;
+        game.driver->deltaX = 0;
+        game.driver->deltaY = 0;
+        game.driver->shiftPressed = false;
 
         if (game.board.stats.id_at(0, 0) == -1) {
             game.DisplayMessage(32000, " Game over  -  Press ESCAPE");
         }
 
         game.tickTimeDuration = 0;
-        game.sound->sound_set_block_queueing(true);
+        game.driver->sound_set_block_queueing(true);
     }
 
     // OpenZoo: Only allow shift *with* arrows.
-    bool shootDirPressed = game.input->shiftPressed && (game.input->deltaX != 0 || game.input->deltaY != 0);
-    bool shootNondirPressed = game.input->keyPressed == ' ';
+    bool shootDirPressed = game.driver->shiftPressed && (game.driver->deltaX != 0 || game.driver->deltaY != 0);
+    bool shootNondirPressed = game.driver->keyPressed == ' ';
     if (shootDirPressed || shootNondirPressed) {
         // shooting logic
         if (shootDirPressed) {
-            game.playerDirX = game.input->deltaX;
-            game.playerDirY = game.input->deltaY;
+            game.playerDirX = game.driver->deltaX;
+            game.playerDirY = game.driver->deltaY;
         }
 
         if (game.playerDirX != 0 || game.playerDirY != 0) {
@@ -1263,23 +1263,23 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
                         game.world.info.ammo--;
                         game.GameUpdateSidebar();
 
-						game.sound->sound_queue(2, "\x40\x01\x30\x01\x20\x01");
+						game.driver->sound_queue(2, "\x40\x01\x30\x01\x20\x01");
 
-                        game.input->deltaX = 0;
-                        game.input->deltaY = 0;
+                        game.driver->deltaX = 0;
+                        game.driver->deltaY = 0;
                     }
                 }                
             }
         }
-    } else if (game.input->deltaX != 0 || game.input->deltaY != 0) {
+    } else if (game.driver->deltaX != 0 || game.driver->deltaY != 0) {
         // moving logic
-        game.playerDirX = game.input->deltaX;
-        game.playerDirY = game.input->deltaY;
+        game.playerDirX = game.driver->deltaX;
+        game.playerDirY = game.driver->deltaY;
 
-        int16_t dest_x = stat.x + game.input->deltaX;
-        int16_t dest_y = stat.y + game.input->deltaY;
-        game.elementDefAt(dest_x, dest_y).touch(game, dest_x, dest_y, 0, game.input->deltaX, game.input->deltaY);
-        if (game.input->deltaX != 0 || game.input->deltaY != 0) {
+        int16_t dest_x = stat.x + game.driver->deltaX;
+        int16_t dest_y = stat.y + game.driver->deltaY;
+        game.elementDefAt(dest_x, dest_y).touch(game, dest_x, dest_y, 0, game.driver->deltaX, game.driver->deltaY);
+        if (game.driver->deltaX != 0 || game.driver->deltaY != 0) {
             // TODO [ZZT]: player walking sound
             if (game.elementDefAt(dest_x, dest_y).walkable) {
                 game.MoveStat(0, dest_x, dest_y);
@@ -1323,17 +1323,17 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
             }
         } break;
         case 'B': {
-            game.sound->sound_set_enabled(!game.sound->sound_is_enabled());
-            game.sound->sound_clear_queue();
+            game.driver->sound_set_enabled(!game.driver->sound_is_enabled());
+            game.driver->sound_clear_queue();
             game.GameUpdateSidebar();
-            game.input->keyPressed = ' ';
+            game.driver->keyPressed = ' ';
         } break;
         case 'H': {
-            TextWindowDisplayFile(game.video, game.input, game.sound, game.filesystem, "GAME.HLP", "Playing ZZT");
+            TextWindowDisplayFile(game.driver, game.filesystem, "GAME.HLP", "Playing ZZT");
         } break;
         case '?': {
             game.GameDebugPrompt();
-            game.input->keyPressed = 0;
+            game.driver->keyPressed = 0;
         } break;
     }
 
@@ -1341,7 +1341,7 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
         game.world.info.torch_ticks--;
         if (game.world.info.torch_ticks <= 0) {
             game.DrawPlayerSurroundings(stat.x, stat.y, 0);
-			game.sound->sound_queue(3, "\x30\x01\x20\x01\x10\x01");
+			game.driver->sound_queue(3, "\x30\x01\x20\x01\x10\x01");
         }
 
         if (game.world.info.torch_ticks % 40 == 0) {
@@ -1352,7 +1352,7 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
     if (game.world.info.energizer_ticks > 0) {
         game.world.info.energizer_ticks--;
         if (game.world.info.energizer_ticks == 10) {
-			game.sound->sound_queue(9, "\x20\x03\x1A\x03\x17\x03\x16\x03\x15\x03\x13\x03\x10\x03");
+			game.driver->sound_queue(9, "\x20\x03\x1A\x03\x17\x03\x16\x03\x15\x03\x13\x03\x10\x03");
         } else if (game.world.info.energizer_ticks <= 0) {
             game.board.tiles.set_color(stat.x, stat.y, game.elementDefs[EPlayer].color);
             game.BoardDrawTile(stat.x, stat.y);
@@ -1365,7 +1365,7 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
 
             if ((game.board.info.time_limit_seconds - 10) == (game.world.info.board_time_sec)) {
                 game.DisplayMessage(200, "Running out of time!");
-				game.sound->sound_queue(3, "\x40\x06\x45\x06\x40\x06\x35\x06\x40\x06\x45\x06\x40\x0A");
+				game.driver->sound_queue(3, "\x40\x06\x45\x06\x40\x06\x35\x06\x40\x06\x45\x06\x40\x0A");
             } else if (game.world.info.board_time_sec > game.board.info.time_limit_seconds) {
                 game.DamageStat(0);
             }

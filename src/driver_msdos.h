@@ -2,12 +2,10 @@
 #define __DRIVER_MSDOS_H__
 
 #include <cstdint>
-#include "input.h"
-#include "sounds.h"
-#include "video.h"
+#include "driver.h"
 
 namespace ZZT {
-    class MSDOSDriver: public InputDriver, public SoundDriver, public VideoDriver {
+    class MSDOSDriver: public Driver {
         friend void timerCallback(void);
 
     private:

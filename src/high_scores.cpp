@@ -84,7 +84,7 @@ void HighScoreList::InitTextWindow(TextWindow &window) {
 }
 
 void HighScoreList::Display(const char *worldName, int16_t line_pos) {
-    TextWindow window = TextWindow(game->video, game->input, game->sound, game->filesystem);
+    TextWindow window = TextWindow(game->driver, game->filesystem);
 
     window.line_pos = line_pos;
     InitTextWindow(window);
@@ -107,7 +107,7 @@ void HighScoreList::Add(const char *worldName, int16_t score) {
     }
     
     if (list_pos < HIGH_SCORE_COUNT) {
-        TextWindow window = TextWindow(game->video, game->input, game->sound, game->filesystem);
+        TextWindow window = TextWindow(game->driver, game->filesystem);
 
         for (int i = (HIGH_SCORE_COUNT - 2); i >= list_pos; i--) {
             entries[i + 1] = entries[i];

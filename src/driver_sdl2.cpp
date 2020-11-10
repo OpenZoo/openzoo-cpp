@@ -551,20 +551,19 @@ void SDL2Driver::sound_unlock(void) {
 
 #include "gamevars.h"
 
+static Game game = Game();
+
 int main(int argc, char** argv) {
 	SDL2Driver driver = SDL2Driver(80, 25);
-	Game game = Game();
 
-	game.input = &driver;
-	game.sound = &driver;
-	game.video = &driver;
+	game.driver = &driver;
     game.filesystem = new PosixFilesystemDriver();
-    game.interface = new UserInterface(&driver, &driver, &driver);
-//    game.interface = new UserInterfaceSlim(&driver, &driver, &driver);
+    game.interface = new UserInterface(&driver);
+//    game.interface = new UserInterfaceSlim(&driver);
 
 	driver.install();
 
-	game.video->clrscr();
+	driver.clrscr();
 	game.GameTitleLoop();
 
 	driver.uninstall();

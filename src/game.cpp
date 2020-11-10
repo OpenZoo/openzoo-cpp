@@ -46,8 +46,9 @@ Game::Game(void): highScoreList(this) {
 }
 
 Game::~Game() {
-    free(boardSerializer);
-    free(worldSerializer);
+    // FIXME: Why do these cause a crash in free()?
+//    delete worldSerializer;
+//    delete boardSerializer;
 }
 
 void Game::GenerateTransitionTable(void) {
@@ -71,7 +72,7 @@ void Game::GenerateTransitionTable(void) {
 }
 
 void Game::SidebarClearLine(int y) {
-    video->draw_string(60, y, 0x11, "                    ");
+    driver->draw_string(60, y, 0x11, "                    ");
 }
 
 void Game::SidebarClear(void) {
@@ -202,7 +203,7 @@ void Game::WorldCreate(void) {
 
 void Game::TransitionDrawToFill(uint8_t chr, uint8_t color) {
     for (int i = 0; i < transitionTableSize; i++) {
-        video->draw_char(transitionTable[i].x - 1, transitionTable[i].y - 1, color, chr);
+        driver->draw_char(transitionTable[i].x - 1, transitionTable[i].y - 1, color, chr);
     }
 }
 
@@ -216,27 +217,27 @@ void Game::BoardDrawTile(int16_t x, int16_t y) {
         ) || forceDarknessOff
     ) {
         if (tile.element == EEmpty) {
-            video->draw_char(x - 1, y - 1, 0x0F, ' ');
+            driver->draw_char(x - 1, y - 1, 0x0F, ' ');
         } else if (elementDefs[tile.element].has_draw_proc) {
             uint8_t ch;
             elementDefs[tile.element].draw(*this, x, y, ch);
-            video->draw_char(x - 1, y - 1, tile.color, ch);
+            driver->draw_char(x - 1, y - 1, tile.color, ch);
         } else if (tile.element < ETextBlue) {
             uint8_t ch = elementCharOverrides[tile.element];
             if (ch == 0) ch = elementDefs[tile.element].character;
-            video->draw_char(x - 1, y - 1, tile.color, ch);
+            driver->draw_char(x - 1, y - 1, tile.color, ch);
         } else {
             if (tile.element == ETextWhite) {
-                video->draw_char(x - 1, y - 1, 0x0F, tile.color);
-            } else if (video->monochrome) {
-                video->draw_char(x - 1, y - 1, ((tile.element - ETextBlue + 1) << 4), tile.color);
+                driver->draw_char(x - 1, y - 1, 0x0F, tile.color);
+            } else if (driver->monochrome) {
+                driver->draw_char(x - 1, y - 1, ((tile.element - ETextBlue + 1) << 4), tile.color);
             } else {
-                video->draw_char(x - 1, y - 1, ((tile.element - ETextBlue + 1) << 4) | 0x0F, tile.color);
+                driver->draw_char(x - 1, y - 1, ((tile.element - ETextBlue + 1) << 4) | 0x0F, tile.color);
             }
         }
     } else {
         // darkness
-        video->draw_char(x - 1, y - 1, 0x07, 176);
+        driver->draw_char(x - 1, y - 1, 0x07, 176);
     }
 }
 
@@ -260,32 +261,32 @@ void Game::TransitionDrawToBoard(void) {
 
 void Game::SidebarPromptCharacter(bool editable, int16_t x, int16_t y, const char *prompt, uint8_t &value) {
     SidebarClearLine(y);
-    video->draw_string(x, y, editable ? 0x1F : 0x1E, prompt);
+    driver->draw_string(x, y, editable ? 0x1F : 0x1E, prompt);
     SidebarClearLine(y + 1);
-    video->draw_char(x + 5, y + 1, 0x9F, 31);
+    driver->draw_char(x + 5, y + 1, 0x9F, 31);
     SidebarClearLine(y + 2);
 
     do {
         for (int i = value - 4; i <= value + 4; i++) {
-            video->draw_char(x + i - value + 5, y + 2, 0x1E, (uint8_t) (i & 0xFF));
+            driver->draw_char(x + i - value + 5, y + 2, 0x1E, (uint8_t) (i & 0xFF));
         }
 
         if (editable) {
-            sound->delay(25);
-            input->update_input();
-            if (input->keyPressed == KeyTab) {
-                input->deltaX = 9;
+            driver->delay(25);
+            driver->update_input();
+            if (driver->keyPressed == KeyTab) {
+                driver->deltaX = 9;
             }
 
-            uint8_t new_value = (uint8_t) (value + input->deltaX);
+            uint8_t new_value = (uint8_t) (value + driver->deltaX);
             if (value != new_value) {
                 value = new_value;
                 SidebarClearLine(y + 2);
             }
         }
-    } while (input->keyPressed != KeyEnter && input->keyPressed != KeyEscape && editable && !input->shiftPressed);
+    } while (driver->keyPressed != KeyEnter && driver->keyPressed != KeyEscape && editable && !driver->shiftPressed);
 
-    video->draw_char(x + 5, y + 1, 0x1F, 31);
+    driver->draw_char(x + 5, y + 1, 0x1F, 31);
 }
 
 void Game::SidebarPromptSlider(bool editable, int16_t x, int16_t y, const char *prompt, uint8_t &value) {
@@ -301,46 +302,46 @@ void Game::SidebarPromptSlider(bool editable, int16_t x, int16_t y, const char *
     }
 
     SidebarClearLine(y);
-    video->draw_string(x, y, editable ? 0x1F : 0x1E, str);
+    driver->draw_string(x, y, editable ? 0x1F : 0x1E, str);
     SidebarClearLine(y + 1);
     SidebarClearLine(y + 2);
     StrCopy(str, "?....:....?");
     str[0] = startChar;
     str[10] = endChar;
-    video->draw_string(x, y + 2, 0x1E, str);
+    driver->draw_string(x, y + 2, 0x1E, str);
 
     do {
         if (editable) {
-            if (input->joystickMoved) {
-                sound->delay(45);
+            if (driver->joystickMoved) {
+                driver->delay(45);
             } else {
-                sound->idle(IMUntilFrame);
+                driver->idle(IMUntilFrame);
             }
-            video->draw_char(x + value + 1, y + 1, 0x9F, 31);
+            driver->draw_char(x + value + 1, y + 1, 0x9F, 31);
 
-            input->update_input();
-            if (input->keyPressed >= '1' && input->keyPressed <= '9') {
-                value = input->keyPressed - 49;
+            driver->update_input();
+            if (driver->keyPressed >= '1' && driver->keyPressed <= '9') {
+                value = driver->keyPressed - 49;
                 SidebarClearLine(y + 1);
             } else {
-                uint8_t new_value = (uint8_t) (value + input->deltaX);
+                uint8_t new_value = (uint8_t) (value + driver->deltaX);
                 if (value != new_value && new_value >= 0 && new_value <= 8) {
                     value = new_value;
                     SidebarClearLine(y + 1);
                 }
             }
         }
-    } while (input->keyPressed != KeyEnter && input->keyPressed != KeyEscape && editable && !input->shiftPressed);
+    } while (driver->keyPressed != KeyEnter && driver->keyPressed != KeyEscape && editable && !driver->shiftPressed);
 
-    video->draw_char(x + value + 1, y + 1, 0x1F, 31);
+    driver->draw_char(x + value + 1, y + 1, 0x1F, 31);
 }
 
 void Game::SidebarPromptChoice(bool editable, int16_t y, const char *prompt, const char *choiceStr, uint8_t &result) {
     SidebarClearLine(y);
     SidebarClearLine(y + 1);
     SidebarClearLine(y + 2);
-    video->draw_string(63, y, editable ? 0x1F : 0x1E, prompt);
-    video->draw_string(63, y + 2, 0x1E, choiceStr);
+    driver->draw_string(63, y, editable ? 0x1F : 0x1E, prompt);
+    driver->draw_string(63, y + 2, 0x1E, choiceStr);
 
     int choice_count = 1;
     int choiceStr_len = strlen(choiceStr);
@@ -358,19 +359,19 @@ void Game::SidebarPromptChoice(bool editable, int16_t y, const char *prompt, con
         }
 
         if (editable) {
-            video->draw_char(63 + i, y + 1, 0x9F, 31);
-            sound->delay(35);
-            input->update_input();
+            driver->draw_char(63 + i, y + 1, 0x9F, 31);
+            driver->delay(35);
+            driver->update_input();
 
-            uint8_t new_result = (uint8_t) (result + input->deltaX);
+            uint8_t new_result = (uint8_t) (result + driver->deltaX);
             if (new_result != result && new_result >= 0 && new_result < choice_count) {
                 result = new_result;
                 SidebarClearLine(y + 1);
             }
         }
-    } while (input->keyPressed != KeyEnter && input->keyPressed != KeyEscape && editable && !input->shiftPressed);
+    } while (driver->keyPressed != KeyEnter && driver->keyPressed != KeyEscape && editable && !driver->shiftPressed);
 
-    video->draw_char(63 + i, y + 1, 0x1F, 31);
+    driver->draw_char(63 + i, y + 1, 0x1F, 31);
 }
 
 void Game::SidebarPromptDirection(bool editable, int16_t y, const char *prompt, int16_t &dx, int16_t &dy) {
@@ -386,14 +387,14 @@ void Game::SidebarPromptDirection(bool editable, int16_t y, const char *prompt, 
 
 void Game::PauseOnError(void) {
     uint8_t error_notes[32];
-    sound->sound_queue(1, error_notes, SoundParse("s004x114x9", error_notes, 32));
-    sound->delay(2000);
+    driver->sound_queue(1, error_notes, SoundParse("s004x114x9", error_notes, 32));
+    driver->delay(2000);
 }
 
 void Game::DisplayIOError(IOStream &stream) {
     if (!stream.errored()) return;
 
-    TextWindow window = TextWindow(video, input, sound, filesystem);
+    TextWindow window = TextWindow(driver, filesystem);
     StrCopy(window.title, "Error");
     window.Append("$I/O Error: ");
     window.Append("");
@@ -484,7 +485,7 @@ void Game::GameWorldSave(const char *prompt, char* filename, size_t filename_len
     sstring<50> newFilename;
     StrCopy(newFilename, filename);
     interface->SidebarPromptString(prompt, extension, newFilename, sizeof(newFilename), PMAlphanum);
-    if (input->keyPressed != KeyEscape && !StrEmpty(newFilename)) {
+    if (driver->keyPressed != KeyEscape && !StrEmpty(newFilename)) {
         strncpy(filename, newFilename, filename_len - 1);
         filename[filename_len - 1] = 0;
 
@@ -498,7 +499,7 @@ void Game::GameWorldSave(const char *prompt, char* filename, size_t filename_len
 
 bool Game::GameWorldLoad(const char *extension) {
     const char *title = StrEquals(extension, ".ZZT") ? "ZZT Worlds" : "Saved Games";
-    FileSelector *selector = new FileSelector(video, input, sound, filesystem, title, extension);
+    FileSelector *selector = new FileSelector(driver, filesystem, title, extension);
 
     if (selector->select()) {
         bool result = WorldLoad(selector->get_filename(), extension, false);
@@ -667,7 +668,7 @@ void Game::GameDrawSidebar(void) {
 }
 
 static const char * menu_str_sound(Game *game) {
-    return game->sound->sound_is_enabled() ? "Be quiet" : "Be noisy";
+    return game->driver->sound_is_enabled() ? "Be quiet" : "Be noisy";
 }
 
 static const char * menu_str_editor(Game *game) {
@@ -707,7 +708,7 @@ void Game::DamageStat(int16_t attacker_stat_id) {
             if (world.info.health > 0) {
                 world.info.board_time_sec = 0;
                 if (board.info.reenter_when_zapped) {
-					sound->sound_queue(4, "\x20\x01\x23\x01\x27\x01\x30\x01\x10\x01");
+					driver->sound_queue(4, "\x20\x01\x23\x01\x27\x01\x30\x01\x10\x01");
 
                     // move player to start
                     board.tiles.set_element(attacker_stat.x, attacker_stat.y, EEmpty);
@@ -722,9 +723,9 @@ void Game::DamageStat(int16_t attacker_stat_id) {
                     gamePaused = true;
                 }
 
-				sound->sound_queue(4, "\x10\x01\x20\x01\x13\x01\x23\x01");
+				driver->sound_queue(4, "\x10\x01\x20\x01\x13\x01\x23\x01");
             } else {
-				sound->sound_queue(5,
+				driver->sound_queue(5,
 					"\x20\x03\x23\x03\x27\x03\x30\x03"
 					"\x27\x03\x2A\x03\x32\x03\x37\x03"
 					"\x35\x03\x38\x03\x40\x03\x45\x03\x10\x0A"
@@ -734,13 +735,13 @@ void Game::DamageStat(int16_t attacker_stat_id) {
     } else {
         switch (board.tiles.get(attacker_stat.x, attacker_stat.y).element) {
             case EBullet:
-                sound->sound_queue(3, "\x20\x01");
+                driver->sound_queue(3, "\x20\x01");
                 break;
             case EObject:
                 // pass
                 break;
 			default:
-                sound->sound_queue(3, "\x40\x01\x10\x01\x50\x01\x30\x01");
+                driver->sound_queue(3, "\x40\x01\x10\x01\x50\x01\x30\x01");
                 break;
         }
         RemoveStat(attacker_stat_id);
@@ -775,7 +776,7 @@ void Game::BoardAttack(int16_t attacker_stat_id, int16_t x, int16_t y) {
         GameUpdateSidebar();
     } else {
         BoardDamageTile(x, y);
-		sound->sound_queue(2, "\x10\x01");
+		driver->sound_queue(2, "\x10\x01");
     }
 }
 
@@ -797,7 +798,7 @@ bool Game::BoardShoot(uint8_t element, int16_t x, int16_t y, int16_t dx, int16_t
         ))
     {
         BoardDamageTile(x + dx, y + dy);
-		sound->sound_queue(2, "\x10\x01");
+		driver->sound_queue(2, "\x10\x01");
         return true;
     } else {
         return false;
@@ -874,7 +875,7 @@ void Game::BoardPassageTeleport(int16_t x, int16_t y) {
     }
 
     gamePaused = true;
-	sound->sound_queue(4,
+	driver->sound_queue(4,
 		"\x30\x01\x34\x01\x37\x01"
 		"\x31\x01\x35\x01\x38\x01"
 		"\x32\x01\x36\x01\x39\x01"
@@ -931,12 +932,12 @@ void Game::GameDebugPrompt(void) {
         }
     }
 
-	sound->sound_queue(10, "\x27\x04");
+	driver->sound_queue(10, "\x27\x04");
     GameUpdateSidebar();
 }
 
 void Game::GameAboutScreen(void) {
-    TextWindowDisplayFile(video, input, sound, filesystem, "ABOUT.HLP", "About ZZT...");
+    TextWindowDisplayFile(driver, filesystem, "ABOUT.HLP", "About ZZT...");
 }
 
 void Game::GamePlayLoop(bool boardChanged) {
@@ -986,33 +987,33 @@ void Game::GamePlayLoop(bool boardChanged) {
             }
 
             if (pauseBlink) {
-                video->draw_char(player.x - 1, player.y - 1, elementDefs[EPlayer].color, elementDefs[EPlayer].character);
+                driver->draw_char(player.x - 1, player.y - 1, elementDefs[EPlayer].color, elementDefs[EPlayer].character);
             } else {
                 if (board.tiles.get(player.x, player.y).element == EPlayer) {
-                    video->draw_char(player.x - 1, player.y - 1, 0x0F, ' ');
+                    driver->draw_char(player.x - 1, player.y - 1, 0x0F, ' ');
                 } else {
                     BoardDrawTile(player.x, player.y);
                 }
             }
 
             interface->SidebarShowMessage(0x0F, "  Pausing...");
-            sound->idle(IMUntilFrame);
-            input->update_input();
+            driver->idle(IMUntilFrame);
+            driver->update_input();
 
             // OpenZoo: Add "Q" and START to the list of allowed keys for exiting.
-            if (input->keyPressed == KeyEscape || UpCase(input->keyPressed) == 'Q' || input->joy_button_pressed(JoyButtonStart, false)) {
+            if (driver->keyPressed == KeyEscape || UpCase(driver->keyPressed) == 'Q' || driver->joy_button_pressed(JoyButtonStart, false)) {
                 GamePromptEndPlay();
             }
 
-            if (input->deltaX != 0 || input->deltaY != 0) {
-                int16_t dest_x = player.x + input->deltaX;
-                int16_t dest_y = player.y + input->deltaY;
-                elementDefAt(dest_x, dest_y).touch(*this, dest_x, dest_y, 0, input->deltaX, input->deltaY);
+            if (driver->deltaX != 0 || driver->deltaY != 0) {
+                int16_t dest_x = player.x + driver->deltaX;
+                int16_t dest_y = player.y + driver->deltaY;
+                elementDefAt(dest_x, dest_y).touch(*this, dest_x, dest_y, 0, driver->deltaX, driver->deltaY);
             }
 
-            if (input->deltaX != 0 || input->deltaY != 0) {
-                int16_t dest_x = player.x + input->deltaX;
-                int16_t dest_y = player.y + input->deltaY;
+            if (driver->deltaX != 0 || driver->deltaY != 0) {
+                int16_t dest_x = player.x + driver->deltaX;
+                int16_t dest_y = player.y + driver->deltaY;
                 const Tile &dest_tile = board.tiles.get(dest_x, dest_y);
                 if (elementDefs[dest_tile.element].walkable) {
                     const Tile &src_tile = board.tiles.get(player.x, player.y);
@@ -1030,7 +1031,7 @@ void Game::GamePlayLoop(bool boardChanged) {
                         });
                         BoardDrawTile(player.x, player.y);
                         DrawPlayerSurroundings(player.x, player.y, 0);
-                        DrawPlayerSurroundings(player.x - input->deltaX, player.y - input->deltaY, 0);
+                        DrawPlayerSurroundings(player.x - driver->deltaX, player.y - driver->deltaY, 0);
                     }
 
                     // Unpause
@@ -1061,14 +1062,14 @@ void Game::GamePlayLoop(bool boardChanged) {
                 }
                 currentStatTicked = 0;
 
-                input->update_input();
+                driver->update_input();
             } else {
-                sound->idle(IMUntilPit);
+                driver->idle(IMUntilPit);
             }
         }
     } while (!((exitLoop || gamePlayExitRequested) && gamePlayExitRequested));
 
-    sound->sound_clear_queue();
+    driver->sound_clear_queue();
 
     if (gameStateElement == EPlayer) {
         if (world.info.health <= 0) {
@@ -1083,7 +1084,7 @@ void Game::GamePlayLoop(bool boardChanged) {
         .color = elementDefs[EPlayer].color
     });
 
-    sound->sound_set_block_queueing(false);
+    driver->sound_set_block_queueing(false);
 }
 
 const MenuEntry ZZT::TitleMenu[] = {
@@ -1158,7 +1159,7 @@ void Game::GameTitleLoop(void) {
                 } break;
                 case 'S': {
                     SidebarPromptSlider(true, 66, 21, "Game speed:;FS", tickSpeed);
-                    input->keyPressed = 0;
+                    driver->keyPressed = 0;
                 } break;
                 case 'R': {
                     if (GameWorldLoad(".SAV")) {

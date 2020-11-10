@@ -106,21 +106,21 @@ void Editor::UpdateCursorColor(void) {
     uint8_t color_bg = cursor_color >> 4;
     uint8_t color_fg = cursor_color & 0x0F;
 
-    game->video->draw_string(72, 19, 0x1E, EditorColorNames[color_fg]);
-    game->video->draw_string(76, 19, 0x1E, EditorColorNames[color_bg]);
+    game->driver->draw_string(72, 19, 0x1E, EditorColorNames[color_fg]);
+    game->driver->draw_string(76, 19, 0x1E, EditorColorNames[color_bg]);
 
-    game->video->draw_string(61, 24, 0x1F, "                ");
+    game->driver->draw_string(61, 24, 0x1F, "                ");
     if (color_bg == color_fg) {
-        game->video->draw_char(61 + color_bg, 24, 0x9F, 30);
+        game->driver->draw_char(61 + color_bg, 24, 0x9F, 30);
     } else {
-        game->video->draw_char(61 + color_fg, 24, 0x1F, 24);
-        game->video->draw_char(61 + color_bg, 24, 0x1F, '^');
+        game->driver->draw_char(61 + color_fg, 24, 0x1F, 24);
+        game->driver->draw_char(61 + color_bg, 24, 0x1F, '^');
     }
 }
 
 void Editor::UpdateCursorPattern(void) {
-    game->video->draw_string(61, 22, 0x1F, "                ");
-    game->video->draw_char(61 + cursor_pattern, 22, 0x1F, 30);
+    game->driver->draw_string(61, 22, 0x1F, "                ");
+    game->driver->draw_char(61 + cursor_pattern, 22, 0x1F, 30);
 }
 
 void Editor::UpdateDrawMode(void) {
@@ -134,16 +134,16 @@ void Editor::UpdateDrawMode(void) {
         default: return;
     }
 
-    game->video->draw_string(75, 16, color, desc);
+    game->driver->draw_string(75, 16, color, desc);
 }
 
 void Editor::UpdateColorIgnoreDefaults(void) {
-    game->video->draw_char(78, 23, 0x1F, color_ignore_defaults ? 'd' : 'D');
+    game->driver->draw_char(78, 23, 0x1F, color_ignore_defaults ? 'd' : 'D');
 }
 
 void Editor::UpdateCopiedPatterns(void) {
     for (int i = 0; i < COPIED_TILES_COUNT; i++) {
-        game->video->draw_char(
+        game->driver->draw_char(
             61 + EditorPatternCount + i,
             21,
             copied_tiles[i].preview_color,
@@ -204,49 +204,49 @@ void Editor::DrawSidebar(void) {
     game->SidebarClearLine(1);
     game->SidebarClearLine(2);
 
-    game->video->draw_string(61, 0, 0x1F, "     - - - -       ");
-    game->video->draw_string(62, 1, 0x70, "  ZZT Editor   ");
-    game->video->draw_string(61, 2, 0x1F, "     - - - -       ");
-    game->video->draw_string(61, 4, 0x70, " L ");
-    game->video->draw_string(64, 4, 0x1F, " Load");
-    game->video->draw_string(61, 5, 0x30, " S ");
-    game->video->draw_string(64, 5, 0x1F, " Save");
-    game->video->draw_string(70, 4, 0x70, " H ");
-    game->video->draw_string(73, 4, 0x1F, " Help");
-    game->video->draw_string(70, 5, 0x30, " Q ");
-    game->video->draw_string(73, 5, 0x1F, " Quit");
-    game->video->draw_string(61, 7, 0x70, " B ");
-    game->video->draw_string(64, 7, 0x1F, " Switch boards");
-    game->video->draw_string(61, 8, 0x30, " I ");
-    game->video->draw_string(64, 8, 0x1F, " Board Info");
-    game->video->draw_string(61, 10, 0x70, "  f1   ");
-    game->video->draw_string(68, 10, 0x1F, " Item");
-    game->video->draw_string(61, 11, 0x30, "  f2   ");
-    game->video->draw_string(68, 11, 0x1F, " Creature");
-    game->video->draw_string(61, 12, 0x70, "  f3   ");
-    game->video->draw_string(68, 12, 0x1F, " Terrain");
-    game->video->draw_string(61, 13, 0x30, "  f4   ");
-    game->video->draw_string(68, 13, 0x1F, " Enter text");
-    game->video->draw_string(61, 15, 0x70, " Space ");
-    game->video->draw_string(68, 15, 0x1F, " Plot");
-    game->video->draw_string(61, 16, 0x30, "  Tab  ");
-    game->video->draw_string(68, 16, 0x1F, " Mode:");
-    game->video->draw_string(61, 18, 0x70, " P ");
-    game->video->draw_string(64, 18, 0x1F, " Pattern");
-    game->video->draw_string(61, 19, 0x30, " C ");
-    game->video->draw_string(64, 19, 0x1F, " Color:");
-    game->video->draw_char(75, 19, 0x1F, 26);
+    game->driver->draw_string(61, 0, 0x1F, "     - - - -       ");
+    game->driver->draw_string(62, 1, 0x70, "  ZZT Editor   ");
+    game->driver->draw_string(61, 2, 0x1F, "     - - - -       ");
+    game->driver->draw_string(61, 4, 0x70, " L ");
+    game->driver->draw_string(64, 4, 0x1F, " Load");
+    game->driver->draw_string(61, 5, 0x30, " S ");
+    game->driver->draw_string(64, 5, 0x1F, " Save");
+    game->driver->draw_string(70, 4, 0x70, " H ");
+    game->driver->draw_string(73, 4, 0x1F, " Help");
+    game->driver->draw_string(70, 5, 0x30, " Q ");
+    game->driver->draw_string(73, 5, 0x1F, " Quit");
+    game->driver->draw_string(61, 7, 0x70, " B ");
+    game->driver->draw_string(64, 7, 0x1F, " Switch boards");
+    game->driver->draw_string(61, 8, 0x30, " I ");
+    game->driver->draw_string(64, 8, 0x1F, " Board Info");
+    game->driver->draw_string(61, 10, 0x70, "  f1   ");
+    game->driver->draw_string(68, 10, 0x1F, " Item");
+    game->driver->draw_string(61, 11, 0x30, "  f2   ");
+    game->driver->draw_string(68, 11, 0x1F, " Creature");
+    game->driver->draw_string(61, 12, 0x70, "  f3   ");
+    game->driver->draw_string(68, 12, 0x1F, " Terrain");
+    game->driver->draw_string(61, 13, 0x30, "  f4   ");
+    game->driver->draw_string(68, 13, 0x1F, " Enter text");
+    game->driver->draw_string(61, 15, 0x70, " Space ");
+    game->driver->draw_string(68, 15, 0x1F, " Plot");
+    game->driver->draw_string(61, 16, 0x30, "  Tab  ");
+    game->driver->draw_string(68, 16, 0x1F, " Mode:");
+    game->driver->draw_string(61, 18, 0x70, " P ");
+    game->driver->draw_string(64, 18, 0x1F, " Pattern");
+    game->driver->draw_string(61, 19, 0x30, " C ");
+    game->driver->draw_string(64, 19, 0x1F, " Color:");
+    game->driver->draw_char(75, 19, 0x1F, 26);
 
     // Colors
     for (int i = 0; i < 16; i++) {
-        game->video->draw_char(61 + i, 23, 0x10 | i, 219);
+        game->driver->draw_char(61 + i, 23, 0x10 | i, 219);
     }
     UpdateCursorColor();
     UpdateColorIgnoreDefaults();
 
     // patterns
     for (int i = 0; i < EditorPatternCount; i++) {
-        game->video->draw_char(61 + i, 21, 0x0F, game->elementDefs[EditorPatterns[i]].character);
+        game->driver->draw_char(61 + i, 21, 0x0F, game->elementDefs[EditorPatterns[i]].character);
     }
     UpdateCopiedPatterns();
     UpdateCursorPattern();
@@ -277,7 +277,7 @@ void Editor::DrawRefresh(void) {
     } else {
         StrCopy(name, " Untitled ");
     }
-    game->video->draw_string((59 - strlen(name)) / 2, 0, 0x70, name);
+    game->driver->draw_string((59 - strlen(name)) / 2, 0, 0x70, name);
 }
 
 void Editor::SetTile(int16_t x, int16_t y, Tile tile) {
@@ -293,10 +293,10 @@ void Editor::SetAndCopyTile(int16_t x, int16_t y, Tile tile) {
 }
 
 void Editor::AskSaveChanged(void) {
-    game->input->keyPressed = 0;
+    game->driver->keyPressed = 0;
     if (was_modified) {
         if (game->interface->SidebarPromptYesNo("Save first? ", true)) {
-            if (game->input->keyPressed != KeyEscape) {
+            if (game->driver->keyPressed != KeyEscape) {
                 game->GameWorldSave("Save world", game->loadedGameFileName, sizeof(game->loadedGameFileName), ".ZZT");
             }
         }
@@ -364,7 +364,7 @@ static const char *boolToString(bool value) {
 void Editor::EditBoardInfo(void) {
     sstring<50> num_str;
 
-    TextWindow window = TextWindow(game->video, game->input, game->sound, game->filesystem);
+    TextWindow window = TextWindow(game->driver, game->filesystem);
     window.DrawOpen();
     bool exit_requested = false;
     
@@ -390,8 +390,8 @@ void Editor::EditBoardInfo(void) {
         window.Append("          Quit!");
 
         window.Select(false, false);
-        was_modified |= (game->input->keyPressed == KeyEnter && window.line_pos != (window.line_count - 1));
-        if (game->input->keyPressed == KeyEnter) {
+        was_modified |= (game->driver->keyPressed == KeyEnter && window.line_pos != (window.line_count - 1));
+        if (game->driver->keyPressed == KeyEnter) {
             switch (window.line_pos) {
                 case 0: { // title
                     game->interface->PopupPromptString("New title for board:", game->board.name, sizeof(game->board.name));
@@ -446,24 +446,24 @@ void Editor::EditBoardInfo(void) {
 
 void Editor::DrawTextEditSidebar(void) {
     game->SidebarClear();
-    game->video->draw_string(61, 4, 0x30, " Return ");
-    game->video->draw_string(64, 5, 0x1F, " Insert line");
-    game->video->draw_string(61, 7, 0x70, " Ctrl-Y ");
-    game->video->draw_string(64, 8, 0x1F, " Delete line");
-    game->video->draw_string(61, 10, 0x30, " Cursor keys ");
-    game->video->draw_string(64, 11, 0x1F, " Move cursor");
-    game->video->draw_string(61, 13, 0x70, " Insert ");
-    game->video->draw_string(64, 14, 0x1F, " Insert mode: ");
-    game->video->draw_string(61, 16, 0x30, " Delete ");
-    game->video->draw_string(64, 17, 0x1F, " Delete char");
-    game->video->draw_string(61, 19, 0x70, " Escape ");
-    game->video->draw_string(64, 20, 0x1F, " Exit editor");
+    game->driver->draw_string(61, 4, 0x30, " Return ");
+    game->driver->draw_string(64, 5, 0x1F, " Insert line");
+    game->driver->draw_string(61, 7, 0x70, " Ctrl-Y ");
+    game->driver->draw_string(64, 8, 0x1F, " Delete line");
+    game->driver->draw_string(61, 10, 0x30, " Cursor keys ");
+    game->driver->draw_string(64, 11, 0x1F, " Move cursor");
+    game->driver->draw_string(61, 13, 0x70, " Insert ");
+    game->driver->draw_string(64, 14, 0x1F, " Insert mode: ");
+    game->driver->draw_string(61, 16, 0x30, " Delete ");
+    game->driver->draw_string(64, 17, 0x1F, " Delete char");
+    game->driver->draw_string(61, 19, 0x70, " Escape ");
+    game->driver->draw_string(64, 20, 0x1F, " Exit editor");
 }
 
 void Editor::EditStatText(int16_t stat_id, const char *prompt) {
     bool affected_stats[MAX_STAT + 2];
     Stat &stat = game->board.stats[stat_id];
-    TextWindow window = TextWindow(game->video, game->input, game->sound, game->filesystem);
+    TextWindow window = TextWindow(game->driver, game->filesystem);
     StrCopy(window.title, prompt);
     window.DrawOpen();
     window.selectable = false;
@@ -503,7 +503,7 @@ void Editor::EditStatText(int16_t stat_id, const char *prompt) {
     }
 
     window.DrawClose();
-    game->input->keyPressed = 0;
+    game->driver->keyPressed = 0;
 }
 
 void Editor::EditStat(int16_t stat_id) {
@@ -522,15 +522,15 @@ void Editor::EditStat(int16_t stat_id) {
         }
     }
 
-    game->video->draw_string(64, 6, 0x1E, category_name);
-    game->video->draw_string(64, 7, 0x1F, def.name);
+    game->driver->draw_string(64, 6, 0x1E, category_name);
+    game->driver->draw_string(64, 7, 0x1F, def.name);
 
     sstring<50> text;
     StrClear(text);
 
     for (int i = 0; i < 2; i++) {
         bool selected = i == 1;
-        game->input->keyPressed = 0;
+        game->driver->keyPressed = 0;
         int iy = 9;
 
         if (!StrEmpty(def.p1_name)) {
@@ -552,14 +552,14 @@ void Editor::EditStat(int16_t stat_id) {
             iy += 4;
         }
 
-        if (game->input->keyPressed == KeyEscape) continue;
+        if (game->driver->keyPressed == KeyEscape) continue;
         if (!StrEmpty(def.param_text_name)) {
             if (selected) {
                 EditStatText(stat_id, def.param_text_name);
             }
         }
 
-        if (game->input->keyPressed == KeyEscape) continue;
+        if (game->driver->keyPressed == KeyEscape) continue;
         if (!StrEmpty(def.p2_name)) {
             uint8_t prompt_byte = stat.p2 & 0x7F;
             game->SidebarPromptSlider(selected, 63, iy, def.p2_name, prompt_byte);
@@ -572,7 +572,7 @@ void Editor::EditStat(int16_t stat_id) {
             iy += 4;
         }
 
-        if (game->input->keyPressed == KeyEscape) continue;
+        if (game->driver->keyPressed == KeyEscape) continue;
         if (!StrEmpty(def.param_bullet_type_name)) {
             uint8_t prompt_byte = stat.p2 >> 7;
             game->SidebarPromptChoice(selected, iy, def.param_bullet_type_name, "Bullets Stars", prompt_byte);
@@ -585,7 +585,7 @@ void Editor::EditStat(int16_t stat_id) {
             iy += 4;
         }
 
-        if (game->input->keyPressed == KeyEscape) continue;
+        if (game->driver->keyPressed == KeyEscape) continue;
         if (!StrEmpty(def.param_direction_name)) {
             game->SidebarPromptDirection(selected, iy, def.param_direction_name,
                 stat.step_x, stat.step_y);
@@ -598,7 +598,7 @@ void Editor::EditStat(int16_t stat_id) {
             iy += 4;
         }
 
-        if (game->input->keyPressed == KeyEscape) continue;
+        if (game->driver->keyPressed == KeyEscape) continue;
         if (!StrEmpty(def.param_board_name)) {
             if (selected) {
                 int16_t selected_board = SelectBoard(def.param_board_name, stat.p3, true);
@@ -609,17 +609,17 @@ void Editor::EditStat(int16_t stat_id) {
                     }
                     stat_settings[tile.element].p3 = stat.p3;
                 } else {
-                    game->input->keyPressed = KeyEscape;
+                    game->driver->keyPressed = KeyEscape;
                 }
             } else {
                 GetBoardName(stat.p3, true, text, (80 - (63 + 6)) + 1);
-                game->video->draw_string(63, iy, 0x1F, "Room: ");
-                game->video->draw_string(63 + 6, iy, 0x1F, text);
+                game->driver->draw_string(63, iy, 0x1F, "Room: ");
+                game->driver->draw_string(63 + 6, iy, 0x1F, text);
             }
         }
     }
 
-    if (game->input->keyPressed != KeyEscape) {
+    if (game->driver->keyPressed != KeyEscape) {
         CopyPatternToCurrent(stat.x, stat.y);
     }
 }
@@ -628,9 +628,9 @@ void Editor::TransferBoard(void) {
     sstring<255> filename_joined;
     uint8_t i = 1;
     game->SidebarPromptChoice(true, 3, "Transfer board:", "Import Export", i);
-    if (game->input->keyPressed != KeyEscape) {
+    if (game->driver->keyPressed != KeyEscape) {
         if (i == 0) {
-            FileSelector *selector = new FileSelector(game->video, game->input, game->sound, game->filesystem, "Import board", ".BRD");
+            FileSelector *selector = new FileSelector(game->driver, game->filesystem, "Import board", ".BRD");
 
             if (selector->select()) {
                 StrCopy(game->savedBoardFileName, selector->get_filename());
@@ -673,7 +673,7 @@ void Editor::TransferBoard(void) {
         } else if (i == 1) {
             // export
             game->interface->SidebarPromptString("Export board", ".BRD", game->savedBoardFileName, sizeof(game->savedBoardFileName), PMAlphanum);
-            if (game->input->keyPressed != KeyEscape && !StrEmpty(game->savedBoardFileName)) {
+            if (game->driver->keyPressed != KeyEscape && !StrEmpty(game->savedBoardFileName)) {
                 StrJoin(filename_joined, 2, game->savedBoardFileName, ".BRD");
                 IOStream *stream = game->filesystem->open_file(filename_joined, false);
 
@@ -729,7 +729,7 @@ void Editor::EditHelpFile() {
     filename[0] = '*';
     game->interface->SidebarPromptString("File to edit", ".HLP", filename + 1, sizeof(filename) - 5, PMAlphanum);
     if (filename[1] != 0) {
-        TextWindow window = TextWindow(game->video, game->input, game->sound, game->filesystem);
+        TextWindow window = TextWindow(game->driver, game->filesystem);
         strcat(filename, ".HLP");
         window.OpenFile(filename, false);
         StrJoin(window.title, 2, "Editing ", filename);
@@ -758,7 +758,7 @@ void Editor::GetBoardName(int16_t board_id, bool title_screen_is_none, char *buf
 
 int Editor::SelectBoard(const char *title, int16_t current_board, bool title_screen_is_none) {
     sstring<50> boardName;
-    TextWindow window = TextWindow(game->video, game->input, game->sound, game->filesystem);
+    TextWindow window = TextWindow(game->driver, game->filesystem);
     StrCopy(window.title, title);
     window.line_pos = current_board;
     window.selectable = true;
@@ -770,7 +770,7 @@ int Editor::SelectBoard(const char *title, int16_t current_board, bool title_scr
     window.DrawOpen();
     window.Select(false, false);
     window.DrawClose();
-    return (game->input->keyPressed == KeyEscape) ? 0 : window.line_pos;
+    return (game->driver->keyPressed == KeyEscape) ? 0 : window.line_pos;
 }
 
 void Editor::Loop(void) {
@@ -809,11 +809,11 @@ void Editor::Loop(void) {
             PlaceTile(cursor_x, cursor_y);
         }
 
-        game->sound->idle(IMUntilFrame);
-        game->input->update_input();
+        game->driver->idle(IMUntilFrame);
+        game->driver->update_input();
 
-        if (game->input->keyPressed == 0 && game->input->deltaX == 0
-            && game->input->deltaY == 0 && !game->input->shiftPressed
+        if (game->driver->keyPressed == 0 && game->driver->deltaX == 0
+            && game->driver->deltaY == 0 && !game->driver->shiftPressed
         ) {
             if (game->HasTimeElapsed(game->tickTimeCounter, 15)) {
                 cursor_blinker = (cursor_blinker + 1) % 3;
@@ -821,14 +821,14 @@ void Editor::Loop(void) {
             if (cursor_blinker == 0) {
                 game->BoardDrawTile(cursor_x, cursor_y);
             } else {
-                game->video->draw_char(cursor_x - 1, cursor_y - 1, 0x0F, 197);
+                game->driver->draw_char(cursor_x - 1, cursor_y - 1, 0x0F, 197);
             }
         } else {
             game->BoardDrawTile(cursor_x, cursor_y);
         }
 
         if (draw_mode == EDMTextEntry) {
-            auto &ch = game->input->keyPressed;
+            auto &ch = game->driver->keyPressed;
             if (ch >= 32 && ch < 128) {
                 if (PrepareModifyTile(cursor_x, cursor_y)) {
                     i = (cursor_color & 0x07) + ETextBlue - 1;
@@ -839,8 +839,8 @@ void Editor::Loop(void) {
                         .color = (uint8_t) ch
                     });
                     DrawTileAndNeighhborsAt(cursor_x, cursor_y);
-                    game->input->deltaX = 1;
-                    game->input->deltaY = 0;
+                    game->driver->deltaX = 1;
+                    game->driver->deltaY = 0;
                 }
                 ch = 0;
             } else if (ch == KeyBackspace && cursor_x > 1 && PrepareModifyTile(cursor_x - 1, cursor_y)) {
@@ -854,10 +854,10 @@ void Editor::Loop(void) {
 
         const Tile &cursor_tile = game->board.tiles.get(cursor_x, cursor_y);
 
-        if (game->input->shiftPressed || game->input->keyPressed == ' ') {
-            game->input->shiftAccepted = true;
+        if (game->driver->shiftPressed || game->driver->keyPressed == ' ') {
+            game->driver->shiftAccepted = true;
 
-            can_modify = cursor_tile.element == 0 || game->input->deltaX != 0 || game->input->deltaY != 0;
+            can_modify = cursor_tile.element == 0 || game->driver->deltaX != 0 || game->driver->deltaY != 0;
             if (!can_modify && game->elementDefs[cursor_tile.element].placeable_on_top && cursor_pattern >= EditorPatternCount) {
                 // Place stat "under"
                 can_modify = copied_tiles[cursor_pattern - EditorPatternCount].has_stat;
@@ -871,39 +871,39 @@ void Editor::Loop(void) {
                     game->board.tiles.set_element(cursor_x, cursor_y, EEmpty);
                 }
             }
-        } else if (game->input->keyPressed == KeyDelete) {
+        } else if (game->driver->keyPressed == KeyDelete) {
             RemoveTile(cursor_x, cursor_y);
         }
 
-        if (game->input->deltaX != 0 || game->input->deltaY != 0) {
-            cursor_x += game->input->deltaX;
+        if (game->driver->deltaX != 0 || game->driver->deltaY != 0) {
+            cursor_x += game->driver->deltaX;
             if (cursor_x < 1) cursor_x = 1;
             if (cursor_x > game->board.width()) cursor_x = game->board.width();
 
-            cursor_y += game->input->deltaY;
+            cursor_y += game->driver->deltaY;
             if (cursor_y < 1) cursor_y = 1;
             if (cursor_y > game->board.height()) cursor_y = game->board.height();
 
-            game->video->draw_char(cursor_x - 1, cursor_y - 1, 0x0F, 197);
+            game->driver->draw_char(cursor_x - 1, cursor_y - 1, 0x0F, 197);
 
-            if (game->input->keyPressed == 0 && game->input->joystickEnabled) {
-                game->sound->delay(70);
+            if (game->driver->keyPressed == 0 && game->driver->joystickEnabled) {
+                game->driver->delay(70);
             }
-            game->input->shiftAccepted = true;
+            game->driver->shiftAccepted = true;
         }
 
-        if (game->input->keyPressed >= '0' && game->input->keyPressed <= '9') {
-            int i = (game->input->keyPressed == '0') ? 9 : (game->input->keyPressed - '1');
+        if (game->driver->keyPressed >= '0' && game->driver->keyPressed <= '9') {
+            int i = (game->driver->keyPressed == '0') ? 9 : (game->driver->keyPressed - '1');
             if (i < COPIED_TILES_COUNT) {
                 cursor_pattern = EditorPatternCount + i;
                 UpdateCursorPattern();
             }
-        } else switch(UpCase(game->input->keyPressed)) {
+        } else switch(UpCase(game->driver->keyPressed)) {
             case '`': {
                 DrawRefresh();
             } break;
             case 'P': {
-                if (game->input->keyPressed == 'P') {
+                if (game->driver->keyPressed == 'P') {
                     if (cursor_pattern > 1) {
                         cursor_pattern--;
                     } else {
@@ -919,7 +919,7 @@ void Editor::Loop(void) {
                 UpdateCursorPattern();
             } break;
             case 'C': {
-                if (game->input->keyPressed == 'C') {
+                if (game->driver->keyPressed == 'C') {
                     cursor_color = (cursor_color & 0x8F) | ((cursor_color + 16) & 0x70);
                 } else {
                     cursor_color = (cursor_color & 0xF0) | ((cursor_color + 1) & 0x0F);
@@ -932,7 +932,7 @@ void Editor::Loop(void) {
             } break;
             case 'L': {
                 AskSaveChanged();
-                if (game->input->keyPressed != KeyEscape && game->GameWorldLoad(".ZZT")) {
+                if (game->driver->keyPressed != KeyEscape && game->GameWorldLoad(".ZZT")) {
                     bool is_secret = game->WorldGetFlagPosition("SECRET") >= 0;
                     if (game->world.info.is_save || is_secret) {
                         if (!game->debugEnabled) {
@@ -941,13 +941,13 @@ void Editor::Loop(void) {
                             game->SidebarClearLine(5);
 
                             sstring<20> sidebar_text;
-                            game->video->draw_string(63, 4, 0x1E, "Can not edit");
+                            game->driver->draw_string(63, 4, 0x1E, "Can not edit");
                             if (game->world.info.is_save) {
                                 StrCopy(sidebar_text, "a saved game!");
                             } else {
                                 StrJoin(sidebar_text, 3, "  ", game->world.info.name, "!");
                             }
-                            game->video->draw_string(63, 5, 0x1E, sidebar_text);
+                            game->driver->draw_string(63, 5, 0x1E, sidebar_text);
 
                             game->PauseOnError();
                             game->WorldUnload();
@@ -961,7 +961,7 @@ void Editor::Loop(void) {
             } break;
             case 'S': {
                 game->GameWorldSave("Save world:", game->loadedGameFileName, sizeof(game->loadedGameFileName), ".ZZT");
-                if (game->input->keyPressed != KeyEscape) {
+                if (game->driver->keyPressed != KeyEscape) {
                     was_modified = false;
                 }
                 DrawSidebar();
@@ -978,9 +978,9 @@ void Editor::Loop(void) {
                 }
             } break;
             case 'N': {
-                if (game->interface->SidebarPromptYesNo("Make new world? ", false) && (game->input->keyPressed != KeyEscape)) {
+                if (game->interface->SidebarPromptYesNo("Make new world? ", false) && (game->driver->keyPressed != KeyEscape)) {
                     AskSaveChanged();
-                    if (game->input->keyPressed != KeyEscape) {
+                    if (game->driver->keyPressed != KeyEscape) {
                         game->WorldUnload();
                         game->WorldCreate();
                         DrawRefresh();
@@ -995,7 +995,7 @@ void Editor::Loop(void) {
             } break;
             case 'B': {
                 i = SelectBoard("Switch boards", game->world.info.current_board, false);
-                if (game->input->keyPressed != KeyEscape) {
+                if (game->driver->keyPressed != KeyEscape) {
                     if (i > game->world.board_count) {
                         if (game->interface->SidebarPromptYesNo("Add new board? ", false)) {
                             AppendBoard();
@@ -1015,16 +1015,16 @@ void Editor::Loop(void) {
                 UpdateDrawMode();
             } break;
             case KeyF5: {
-                game->video->draw_char(cursor_x - 1, cursor_y - 1, 0x0F, 197);
+                game->driver->draw_char(cursor_x - 1, cursor_y - 1, 0x0F, 197);
                 for (i = 3; i <= 20; i++) {
                     game->SidebarClearLine(i);
                 }
-                game->video->draw_string(65, 4, 0x1E, "Advanced:");
-                game->video->draw_string(61, 5, 0x70, " E ");
-                game->video->draw_string(65, 5, 0x1F, "Board edge");
-                game->video->draw_char(78, 5, cursor_color, 'E');
-                game->input->read_wait_key();
-                switch (UpCase(game->input->keyPressed)) {
+                game->driver->draw_string(65, 4, 0x1E, "Advanced:");
+                game->driver->draw_string(61, 5, 0x70, " E ");
+                game->driver->draw_string(65, 5, 0x1F, "Board edge");
+                game->driver->draw_char(78, 5, cursor_color, 'E');
+                game->driver->read_wait_key();
+                switch (UpCase(game->driver->keyPressed)) {
                     case 'E': {
                         if (PrepareModifyTile(cursor_x, cursor_y)) {
                             SetAndCopyTile(cursor_x, cursor_y, {
@@ -1039,11 +1039,11 @@ void Editor::Loop(void) {
             case KeyF1:
             case KeyF2:
             case KeyF3: {
-                game->video->draw_char(cursor_x - 1, cursor_y - 1, 0x0F, 197);
+                game->driver->draw_char(cursor_x - 1, cursor_y - 1, 0x0F, 197);
                 for (i = 3; i <= 20; i++) {
                     game->SidebarClearLine(i);
                 }
-                switch (game->input->keyPressed) {
+                switch (game->driver->keyPressed) {
                     case KeyF1: selected_category = EditorCategoryItem; break;
                     case KeyF2: selected_category = EditorCategoryCreature; break;
                     case KeyF3: selected_category = EditorCategoryTerrain; break;
@@ -1059,7 +1059,7 @@ void Editor::Loop(void) {
                     if (def.editor_category == selected_category) {
                         if (!StrEmpty(def.category_name)) {
                             i++;
-                            game->video->draw_string(65, i, 0x1E, def.category_name);
+                            game->driver->draw_string(65, i, 0x1E, def.category_name);
                             i++;
                         }
 
@@ -1067,20 +1067,20 @@ void Editor::Loop(void) {
                         if (elem_ch == 0) elem_ch = def.character;
 
                         hotkey[1] = def.editor_shortcut;
-                        game->video->draw_string(61, i, ((i & 1) << 6) + 0x30, hotkey);
-                        game->video->draw_string(65, i, 0x1F, def.name);
-                        game->video->draw_char(78, i, GetDrawingColor(i_elem), elem_ch);
+                        game->driver->draw_string(61, i, ((i & 1) << 6) + 0x30, hotkey);
+                        game->driver->draw_string(65, i, 0x1F, def.name);
+                        game->driver->draw_char(78, i, GetDrawingColor(i_elem), elem_ch);
 
                         i++;
                     }
                 }
 
-                game->input->read_wait_key();
+                game->driver->read_wait_key();
 
                 for (i_elem = 1; i_elem <= ElementCount; i_elem++) {
                     const ElementDef &def = game->elementDefs[i_elem];
                     if (def.editor_category == selected_category
-                        && def.editor_shortcut == UpCase(game->input->keyPressed)
+                        && def.editor_shortcut == UpCase(game->driver->keyPressed)
                     ) {
                         if (i_elem == EPlayer) {
                             if (PrepareModifyTile(cursor_x, cursor_y)) {
@@ -1110,7 +1110,7 @@ void Editor::Loop(void) {
                                 }
                                 if (!StrEmpty(def.param_board_name)) stat.p3 = stat_settings[i_elem].p3;
                                 EditStat(game->board.stats.count);
-                                if (game->input->keyPressed == KeyEscape) {
+                                if (game->driver->keyPressed == KeyEscape) {
                                     game->RemoveStat(game->board.stats.count);
                                 }
                             }
@@ -1124,7 +1124,7 @@ void Editor::Loop(void) {
                 UpdateDrawMode();
             } break;
             case 'H': {
-                TextWindowDisplayFile(game->video, game->input, game->sound, game->filesystem, "editor.hlp", "World editor help");
+                TextWindowDisplayFile(game->driver, game->filesystem, "editor.hlp", "World editor help");
             } break;
             case 'X': {
                 FloodFill(cursor_x, cursor_y, game->board.tiles.get(cursor_x, cursor_y));
@@ -1154,7 +1154,7 @@ void Editor::Loop(void) {
 
         if (editor_exit_requested) {
             AskSaveChanged();
-            if (game->input->keyPressed == KeyEscape) {
+            if (game->driver->keyPressed == KeyEscape) {
                 editor_exit_requested = false;
                 DrawSidebar();
             }
@@ -1165,6 +1165,6 @@ void Editor::Loop(void) {
         copied_tiles[i].Clear();
     }
 
-    game->input->keyPressed = 0;
+    game->driver->keyPressed = 0;
     game->InitElementsGame();
 }

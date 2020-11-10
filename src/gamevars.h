@@ -6,9 +6,8 @@
 #include <cstdlib> // TODO
 #include "utils.h"
 #include "filesystem.h"
-#include "input.h"
+#include "driver.h"
 #include "sounds.h"
-#include "video.h"
 #include "txtwind.h"
 #include "high_scores.h"
 #include "user_interface.h"
@@ -447,9 +446,7 @@ namespace ZZT {
         bool parsingConfigFile;
         bool justStarted;
 
-        VideoDriver *video;
-        InputDriver *input;
-        SoundDriver *sound;
+        Driver *driver;
         FilesystemDriver *filesystem;
 
         UserInterface *interface;

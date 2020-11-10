@@ -2,21 +2,19 @@ AUTOMAKE_OPTIONS = foreign subdir-objects
 
 bin_PROGRAMS = openzoo
 openzoo_SOURCES = \
-	src/cxx_shim.cpp \
+	src/driver.cpp \
 	src/editor.cpp \
 	src/elements.cpp \
 	src/file_selector.cpp \
 	src/filesystem.cpp \
 	src/game.cpp \
 	src/high_scores.cpp \
-	src/input.cpp \
 	src/oop.cpp \
 	src/sounds.cpp \
 	src/txtwind.cpp \
 	src/user_interface.cpp \
 	src/user_interface_slim.cpp \
 	src/utils.cpp \
-	src/video.cpp \
 	src/world_serializer.cpp
 
 if DRIVER_SDL2

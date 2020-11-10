@@ -85,13 +85,6 @@ bool SoundQueue::pop(uint16_t &note, uint16_t &duration) {
     }
 }
 
-void SoundDriver::sound_clear_queue(void) {
-    sound_lock();
-    _queue.clear();
-    sound_unlock();
-    sound_stop();
-}
-
 int16_t ZZT::SoundParse(const char *input, uint8_t *output, int16_t outlen) {
     uint8_t note_octave = 3;
     uint8_t note_duration = 1;
@@ -158,7 +151,7 @@ int16_t ZZT::SoundParse(const char *input, uint8_t *output, int16_t outlen) {
 }
 
 bool Game::HasTimeElapsed(int16_t &counter, int16_t duration) {
-    int16_t hSecsTotal = sound->get_hsecs();
+    int16_t hSecsTotal = driver->get_hsecs();
     uint16_t hSecsDiff = ((hSecsTotal - counter) + 6000) % 6000;
 
     if (hSecsDiff >= duration) {

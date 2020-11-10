@@ -183,20 +183,18 @@ int main(int argc, char** argv) {
 	MSDOSDriver driver = MSDOSDriver();
 	Game game = Game();
 	
-	game.input = &driver;
-	game.sound = &driver;
-	game.video = &driver;
+	game.driver = &driver;
     game.filesystem = new MsdosFilesystemDriver();
 
 	driver.install();
 
-	game.video->set_cursor(false);
-	game.video->clrscr();
+	driver.set_cursor(false);
+	driver.clrscr();
 
 	game.GameTitleLoop();
 
-	game.video->clrscr();
-	game.video->set_cursor(true);
+	driver.clrscr();
+	driver.set_cursor(true);
 
 	driver.uninstall();
 	

@@ -11,7 +11,7 @@ namespace ZZT {
         void RestoreSidebar(VideoCopy *copy);
 
     public:
-        UserInterfaceSlim(VideoDriver *video, InputDriver *input, SoundDriver *sound);
+        UserInterfaceSlim(Driver *driver);
 
         virtual bool SidebarPromptYesNo(const char *message, bool defaultReturn) override;
         virtual void SidebarPromptString(const char *prompt, const char *extension, char *filename, int filenameLen, PromptMode mode) override;

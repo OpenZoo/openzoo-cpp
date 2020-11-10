@@ -12,7 +12,7 @@ namespace ZZT {
         sstring<64> filename;
 
     public:
-        FileSelector(VideoDriver *video, InputDriver *input, SoundDriver *sound, FilesystemDriver *filesystem, const char *title, const char *extension);
+        FileSelector(Driver* driver, FilesystemDriver *filesystem, const char *title, const char *extension);
         ~FileSelector();
 
         inline const char *get_filename() {

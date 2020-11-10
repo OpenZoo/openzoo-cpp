@@ -3,9 +3,7 @@
 
 #include <cstdint>
 #include "utils.h"
-#include "input.h"
-#include "sounds.h"
-#include "video.h"
+#include "driver.h"
 
 #define SIDEBAR_FLAG_UPDATE 1
 #define SIDEBAR_FLAG_SET_WORLD_NAME 2
@@ -49,15 +47,13 @@ namespace ZZT {
         void SidebarClear();
 
     protected:
-        VideoDriver *video;
-        InputDriver *input;
-        SoundDriver *sound;
+        Driver *driver;
 
         void PromptString(int16_t x, int16_t y, uint8_t arrowColor, uint8_t color, int16_t width, PromptMode mode, char *buffer, int buflen);
         bool WaitYesNo(bool defaultReturn);
 
     public:
-        UserInterface(VideoDriver *video, InputDriver *input, SoundDriver *sound);
+        UserInterface(Driver *driver);
         virtual ~UserInterface() { }
 
         virtual bool SidebarPromptYesNo(const char *message, bool defaultReturn);

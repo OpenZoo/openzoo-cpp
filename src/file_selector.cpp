@@ -8,8 +8,8 @@
 using namespace ZZT;
 using namespace ZZT::Utils;
 
-FileSelector::FileSelector(VideoDriver *video, InputDriver *input, SoundDriver *sound, FilesystemDriver *filesystem, const char *title, const char *extension)
-    : window(TextWindow(video, input, sound, filesystem)) {
+FileSelector::FileSelector(Driver *driver, FilesystemDriver *filesystem, const char *title, const char *extension)
+    : window(TextWindow(driver, filesystem)) {
     this->filesystem = filesystem;
     this->title = title;
     this->extension = extension;

@@ -2,12 +2,10 @@
 #define __DRIVER_NULL_H__
 
 #include <cstdint>
-#include "input.h"
-#include "sounds.h"
-#include "video.h"
+#include "driver.h"
 
 namespace ZZT {
-    class NullDriver: public InputDriver, public SoundDriver, public VideoDriver {
+    class NullDriver: public Driver {
     private:
         uint16_t hsecs;
         

@@ -15,27 +15,25 @@ static const char draw_patterns[4][5] = {
 	{' ', '\xC6', '\xCD', '\xB5', ' '} // separator
 };
 
-void ZZT::TextWindowDrawPattern(VideoDriver *video, int16_t x, int16_t y, int16_t width, uint8_t color, WindowPatternType ptype) {
+void ZZT::TextWindowDrawPattern(Driver *driver, int16_t x, int16_t y, int16_t width, uint8_t color, WindowPatternType ptype) {
 	int16_t ix;
 	const char *pattern = draw_patterns[ptype];
 
-	video->draw_char(x, y, color, pattern[0]);
-	video->draw_char(x + 1, y, color, pattern[1]);
+	driver->draw_char(x, y, color, pattern[0]);
+	driver->draw_char(x + 1, y, color, pattern[1]);
 	for (ix = 2; ix < width - 2; ix++) {
-		video->draw_char(x + ix, y, color, pattern[2]);
+		driver->draw_char(x + ix, y, color, pattern[2]);
 	}
-	video->draw_char(x + width - 2, y, color, pattern[3]);
-	video->draw_char(x + width - 1, y, color, pattern[4]);
+	driver->draw_char(x + width - 2, y, color, pattern[3]);
+	driver->draw_char(x + width - 1, y, color, pattern[4]);
 }
 
 void TextWindow::DrawBorderLine(int16_t y, WindowPatternType ptype) {
-	TextWindowDrawPattern(video, window_x, y, window_width, 0x0F, ptype);
+	TextWindowDrawPattern(driver, window_x, y, window_width, 0x0F, ptype);
 }
 
-TextWindow::TextWindow(VideoDriver *video, InputDriver *input, SoundDriver *sound, FilesystemDriver *filesystem) {
-    this->video = video;
-    this->input = input;
-    this->sound = sound;
+TextWindow::TextWindow(Driver *driver, FilesystemDriver *filesystem) {
+    this->driver = driver;
     this->filesystem = filesystem;
     this->line_count = 0;
     this->line_pos = 0;
@@ -67,23 +65,23 @@ void TextWindow::DrawTitle(uint8_t color, const char *title) {
 
 	for (i = window_x + 2; i < (window_x + window_width - 2); i++) {
 		if (i >= is && i < (is+il)) {
-			video->draw_char(i, window_y + 1, color, title[i - is]);
+			driver->draw_char(i, window_y + 1, color, title[i - is]);
 		} else {
-			video->draw_char(i, window_y + 1, color, ' ');
+			driver->draw_char(i, window_y + 1, color, ' ');
 		}
 	}
 }
 
 void TextWindow::DrawOpen(void) {
     screenCopy = new VideoCopy((uint8_t) window_width, (uint8_t) (window_height + 1));
-    video->copy_chars(*screenCopy, window_x, window_y, window_width, window_height + 1, 0, 0);
+    driver->copy_chars(*screenCopy, window_x, window_y, window_width, window_height + 1, 0, 0);
 
     for (int iy = window_height / 2; iy >= 0; iy--) {
         DrawBorderLine(window_y + iy + 1, WinPatInner);
         DrawBorderLine(window_y + window_height - iy - 1, WinPatInner);
         DrawBorderLine(window_y + iy, WinPatTop);
         DrawBorderLine(window_y + window_height - iy, WinPatBottom);
-        sound->delay(25);
+        driver->delay(25);
     }
 
     DrawBorderLine(window_y + 2, WinPatSeparator);
@@ -94,9 +92,9 @@ void TextWindow::DrawClose(void) {
     for (int iy = 0; iy <= window_height / 2; iy++) {
         DrawBorderLine(window_y + iy, WinPatTop);
         DrawBorderLine(window_y + window_height - iy, WinPatBottom);
-        sound->delay(18);
-        video->paste_chars(*screenCopy, 0, iy, window_width, 1, window_x, window_y + iy);
-        video->paste_chars(*screenCopy, 0, window_height - iy, window_width, 1, window_x, window_y + window_height - iy);
+        driver->delay(18);
+        driver->paste_chars(*screenCopy, 0, iy, window_width, 1, window_x, window_y + iy);
+        driver->paste_chars(*screenCopy, 0, window_height - iy, window_width, 1, window_x, window_y + window_height - iy);
     }
 
     delete screenCopy;
@@ -125,8 +123,8 @@ void TextWindow::DrawLine(int16_t lpos, bool withoutFormatting, bool viewingFile
 
 	line_y = (window_y + lpos - line_pos) + (window_height >> 1) + 1;
 	same_line = lpos == line_pos;
-	video->draw_char(window_x + 2, line_y, color | 0x0C, same_line ? '\xAF' : ' ');
-	video->draw_char(window_x + window_width - 3, line_y, color | 0x0C, same_line ? '\xAE' : ' ');
+	driver->draw_char(window_x + 2, line_y, color | 0x0C, same_line ? '\xAF' : ' ');
+	driver->draw_char(window_x + window_width - 3, line_y, color | 0x0C, same_line ? '\xAE' : ' ');
 
 	text_color = color | 0x0E;
 	text_x = 0;
@@ -164,27 +162,27 @@ void TextWindow::DrawLine(int16_t lpos, bool withoutFormatting, bool viewingFile
     if (str != NULL) {
         for (int i = -text_x - 1; i < (text_width - text_x); i++) {
             if (draw_arrow && i == -3) {
-                video->draw_char(window_x + 4 + i + text_x, line_y, color | 0x0D, '\x10');
+                driver->draw_char(window_x + 4 + i + text_x, line_y, color | 0x0D, '\x10');
             } else {
-                video->draw_char(window_x + 4 + i + text_x, line_y, text_color,
+                driver->draw_char(window_x + 4 + i + text_x, line_y, text_color,
                     (i >= 0 && i < strlen(str)) ? str[i] : ' ');
             }
         }
     } else {
         is_boundary = lpos == -1 || lpos == line_count;
         for (int i = 0; i < (window_width - 4); i++) {
-            video->draw_char(window_x + 2 + i, line_y, text_color,
+            driver->draw_char(window_x + 2 + i, line_y, text_color,
                 (is_boundary && ((i % 5) == 4)) ? '\x07' : ' ');
         }
     }
     
     if (viewingFile) {
         if (lpos == -4) {
-            video->draw_string(window_x + 2, line_y, color | 0x0A, "   Use            to view text,");
-            video->draw_string(window_x + 2 + 7, line_y, color | 0x0F, "\x18 \x19, Enter");
+            driver->draw_string(window_x + 2, line_y, color | 0x0A, "   Use            to view text,");
+            driver->draw_string(window_x + 2 + 7, line_y, color | 0x0F, "\x18 \x19, Enter");
         } else if (lpos == -3) {
-            video->draw_string(window_x + 2, line_y, color | 0x0A, "                  to print.");
-            video->draw_string(window_x + 2 + 12, line_y, color | 0x0F, "Alt-P");
+            driver->draw_string(window_x + 2, line_y, color | 0x0A, "                  to print.");
+            driver->draw_string(window_x + 2 + 12, line_y, color | 0x0F, "Alt-P");
         }
 	}
 }
@@ -201,13 +199,13 @@ void TextWindow::Select(bool hyperlinkAsSelect, bool viewingFile) {
     StrClear(hyperlink);
     Draw(false, viewingFile);
     do {
-        sound->idle(IMUntilFrame);
-        input->update_input();
+        driver->idle(IMUntilFrame);
+        driver->update_input();
         int16_t new_line_pos = line_pos;
-        if (input->deltaY != 0) {
-            new_line_pos += input->deltaY;
-        } else if (input->shiftPressed || input->keyPressed == KeyEnter) {
-            input->shiftAccepted = true;
+        if (driver->deltaY != 0) {
+            new_line_pos += driver->deltaY;
+        } else if (driver->shiftPressed || driver->keyPressed == KeyEnter) {
+            driver->shiftAccepted = true;
             if (lines[line_pos]->length() > 0 && (*lines[line_pos])[0] == '!') {
                 sstring<20> pointerStr;
                 StrCopy(pointerStr, (lines[line_pos]->c_str()) + 1);
@@ -226,8 +224,8 @@ void TextWindow::Select(bool hyperlinkAsSelect, bool viewingFile) {
                         viewingFile = true;
                         new_line_pos = line_pos;
                         Draw(false, viewingFile);
-                        input->keyPressed = 0;
-                        input->shiftPressed = false;
+                        driver->keyPressed = 0;
+                        driver->shiftPressed = false;
                     }
                 } else {
                     if (hyperlinkAsSelect) {
@@ -247,8 +245,8 @@ void TextWindow::Select(bool hyperlinkAsSelect, bool viewingFile) {
                                 }
                                 if (match) {
                                     new_line_pos = i;
-                                    input->keyPressed = 0;
-                                    input->shiftPressed = false;
+                                    driver->keyPressed = 0;
+                                    driver->shiftPressed = false;
                                     goto LabelMatched;
                                 }
                             }
@@ -257,7 +255,7 @@ void TextWindow::Select(bool hyperlinkAsSelect, bool viewingFile) {
                 }
             }
         } else {
-            switch (input->keyPressed) {
+            switch (driver->keyPressed) {
                 case KeyPageUp: {
                     new_line_pos = line_pos - window_height + 4;
                 } break;
@@ -286,13 +284,13 @@ void TextWindow::Select(bool hyperlinkAsSelect, bool viewingFile) {
             }
         }
 
-        if (input->joystickMoved) {
-            sound->delay(35);
+        if (driver->joystickMoved) {
+            driver->delay(35);
         }
-    } while (input->keyPressed != KeyEscape && input->keyPressed != KeyEnter && !input->shiftPressed);
+    } while (driver->keyPressed != KeyEscape && driver->keyPressed != KeyEnter && !driver->shiftPressed);
 
-    if (input->keyPressed == KeyEscape) {
-        input->keyPressed = 0;
+    if (driver->keyPressed == KeyEscape) {
+        driver->keyPressed = 0;
         rejected = true;
     }
 }
@@ -326,22 +324,22 @@ void TextWindow::Edit(void) {
     int16_t char_pos = 0;
     Draw(true, false);
     do {
-        video->draw_string(77, 14, color | 0x0E, insert_mode ? "on " : "off");
+        driver->draw_string(77, 14, color | 0x0E, insert_mode ? "on " : "off");
 
         if (char_pos >= lines[line_pos]->length()) {
             char_pos = lines[line_pos]->length();
-            video->draw_char(char_pos + window_x + 4,
+            driver->draw_char(char_pos + window_x + 4,
                 window_y + (window_height / 2) + 1,
                 0x70, ' ');
         } else {
-            video->draw_char(char_pos + window_x + 4,
+            driver->draw_char(char_pos + window_x + 4,
                 window_y + (window_height / 2) + 1,
                 0x70, (*lines[line_pos])[char_pos]);
         }
 
-        input->read_wait_key();
+        driver->read_wait_key();
         int16_t new_line_pos = line_pos;
-        switch (input->keyPressed) {
+        switch (driver->keyPressed) {
             case KeyUp:
                 new_line_pos = line_pos - 1;
                 break;
@@ -420,16 +418,16 @@ void TextWindow::Edit(void) {
                 Edit_DeleteCurrLine();
             } break;
             default: {
-                if (input->keyPressed >= 32 && input->keyPressed < 127 && char_pos < (window_width - 7)) {
+                if (driver->keyPressed >= 32 && driver->keyPressed < 127 && char_pos < (window_width - 7)) {
                     if (!insert_mode) {
                         DynString *s = lines[line_pos];
                         if (char_pos < s->length()) {
                             lines[line_pos] = new DynString(
-                                s->substr(0, char_pos) + ((char) input->keyPressed) + s->substr(char_pos, s->length() - char_pos)
+                                s->substr(0, char_pos) + ((char) driver->keyPressed) + s->substr(char_pos, s->length() - char_pos)
                             );
                         } else {
                             lines[line_pos] = new DynString(
-                                s->substr(0, char_pos) + ((char) input->keyPressed)
+                                s->substr(0, char_pos) + ((char) driver->keyPressed)
                             );
                         }
                         delete s;
@@ -440,11 +438,11 @@ void TextWindow::Edit(void) {
                             DynString *s = lines[line_pos];
                             if ((char_pos + 1) < s->length()) {
                                 lines[line_pos] = new DynString(
-                                    s->substr(0, char_pos) + ((char) input->keyPressed) + s->substr(char_pos + 1, s->length() - char_pos - 1)
+                                    s->substr(0, char_pos) + ((char) driver->keyPressed) + s->substr(char_pos + 1, s->length() - char_pos - 1)
                                 );
                             } else {
                                 lines[line_pos] = new DynString(
-                                    s->substr(0, char_pos) + ((char) input->keyPressed)
+                                    s->substr(0, char_pos) + ((char) driver->keyPressed)
                                 );
                             }
                             delete s;
@@ -465,7 +463,7 @@ void TextWindow::Edit(void) {
         } else {
             DrawLine(line_pos, true, false);
         }
-    } while (input->keyPressed != KeyEscape);
+    } while (driver->keyPressed != KeyEscape);
 
     if (lines[line_count - 1]->length() == 0) {
         delete lines[line_count - 1];
@@ -551,8 +549,8 @@ void TextWindow::Sort(int16_t start, int16_t count) {
 #endif
 }
 
-void ZZT::TextWindowDisplayFile(VideoDriver *video, InputDriver *input, SoundDriver *sound, FilesystemDriver *filesystem, const char *filename, const char *title) {
-    TextWindow window = TextWindow(video, input, sound, filesystem);
+void ZZT::TextWindowDisplayFile(Driver *driver, FilesystemDriver *filesystem, const char *filename, const char *title) {
+    TextWindow window = TextWindow(driver, filesystem);
     StrCopy(window.title, title);
     window.OpenFile(filename, false);
     window.selectable = false;

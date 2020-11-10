@@ -55,11 +55,14 @@ int main(int argc, char** argv) {
 	NullDriver driver = NullDriver();
 	Game game = Game();
 	
-	game.input = &driver;
-	game.sound = &driver;
-	game.video = &driver;
+	game.driver = &driver;
+	game.filesystem = new NullFilesystemDriver();
+	game.interface = new UserInterface(&driver);
 
 	game.GameTitleLoop();
+
+	delete game.filesystem;
+	delete game.interface;
 
 	return 0;
 }

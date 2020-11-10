@@ -3,10 +3,8 @@
 
 #include <cstdint>
 #include "filesystem.h"
-#include "input.h"
-#include "sounds.h"
+#include "driver.h"
 #include "utils.h"
-#include "video.h"
 
 #define MAX_TEXT_WINDOW_LINES 1024
 #define TEXT_WINDOW_LINE_LENGTH 50
@@ -24,9 +22,7 @@ namespace ZZT {
         void DrawBorderLine(int16_t y, WindowPatternType ptype);
 
     protected:
-        InputDriver *input;
-        VideoDriver *video;
-        SoundDriver *sound;
+        Driver *driver;
         FilesystemDriver *filesystem;
 
         void DrawTitle(uint8_t color, const char *title);
@@ -45,7 +41,7 @@ namespace ZZT {
         VideoCopy *screenCopy;
         bool rejected;
 
-        TextWindow(VideoDriver *video, InputDriver *input, SoundDriver *sound, FilesystemDriver *filesystem);
+        TextWindow(Driver *driver, FilesystemDriver *filesystem);
         ~TextWindow();
 
         void Clear(void);
@@ -61,8 +57,8 @@ namespace ZZT {
         void Sort(int16_t start, int16_t count);
     };
 
-    void TextWindowDrawPattern(VideoDriver *video, int16_t x, int16_t y, int16_t width, uint8_t color, WindowPatternType ptype);
-    void TextWindowDisplayFile(VideoDriver *video, InputDriver *input, SoundDriver *sound, FilesystemDriver *filesystem, const char *filename, const char *title);
+    void TextWindowDrawPattern(Driver *driver, int16_t x, int16_t y, int16_t width, uint8_t color, WindowPatternType ptype);
+    void TextWindowDisplayFile(Driver *driver, FilesystemDriver *filesystem, const char *filename, const char *title);
     void TextWindowInit(int16_t x, int16_t y, int16_t width, int16_t height);
 }
 
