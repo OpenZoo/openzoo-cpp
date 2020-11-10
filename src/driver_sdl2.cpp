@@ -4,6 +4,7 @@
 #include "driver_sdl2.h"
 #include "filesystem_posix.h"
 #include "user_interface_slim.h"
+#include "gamevars.h"
 
 #define PIT_SPEED_MS 55
 
@@ -250,6 +251,12 @@ uint32_t ZZT::videoRenderThread(SDL2Driver *driver) {
     return 0;
 }
 
+uint32_t ZZT::gameThread(Game *game) {
+    game->GameTitleLoop();
+    (static_cast<SDL2Driver*>(game->driver))->renderThreadRunning = false;
+    return 0;
+}
+
 void ZZT::audioCallback(SDL2Driver *driver, uint8_t *stream, int32_t len) {
     driver->sound_lock();
     driver->soundSimulator.simulate(stream, len);
@@ -311,8 +318,8 @@ void SDL2Driver::install(void) {
         SDL_RenderClear(renderer);
         SDL_RenderPresent(renderer);
 
+        // renderThread = SDL_CreateThread((SDL_ThreadFunction) videoRenderThread, "Video render thread", this);
         renderThreadRunning = true;
-        renderThread = SDL_CreateThread((SDL_ThreadFunction) videoRenderThread, "Video render thread", this);
 
         // audio
         soundBufferMutex = SDL_CreateMutex();
@@ -344,8 +351,8 @@ void SDL2Driver::uninstall(void) {
         SDL_DestroyMutex(soundBufferMutex);
 
         // video
-        renderThreadRunning = false;
-        SDL_WaitThread(renderThread, nullptr);
+        // renderThreadRunning = false;
+        // SDL_WaitThread(renderThread, nullptr);
 
         delete charsetTexture;
         SDL_DestroyMutex(playfieldMutex);
@@ -546,8 +553,6 @@ void SDL2Driver::sound_unlock(void) {
     SDL_UnlockMutex(soundBufferMutex);
 }
 
-#include "gamevars.h"
-
 static Game game = Game();
 
 int main(int argc, char** argv) {
@@ -561,7 +566,10 @@ int main(int argc, char** argv) {
 	driver.install();
 
 	driver.clrscr();
-	game.GameTitleLoop();
+
+    // Rendering code must run on the main thread.
+    SDL_CreateThread((SDL_ThreadFunction) gameThread, "Game thread", &game);
+    videoRenderThread(&driver);
 
 	driver.uninstall();
 

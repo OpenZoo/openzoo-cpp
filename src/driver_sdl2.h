@@ -6,6 +6,7 @@
 #include "audio_simulator.h"
 
 namespace ZZT {
+    class Game;
     class SDL2Driver;
 
     class CharsetTexture {
@@ -24,6 +25,7 @@ namespace ZZT {
     class SDL2Driver: public Driver {
         friend uint32_t pitTimerCallback(uint32_t interval, SDL2Driver *driver);
         friend uint32_t videoRenderThread(SDL2Driver *driver);
+        friend uint32_t gameThread(Game *game);
         friend void audioCallback(SDL2Driver *driver, uint8_t *stream, int32_t len);
 
     private:
@@ -46,7 +48,8 @@ namespace ZZT {
         SDL_mutex *playfieldMutex;
         SDL_Texture *playfieldTexture;
         CharsetTexture *charsetTexture;
-        SDL_Thread *renderThread;
+        SDL_Thread *gameThread;
+        // SDL_Thread *renderThread;
         bool renderThreadRunning;
 
         uint8_t *screen_buffer;
