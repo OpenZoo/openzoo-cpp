@@ -36,7 +36,7 @@ bool UserInterfaceSlim::SidebarPromptYesNo(const char *message, bool defaultRetu
     return returnValue;
 }
 
-void UserInterfaceSlim::SidebarPromptString(const char *prompt, const char *extension, char *filename, int filenameLen, PromptMode mode) {
+void UserInterfaceSlim::SidebarPromptString(const char *prompt, const char *extension, char *filename, int filenameLen, InputPromptMode mode) {
     bool hasPrompt = (prompt != nullptr);
     bool hasExtension = (extension != nullptr);
 

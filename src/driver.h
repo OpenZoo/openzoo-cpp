@@ -6,6 +6,13 @@
 
 namespace ZZT {
     typedef enum {
+        InputPMNumbers = 0,
+        InputPMAlphanumeric = 1,
+        InputPMAnyText = 2,
+        InputPMAnyKey = 3
+    } InputPromptMode;
+
+    typedef enum {
         JoyButtonNone = -1,
         JoyButtonUp = 0,
         JoyButtonDown = 1,
@@ -79,6 +86,7 @@ namespace ZZT {
         void update_joy_buttons();
 
         uint16_t joy_buttons_hsecs[JoyButtonMax];
+        uint32_t joy_buttons_pressed_oneshot;
         uint32_t joy_buttons_pressed;
         uint32_t joy_buttons_held;
 
@@ -112,6 +120,7 @@ namespace ZZT {
         virtual void update_input(void) = 0;
 
         // optional
+        virtual void set_text_input(bool enabled, InputPromptMode mode); // intended for OSK toggling
         virtual void read_wait_key(void);
         virtual bool joy_button_pressed(JoyButton button, bool simulate);
         virtual bool joy_button_held(JoyButton button, bool simulate);

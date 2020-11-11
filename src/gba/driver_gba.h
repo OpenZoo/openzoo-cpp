@@ -3,12 +3,15 @@
 
 #include <cstdint>
 #include "driver.h"
+#include "user_interface_osk.h"
 
 namespace ZZT {
     class GBADriver: public Driver {
         friend void irq_timer_pit(void);
 
     public:
+        OnScreenKeyboard keyboard;
+        
         GBADriver();
 
         void install(void);
@@ -16,6 +19,7 @@ namespace ZZT {
 
         // required (input)
         void update_input(void) override;
+        void set_text_input(bool enabled, InputPromptMode mode) override;
 
         // required (sound)
         uint16_t get_hsecs(void) override;

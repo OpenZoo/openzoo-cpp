@@ -611,7 +611,7 @@ bool Game::WorldSave(const char *filename, const char *extension) {
 void Game::GameWorldSave(const char *prompt, char* filename, size_t filename_len, const char *extension) {
     sstring<50> newFilename;
     StrCopy(newFilename, filename);
-    interface->SidebarPromptString(prompt, extension, newFilename, sizeof(newFilename), PMAlphanum);
+    interface->SidebarPromptString(prompt, extension, newFilename, sizeof(newFilename), InputPMAlphanumeric);
     if (driver->keyPressed != KeyEscape && !StrEmpty(newFilename)) {
         strncpy(filename, newFilename, filename_len - 1);
         filename[filename_len - 1] = 0;
@@ -1016,7 +1016,7 @@ void Game::GameDebugPrompt(void) {
     sstring<50> input;
     StrClear(input);
 
-    interface->SidebarPromptString(nullptr, nullptr, input, StrSize(input), PMAny);
+    interface->SidebarPromptString(nullptr, nullptr, input, StrSize(input), InputPMAnyText);
     for (int i = 0; i < strlen(input); i++) {
         input[i] = UpCase(input[i]);
     }

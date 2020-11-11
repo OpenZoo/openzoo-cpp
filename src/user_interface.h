@@ -12,12 +12,6 @@
 namespace ZZT {
     class Game;
 
-    typedef enum {
-        PMNumeric = 0,
-        PMAlphanum = 1,
-        PMAny = 2
-    } PromptMode;
-
     struct MenuEntry {
         const int id;
         const uint16_t keys[4];
@@ -49,7 +43,7 @@ namespace ZZT {
     protected:
         Driver *driver;
 
-        void PromptString(int16_t x, int16_t y, uint8_t arrowColor, uint8_t color, int16_t width, PromptMode mode, char *buffer, int buflen);
+        void PromptString(int16_t x, int16_t y, uint8_t arrowColor, uint8_t color, int16_t width, InputPromptMode mode, char *buffer, int buflen);
         bool WaitYesNo(bool defaultReturn);
 
     public:
@@ -57,7 +51,7 @@ namespace ZZT {
         virtual ~UserInterface() { }
 
         virtual bool SidebarPromptYesNo(const char *message, bool defaultReturn);
-        virtual void SidebarPromptString(const char *prompt, const char *extension, char *filename, int filenameLen, PromptMode mode);
+        virtual void SidebarPromptString(const char *prompt, const char *extension, char *filename, int filenameLen, InputPromptMode mode);
         virtual void PopupPromptString(const char *question, char *buffer, size_t buffer_len);
         virtual void SidebarGameDraw(Game &game, uint32_t flags);
         virtual void SidebarShowMessage(uint8_t color, const char *message, bool temporary);

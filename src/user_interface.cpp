@@ -49,10 +49,13 @@ bool UserInterface::SidebarPromptYesNo(const char *message, bool defaultReturn) 
     return returnValue;
 }
 
-void UserInterface::PromptString(int16_t x, int16_t y, uint8_t arrowColor, uint8_t color, int16_t width, PromptMode mode, char *buffer, int buflen) {
+void UserInterface::PromptString(int16_t x, int16_t y, uint8_t arrowColor, uint8_t color, int16_t width, InputPromptMode mode, char *buffer, int buflen) {
     sstring<255> oldBuffer;
     StrCopy(oldBuffer, buffer);
     bool firstKeyPress = true;
+
+    driver->set_text_input(true, mode);
+
     do {
         for (int i = 0; i < (width - 1); i++) {
             driver->draw_char(x + i, y, color, ' ');
@@ -74,15 +77,12 @@ void UserInterface::PromptString(int16_t x, int16_t y, uint8_t arrowColor, uint8
             }
             char chAppend = 0;
             switch (mode) {
-                case PMNumeric:
+                case InputPMNumbers:
                     if (driver->keyPressed >= '0' && driver->keyPressed <= '9') {
                         chAppend = driver->keyPressed;
                     }
                     break;
-                case PMAny:
-                    chAppend = driver->keyPressed;
-                    break;
-                case PMAlphanum:
+                case InputPMAlphanumeric:
                     if (
                         (driver->keyPressed >= 'A' && driver->keyPressed <= 'Z')
                         || (driver->keyPressed >= 'a' && driver->keyPressed <= 'z')
@@ -91,6 +91,9 @@ void UserInterface::PromptString(int16_t x, int16_t y, uint8_t arrowColor, uint8
                     ) {
                         chAppend = UpCase(driver->keyPressed);
                     }
+                    break;
+                default:
+                    chAppend = driver->keyPressed;
                     break;
             }
             int pos = strlen(buffer);
@@ -108,12 +111,14 @@ void UserInterface::PromptString(int16_t x, int16_t y, uint8_t arrowColor, uint8
         firstKeyPress = false;
     } while (driver->keyPressed != KeyEnter && driver->keyPressed != KeyEscape);
 
+    driver->set_text_input(false, mode);
+
     if (driver->keyPressed == KeyEscape) {
         strcpy(buffer, oldBuffer);
     }
 }
 
-void UserInterface::SidebarPromptString(const char *prompt, const char *extension, char *filename, int filenameLen, PromptMode mode) {
+void UserInterface::SidebarPromptString(const char *prompt, const char *extension, char *filename, int filenameLen, InputPromptMode mode) {
     bool hasPrompt = (prompt != nullptr);
     bool hasExtension = (extension != nullptr);
 
@@ -149,7 +154,7 @@ void UserInterface::PopupPromptString(const char *question, char *buffer, size_t
     driver->draw_string(x + 1 + ((width - strlen(question)) / 2), y + 1, color, question);
 
     StrClear(buffer);
-    PromptString(x + 7, y + 4, (color & 0xF0) | 0x0F, (color & 0xF0) | 0x0E, width - 16, PMAny, buffer, buffer_len);
+    PromptString(x + 7, y + 4, (color & 0xF0) | 0x0F, (color & 0xF0) | 0x0E, width - 16, InputPMAnyText, buffer, buffer_len);
 
     driver->paste_chars(copy, 0, 0, width, 6, x, y);
 }

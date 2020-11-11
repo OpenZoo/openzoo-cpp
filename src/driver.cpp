@@ -137,6 +137,10 @@ bool Driver::joy_button_held(JoyButton button, bool simulate) {
     return result || joy_button_pressed(button, simulate);
 }
 
+void Driver::set_text_input(bool enabled, InputPromptMode mode) {
+    
+}
+
 void Driver::read_wait_key(void) {
     update_input();
     if (keyPressed != 0) return;

@@ -398,7 +398,7 @@ void Editor::EditBoardInfo(void) {
                 } break;
                 case 1: { // max shots
                     StrFromInt(num_str, game->board.info.max_shots);
-                    game->interface->SidebarPromptString("Maximum shots?", "", num_str, sizeof(num_str), PMNumeric);
+                    game->interface->SidebarPromptString("Maximum shots?", "", num_str, sizeof(num_str), InputPMNumbers);
                     if (!StrEmpty(num_str)) {
                         game->board.info.max_shots = atoi(num_str);
                     }
@@ -426,7 +426,7 @@ void Editor::EditBoardInfo(void) {
                 } break;
                 case 8: { // time limit
                     StrFromInt(num_str, game->board.info.time_limit_seconds);
-                    game->interface->SidebarPromptString("Time limit?", " Sec", num_str, sizeof(num_str), PMNumeric);
+                    game->interface->SidebarPromptString("Time limit?", " Sec", num_str, sizeof(num_str), InputPMNumbers);
                     if (!StrEmpty(num_str)) {
                         game->board.info.time_limit_seconds = atoi(num_str);
                     }
@@ -673,7 +673,7 @@ void Editor::TransferBoard(void) {
             }
         } else if (i == 1) {
             // export
-            game->interface->SidebarPromptString("Export board", ".BRD", game->savedBoardFileName, sizeof(game->savedBoardFileName), PMAlphanum);
+            game->interface->SidebarPromptString("Export board", ".BRD", game->savedBoardFileName, sizeof(game->savedBoardFileName), InputPMAlphanumeric);
             if (game->driver->keyPressed != KeyEscape && !StrEmpty(game->savedBoardFileName)) {
                 StrJoin(filename_joined, 2, game->savedBoardFileName, ".BRD");
                 IOStream *stream = game->filesystem->open_file(filename_joined, false);
@@ -731,7 +731,7 @@ void Editor::FloodFill(int16_t x, int16_t y, Tile from) {
 void Editor::EditHelpFile() {
     sstring<50> filename;
     filename[0] = '*';
-    game->interface->SidebarPromptString("File to edit", ".HLP", filename + 1, sizeof(filename) - 5, PMAlphanum);
+    game->interface->SidebarPromptString("File to edit", ".HLP", filename + 1, sizeof(filename) - 5, InputPMAlphanumeric);
     if (filename[1] != 0) {
         TextWindow window = TextWindow(game->driver, game->filesystem);
         strcat(filename, ".HLP");

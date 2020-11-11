@@ -333,8 +333,7 @@ void zoo_video_gba_install(const uint8_t *charset_bin) {
 	memset32((void*) (MEM_VRAM + MAP_ADDR_OFFSET), 0x00000000, 64 * 32 * 2);
 }
 
-GBADriver::GBADriver(void) {
-
+GBADriver::GBADriver() {
 }
 
 void GBADriver::install(void) {
@@ -377,7 +376,7 @@ void GBADriver::uninstall(void) {
 
 void GBADriver::update_joy(void) {
 	uint16_t ki = ~acc_key_input;
-	acc_key_input = 0;
+	acc_key_input = ~REG_KEYINPUT;
 
 	set_joy_button_state(JoyButtonUp, (ki & KEY_UP) == 0, true);
 	set_joy_button_state(JoyButtonDown, (ki & KEY_DOWN) == 0, true);
@@ -399,14 +398,27 @@ void GBADriver::update_joy(void) {
 	}
 }
 
+void GBADriver::set_text_input(bool enabled, InputPromptMode mode) {
+	if (enabled) {
+		keyboard.open(-1, 2, mode);
+	} else {
+		keyboard.close();
+	}
+}
+
 void GBADriver::update_input(void) {
     deltaX = 0;
     deltaY = 0;
+	keyPressed = 0;
     shiftPressed = false;
     joy_buttons_pressed = 0;
 	
 	update_joy();
     update_joy_buttons();
+	if (keyboard.opened()) {
+		keyboard.update();
+		keyPressed = keyboard.key_pressed;
+	}
 }
 
 uint16_t GBADriver::get_hsecs(void) {
@@ -447,6 +459,7 @@ void GBADriver::get_video_size(int16_t &width, int16_t &height) {
 }
 
 int main(void) {
+	driver.keyboard.driver = &driver;
 	driver.install();
 
 	game.driver = &driver;
