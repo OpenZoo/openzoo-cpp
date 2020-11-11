@@ -428,6 +428,39 @@ void SDL2Driver::clrscr(void) {
     SDL_UnlockMutex(playfieldMutex);
 }
 
+void SDL2Driver::get_video_size(int16_t &width, int16_t &height) {
+	width = width_chars;
+	height = height_chars;
+}
+
+bool SDL2Driver::set_video_size(int16_t width, int16_t height) {
+    if (width <= 0 || height <= 0) return false;
+    if (!installed) {
+        width_chars = width;
+        height_chars = height;
+        return true;
+    }
+
+    SDL_LockMutex(playfieldMutex);
+
+	width_chars = width;
+	height_chars = height;
+
+    free(this->screen_buffer_changed);
+    free(this->screen_buffer);
+    this->screen_buffer = (uint8_t*) malloc(width_chars * height_chars * sizeof(uint8_t) * 2);
+    this->screen_buffer_changed = (bool*) malloc(width_chars * height_chars * sizeof(bool) * 2);
+    clrscr();
+
+    SDL_DestroyTexture(playfieldTexture);
+    playfieldTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
+        width_chars * charsetTexture->charWidth, height_chars * charsetTexture->charHeight);
+    SDL_SetWindowSize(window, width_chars * charsetTexture->charWidth, height_chars * charsetTexture->charHeight);
+
+    SDL_UnlockMutex(playfieldMutex);
+    return true;
+}
+
 void SDL2Driver::update_keymod(uint16_t kmod) {
     keyLeftShiftHeld = (kmod & KMOD_LSHIFT) != 0;
     keyRightShiftHeld = (kmod & KMOD_RSHIFT) != 0;
@@ -459,7 +492,6 @@ void SDL2Driver::update_input(void) {
     deltaX = 0;
     deltaY = 0;
     shiftPressed = false;
-    joystickMoved = false;
     joy_buttons_pressed = 0;
 
     SDL_Event event;
@@ -492,13 +524,13 @@ void SDL2Driver::update_input(void) {
             case SDL_CONTROLLERBUTTONDOWN: {
                 JoyButton button = sdl_to_pc_joybutton((SDL_GameControllerButton) event.cbutton.button);
                 if (button != JoyButtonNone) {
-                    set_joy_button_state(button, true);
+                    set_joy_button_state(button, true, false);
                 }
             } break;
             case SDL_CONTROLLERBUTTONUP: {
                 JoyButton button = sdl_to_pc_joybutton((SDL_GameControllerButton) event.cbutton.button);
                 if (button != JoyButtonNone) {
-                    set_joy_button_state(button, false);
+                    set_joy_button_state(button, false, false);
                 }
             } break;
             case SDL_QUIT: {
@@ -529,16 +561,6 @@ void SDL2Driver::update_input(void) {
     }
 }
 
-void SDL2Driver::read_wait_key(void) {
-    update_input();
-    if (keyPressed != 0) return;
- 
-    do {
-        idle(IMUntilFrame);
-        update_input();
-    } while (keyPressed == 0);
-}
-
 void SDL2Driver::sound_stop(void) {
     sound_lock();
     soundSimulator.clear();
@@ -560,12 +582,13 @@ int main(int argc, char** argv) {
 
 	game.driver = &driver;
     game.filesystem = new PosixFilesystemDriver();
-    game.interface = new UserInterface(&driver);
-//    game.interface = new UserInterfaceSlim(&driver);
+//    game.interface = new UserInterface(&driver);
+    game.interface = new UserInterfaceSlim(&driver);
 
 	driver.install();
 
 	driver.clrscr();
+    driver.set_video_size(60, 26);
 
     // Rendering code must run on the main thread.
     SDL_CreateThread((SDL_ThreadFunction) gameThread, "Game thread", &game);

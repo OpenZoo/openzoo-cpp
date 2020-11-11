@@ -87,7 +87,6 @@ void MSDOSDriver::update_input(void) {
     deltaX = 0;
     deltaY = 0;
     shiftPressed = false;
-    joystickMoved = false;
 	uint16_t k = 0;
 
 	// get key
@@ -115,16 +114,6 @@ void MSDOSDriver::update_input(void) {
 
     set_key_pressed(k);
     shiftPressed = keyShiftHeld;
-}
-
-void MSDOSDriver::read_wait_key(void) {
-    update_input();
-    if (keyPressed != 0) return;
- 
-    do {
-        delay(1);
-        update_input();
-    } while (keyPressed == 0);
 }
 
 uint16_t MSDOSDriver::get_hsecs(void) {
@@ -175,6 +164,11 @@ void MSDOSDriver::set_cursor(bool value) {
 
 void MSDOSDriver::set_border_color(uint8_t value) {
 	outportb(0x3D9, value);
+}
+
+void MSDOSDriver::get_video_size(int16_t &width, int16_t &height) {
+	width = 80;
+	height = 25;
 }
 
 #include "gamevars.h"

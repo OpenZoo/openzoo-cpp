@@ -29,7 +29,7 @@ namespace ZZT {
         friend void audioCallback(SDL2Driver *driver, uint8_t *stream, int32_t len);
 
     private:
-        int width_chars, height_chars;
+        int16_t width_chars, height_chars;
         bool installed;
         SDL_TimerID pit_timer_id;
         uint16_t timer_hsecs;
@@ -76,7 +76,6 @@ namespace ZZT {
 
         // required (input)
         void update_input(void) override;
-        void read_wait_key(void) override;
 
         // required (sound)
         uint16_t get_hsecs(void) override;
@@ -89,6 +88,8 @@ namespace ZZT {
         // required (video)
         void draw_char(int16_t x, int16_t y, uint8_t col, uint8_t chr) override;
         void read_char(int16_t x, int16_t y, uint8_t &col, uint8_t &chr) override;
+        void get_video_size(int16_t &width, int16_t &height) override;
+        bool set_video_size(int16_t width, int16_t height) override;
         void draw_string(int16_t x, int16_t y, uint8_t col, const char *str) override;
         void clrscr(void) override;
     };

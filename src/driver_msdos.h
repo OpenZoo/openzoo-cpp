@@ -22,7 +22,6 @@ namespace ZZT {
 
         // required (input)
         void update_input(void) override;
-        void read_wait_key(void) override;
 
         // required (sound)
         uint16_t get_hsecs(void) override;
@@ -33,6 +32,7 @@ namespace ZZT {
         // required (video)
         void draw_char(int16_t x, int16_t y, uint8_t col, uint8_t chr) override;
         void read_char(int16_t x, int16_t y, uint8_t &col, uint8_t &chr) override;
+        void get_video_size(int16_t &width, int16_t &height) override;
         void clrscr(void) override;
         void set_cursor(bool value) override;
         void set_border_color(uint8_t value) override;

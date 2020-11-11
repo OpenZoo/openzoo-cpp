@@ -132,6 +132,7 @@ public:
         virtual size_t skip(size_t len) = 0;
         virtual size_t tell(void) = 0;
         virtual bool eof(void) = 0;
+        virtual uint8_t *ptr(void);
 
         inline bool errored(void) {
             return error_condition;
@@ -180,6 +181,7 @@ public:
         size_t skip(size_t len) override;
         size_t tell(void) override;
         bool eof(void) override;
+        virtual uint8_t *ptr(void) override;
     };
 
     // Dynamic strings

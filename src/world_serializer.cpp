@@ -7,6 +7,8 @@
 using namespace ZZT;
 using namespace ZZT::Utils;
 
+// utility functions
+
 static Tile ioReadTile(IOStream &stream) {
     uint8_t e = stream.read8();
     uint8_t c = stream.read8();
@@ -18,7 +20,13 @@ static void ioWriteTile(IOStream &stream, Tile &tile) {
     stream.write8(tile.color);
 }
 
-size_t SerializerFormatZZT::estimate_buffer_size(Board &board) {
+// ZZT-format serializer
+
+SerializerFormatZZT::SerializerFormatZZT(WorldFormat format) {
+    this->format = format;
+}
+
+size_t SerializerFormatZZT::estimate_board_size(Board &board) {
     size_t len = 51; // name size
     len += board.width() * board.height() * 3; // maximum RLE size
     len += 86 + 2; // header size + stat count
@@ -41,8 +49,10 @@ size_t SerializerFormatZZT::estimate_buffer_size(Board &board) {
     return len;
 }
 
-bool SerializerFormatZZT::serialize(Board &board, IOStream &stream) {
-    stream.write_pstring(board.name, 50, false);
+bool SerializerFormatZZT::serialize_board(Board &board, IOStream &stream) {
+    bool packed = format == WorldFormatInternal;
+
+    stream.write_pstring(board.name, 50, packed);
 
     int16_t ix = 1;
     int16_t iy = 1;
@@ -72,11 +82,11 @@ bool SerializerFormatZZT::serialize(Board &board, IOStream &stream) {
     for (int i = 0; i < 4; i++)
         stream.write8(board.info.neighbor_boards[i]);
     stream.write_bool(board.info.reenter_when_zapped);
-    stream.write_pstring(board.info.message, 58, false);
+    stream.write_pstring(board.info.message, 58, packed);
     stream.write8(board.info.start_player_x);
     stream.write8(board.info.start_player_y);
     stream.write16(board.info.time_limit_seconds);
-    stream.skip(16);
+    if (!packed) stream.skip(16);
 
     stream.write16(board.stats.count);
     for (int i = 0; i <= board.stats.count; i++) {
@@ -93,32 +103,76 @@ bool SerializerFormatZZT::serialize(Board &board, IOStream &stream) {
             }
         }
 
+        bool storeStepXY = !packed || ((stat.step_x != 0) || (stat.step_y != 0));
+        bool storeFollower = !packed || ((stat.follower != -1) || (stat.leader != -1));
+        if (packed) {
+            uint8_t flags = (storeFollower ? 1 : 0) | (storeStepXY ? 2 : 0);
+            stream.write8(flags);
+        }
+
         stream.write8(stat.x);
         stream.write8(stat.y);
-        stream.write16(stat.step_x);
-        stream.write16(stat.step_y);
+        if (storeStepXY) {
+            stream.write16(stat.step_x);
+            stream.write16(stat.step_y);
+        }
         stream.write16(stat.cycle);
         stream.write8(stat.p1);
         stream.write8(stat.p2);
         stream.write8(stat.p3);
-        stream.write16(stat.follower);
-        stream.write16(stat.leader);
+        if (storeFollower) {
+            stream.write16(stat.follower);
+            stream.write16(stat.leader);
+        }
         ioWriteTile(stream, stat.under);
-        stream.write32(0);
+        if (!packed) stream.write32(0); // Data pointer
         stream.write16(stat.data_pos);
         stream.write16(len);
-        stream.skip(8);
+
+        if (format == WorldFormatZZT) {
+            // ZZT contains eight unused bytes at the end.
+            stream.skip(8);
+        }
 
         if (len > 0) {
+#ifdef ROM_POINTERS
+            if (format == WorldFormatInternal) {
+                // RAM (ROM + difference)
+                stream.write32((uint32_t) stat.data.data_rom);
+                uint16_t diffs = 0;
+                if (memcmp(stat.data.data_rom, stat.data.data, len) != 0) {
+                    for (uint16_t di = 0; di < len; di++) {
+                        if (stat.data.data_rom[di] != stat.data.data[di]) {
+                            diffs++;
+                        }
+                    }
+                    stream.write16(diffs);
+                    for (uint16_t di = 0; di < len && diffs > 0; di++) {
+                        if (stat.data.data_rom[di] != stat.data.data[di]) {
+                            stream.write16(di);
+                            stream.write8(stat.data.data[di]);
+                            diffs--;
+                        }
+                    }
+                } else {
+                    stream.write16(0);
+                }
+            } else {
+                stream.write((uint8_t*) stat.data.data, stat.data.len);
+            }
+#else
             stream.write((uint8_t*) stat.data.data, stat.data.len);
+#endif
         }
     }
 
     return !stream.errored(); // TODO
 }
 
-bool SerializerFormatZZT::deserialize(Board &board, IOStream &stream) {
-    stream.read_pstring(board.name, StrSize(board.name), 50, false);
+bool SerializerFormatZZT::deserialize_board(Board &board, IOStream &stream) {
+    bool packed = format == WorldFormatInternal;
+
+    stream.read_pstring(board.name, StrSize(board.name), 50, packed);
 
     int16_t ix = 1;
     int16_t iy = 1;
@@ -144,39 +198,65 @@ bool SerializerFormatZZT::deserialize(Board &board, IOStream &stream) {
     for (int i = 0; i < 4; i++)
         board.info.neighbor_boards[i] = stream.read8();
     board.info.reenter_when_zapped = stream.read_bool();
-    stream.read_pstring(board.info.message, StrSize(board.info.message), 58, false);
+    stream.read_pstring(board.info.message, StrSize(board.info.message), 58, packed);
     board.info.start_player_x = stream.read8();
     board.info.start_player_y = stream.read8();
     board.info.time_limit_seconds = stream.read16();
-    stream.skip(16);
+    if (!packed) stream.skip(16);
 
     board.stats.count = stream.read16();
 
     for (int i = 0; i <= board.stats.count; i++) {
         Stat& stat = board.stats[i];
 
+        uint8_t flags = packed ? stream.read8() : 0xFF;
+        bool storeStepXY = (flags & 2) != 0;
+        bool storeFollower = (flags & 1) != 0;
+
         stat.x = stream.read8();
         stat.y = stream.read8();
-        stat.step_x = stream.read16();
-        stat.step_y = stream.read16();
+        stat.step_x = storeStepXY ? stream.read16() : 0;
+        stat.step_y = storeStepXY ? stream.read16() : 0;
         stat.cycle = stream.read16();
         stat.p1 = stream.read8();
         stat.p2 = stream.read8();
         stat.p3 = stream.read8();
-        stat.follower = stream.read16();
-        stat.leader = stream.read16();
+        stat.follower = storeFollower ? stream.read16() : -1;
+        stat.leader = storeFollower ? stream.read16() : -1;
         stat.under = ioReadTile(stream);
-        stream.skip(4);
+        if (!packed) stream.skip(4); // Data pointer
         stat.data_pos = stream.read16();
         int16_t len = stream.read16();
-        stream.skip(8);
+
+        if (format == WorldFormatZZT) {
+            // ZZT contains eight unused bytes at the end.
+            stream.skip(8);
+        }
 
         if (len < 0) {
             stat.data = board.stats[-len].data;
         } else {
             stat.data.alloc_data(len);
             if (len > 0) {
+#ifdef ROM_POINTERS
+                if (format == WorldFormatInternal) {
+                    // RAM (ROM + difference)
+                    stat.data.data_rom = (const char*) stream.read32();
+                    memcpy(stat.data.data, stat.data.data_rom, len);
+                    uint16_t diffs = stream.read16();
+                    for (uint16_t di = 0; di < diffs; di++) {
+                        uint16_t pos = stream.read16();
+                        char value = (char) stream.read8();
+                        stat.data.data[pos] = value;
+                    }
+                } else {
+                    // ROM
+                    stat.data.data_rom = (const char *) (static_cast<MemoryIOStream*>(&stream)->ptr());
+                    stream.read((uint8_t*) stat.data.data, len);
+                }
+#else
                 stream.read((uint8_t*) stat.data.data, len);
+#endif
             }
         }
     }
@@ -184,7 +264,11 @@ bool SerializerFormatZZT::deserialize(Board &board, IOStream &stream) {
     return !stream.errored(); // TODO
 }
 
-bool SerializerFormatZZT::serialize(World &world, IOStream &stream, std::function<void(int)> ticker) {
+bool SerializerFormatZZT::serialize_world(World &world, IOStream &stream, std::function<void(int)> ticker) {
+    if (format == WorldFormatInternal) {
+        return false; // we do not serialize/deserialize to internal
+    }
+
     stream.write16(-1); /* version */
     stream.write16(world.board_count);
 
@@ -213,15 +297,26 @@ bool SerializerFormatZZT::serialize(World &world, IOStream &stream, std::functio
     if (stream.errored()) return false;
 
     for (int bid = 0; bid <= world.board_count; bid++) {
-        stream.write16(world.board_len[bid]);
-        if (stream.errored()) break;
-        stream.write(world.board_data[bid], world.board_len[bid]);
+        uint8_t *data;
+        uint16_t len;
+        bool temporary;
+
+        world.get_board(bid, data, len, temporary, format);
+
+        stream.write16(len);
+        stream.write(data, len);
+        if (temporary) free(data);
+
         if (stream.errored()) break;
     }
     return !stream.errored();
 }
 
-bool SerializerFormatZZT::deserialize(World &world, IOStream &stream, bool titleOnly, std::function<void(int)> ticker) {
+bool SerializerFormatZZT::deserialize_world(World &world, IOStream &stream, bool titleOnly, std::function<void(int)> ticker) {
+    if (format == WorldFormatInternal) {
+        return false; // we do not serialize/deserialize to internal
+    }
+
     world.board_count = stream.read16();
     if (world.board_count < 0) {
         if (world.board_count != -1) {
@@ -267,11 +362,23 @@ bool SerializerFormatZZT::deserialize(World &world, IOStream &stream, bool title
             ticker(bid);
         }
 
-        world.board_len[bid] = stream.read16();
+        uint16_t len = stream.read16();
         if (stream.errored()) break;
 
-        world.board_data[bid] = (uint8_t*) malloc(world.board_len[bid]);
-        stream.read(world.board_data[bid], world.board_len[bid]);
+        uint8_t *data = stream.ptr();
+        if (data == nullptr) {
+            data = (uint8_t*) malloc(len);
+            stream.read(data, len);
+            if (!stream.errored()) {
+                world.set_board(bid, data, len, format);
+            }
+            free(data);
+        } else {
+            stream.skip(len);
+            world.set_board(bid, data, len, format);
+        }
+
+        if (stream.errored()) break;
     }
 
     return !stream.errored();

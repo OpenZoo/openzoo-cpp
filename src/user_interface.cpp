@@ -283,7 +283,7 @@ void UserInterface::SidebarGameDraw(Game &game, uint32_t flags) {
     }
 }
 
-void UserInterface::SidebarShowMessage(uint8_t color, const char *message) {
+void UserInterface::SidebarShowMessage(uint8_t color, const char *message, bool temporary) {
     SidebarClearLine(5);
 
     if (message != nullptr) {

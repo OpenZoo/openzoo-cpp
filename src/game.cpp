@@ -2,12 +2,13 @@
 #include "editor.h"
 #include "file_selector.h"
 #include "gamevars.h"
+#include "platform_hacks.h"
 #include "txtwind.h"
 
 using namespace ZZT;
 using namespace ZZT::Utils;
 
-static const uint8_t ProgressAnimColors[8] = {0x04, 0x0C, 0x05, 0x0D, 0x06, 0x0E, 0x07, 0x0F};
+static const uint8_t ProgressAnimColors[8] = {0x07, 0x0C, 0x09, 0x0D, 0x0A, 0x0E, 0x0B, 0x0F};
 static const char *ProgressAnimStrings[8] = {
     " Loading....|", " Loading...*/", " Loading..*.-", " Loading.*..\\",
     " Loading*...|", " Loading..../", " Loading....-", " Loading....\\"
@@ -28,10 +29,150 @@ const uint8_t ZZT::LineChars[16] = {
     249, 208, 210, 186, 181, 188, 187, 185, 198, 200, 201, 204, 205, 202, 203, 206
 };
 
-Game::Game(void): highScoreList(this) {
-    boardSerializer = new SerializerFormatZZT();
-    worldSerializer = new SerializerFormatZZT();
+// Board
 
+Board::Board() {
+
+}
+
+Board::~Board() {
+    stats.free_all_data();
+}
+
+// World
+
+#define SERIALIZERS_COUNT 2
+static Serializer *serializers[SERIALIZERS_COUNT] = {
+    new SerializerFormatZZT(WorldFormatZZT),
+    new SerializerFormatZZT(WorldFormatInternal)
+};
+
+static Serializer *get_serializer(WorldFormat format) {
+    for (int i = 0; i < SERIALIZERS_COUNT; i++) {
+        if (serializers[i]->get_format() == format) {
+            return serializers[i];
+        }
+    }
+    return nullptr;
+}
+
+static void convert_board(const uint8_t *data, size_t data_len, WorldFormat from, WorldFormat to, bool destroyDataUponCompletion, uint8_t *&out_data, size_t &out_data_len) {
+    Board *board = new Board();
+    Serializer *fromS = get_serializer(from);
+    Serializer *toS = get_serializer(to);
+
+    MemoryIOStream inputStream(data, data_len);
+    fromS->deserialize_board(*board, inputStream);
+
+    if (destroyDataUponCompletion) {
+        free((void*) data);
+    }
+
+    size_t buflen = toS->estimate_board_size(*board);
+    uint8_t *buffer = (uint8_t*) malloc(buflen);
+    MemoryIOStream stream(buffer, buflen, true);
+
+    toS->serialize_board(*board, stream);
+    delete board;
+
+    uint8_t *buffer_ra = (uint8_t*) realloc(buffer, stream.tell());
+    out_data = buffer_ra != nullptr ? buffer_ra : buffer;
+    out_data_len = stream.tell();
+}
+
+World::World(WorldFormat board_format_storage, WorldFormat board_format_target) {
+    this->board_format_storage = board_format_storage;
+    this->board_format_target = board_format_target;
+    memset(board_len, 0, sizeof(board_len));
+}
+
+bool World::read_board(uint8_t id, Board &board) {
+    Serializer *fromS = get_serializer((WorldFormat) this->board_format[id]);
+    MemoryIOStream inputStream(this->board_data[id], this->board_len[id]);
+    return fromS->deserialize_board(board, inputStream);
+}
+
+bool World::write_board(uint8_t id, Board &board) {
+    Serializer *toS = get_serializer(board_format_target);
+    size_t buflen = toS->estimate_board_size(board);
+    uint8_t *buffer = (uint8_t*) malloc(buflen);
+    MemoryIOStream stream(buffer, buflen, true);
+    if (!toS->serialize_board(board, stream)) {
+        free(buffer);
+        return false;
+    }
+
+    free_board(id);
+
+    board_len[id] = stream.tell();
+    board_data[id] = (uint8_t*) realloc(buffer, stream.tell());
+    if (board_data[id] == nullptr) {
+        board_data[id] = buffer;
+    }
+    board_format[id] = (uint8_t) board_format_target;
+
+    return true;
+}
+
+void World::get_board(uint8_t id, uint8_t *&data, uint16_t &len, bool &temporary, WorldFormat format) {
+    if (this->board_format[id] == format) {
+        data = this->board_data[id];
+        len = this->board_len[id];
+        temporary = false;
+    } else {
+        uint8_t *out_data;
+        size_t out_len;
+
+        convert_board(this->board_data[id], this->board_len[id],
+            (WorldFormat) this->board_format[id], format,
+            temporary, out_data, out_len);
+
+        data = out_data;
+        len = out_len;
+        temporary = true;
+    }
+}
+
+void World::set_board(uint8_t id, uint8_t *data, uint16_t len, WorldFormat format) {
+    free_board(id);
+
+    if (board_format_storage != WorldFormatAny && format == board_format_storage) {
+        this->board_data[id] = (uint8_t *) malloc(len);
+        memcpy(this->board_data[id], data, len);
+        this->board_len[id] = len;
+        this->board_format[id] = format;
+    } else {
+        uint8_t *out_data;
+        size_t out_len;
+
+        convert_board(data, len,
+            format, board_format_storage,
+            false, out_data, out_len);
+
+        this->board_data[id] = out_data;
+        this->board_len[id] = out_len;
+        this->board_format[id] = (uint8_t) board_format_storage;
+    }
+}
+
+void World::free_board(uint8_t bid) {
+    if (this->board_len[bid] > 0) {
+        free(this->board_data[bid]);
+        this->board_len[bid] = 0;
+    }
+}
+
+// Game
+
+Game::Game(void):
+#ifdef ROM_POINTERS
+    world(WorldFormatInternal, WorldFormatInternal),
+#else
+    world(WorldFormatAny, WorldFormatInternal),
+#endif
+    highScoreList(this)
+{
+    worldSerializer = get_serializer(WorldFormatZZT);
     tickSpeed = 4;
     debugEnabled = false;
 #ifndef DISABLE_EDITOR
@@ -40,15 +181,11 @@ Game::Game(void): highScoreList(this) {
     StrCopy(startupWorldFileName, "TOWN");
     StrCopy(savedGameFileName, "SAVED");
     StrCopy(savedBoardFileName, "TEMP");
-    memset(world.board_len, 0, sizeof(world.board_len));
     GenerateTransitionTable();
     WorldCreate();
 }
 
 Game::~Game() {
-    // FIXME: Why do these cause a crash in free()?
-//    delete worldSerializer;
-//    delete boardSerializer;
 }
 
 void Game::GenerateTransitionTable(void) {
@@ -82,24 +219,9 @@ void Game::SidebarClear(void) {
 }
 
 void Game::BoardClose() {
-    size_t buflen = boardSerializer->estimate_buffer_size(board);
-    uint8_t *buffer = (uint8_t*) malloc(buflen);
-    MemoryIOStream stream(buffer, buflen, true);
+    world.write_board(world.info.current_board, board); 
 
-    boardSerializer->serialize(board, stream);
-
-    for (int i = 0; i <= board.stats.count; i++) {
-        board.stats.free_data_if_unused(i);
-    }
-
-    if (world.board_len[world.info.current_board] > 0) {
-        free(world.board_data[world.info.current_board]);
-    }
-    world.board_len[world.info.current_board] = stream.tell();
-    world.board_data[world.info.current_board] = (uint8_t*) realloc(buffer, stream.tell());
-    if (world.board_data[world.info.current_board] == nullptr) {
-        world.board_data[world.info.current_board] = buffer;
-    }
+    board.stats.free_all_data();
 }
 
 void Game::BoardOpen(int16_t board_id) {
@@ -107,10 +229,7 @@ void Game::BoardOpen(int16_t board_id) {
         board_id = world.info.current_board;
     }
 
-    MemoryIOStream stream(world.board_data[board_id], world.board_len[board_id], false);
-
-    boardSerializer->deserialize(board, stream);
-
+    world.read_board(board_id, board);
     world.info.current_board = board_id;
 }
 
@@ -173,7 +292,7 @@ void Game::BoardCreate(void) {
 void Game::WorldCreate(void) {
     InitElementsGame();
     world.board_count = 0;
-    world.board_len[0] = 0;
+    world.free_board(0);
     playerDirX = 0; // from ELEMENTS -> InitEditorStatSettings
     playerDirY = 0;
     ResetMessageNotShownFlags();
@@ -207,6 +326,7 @@ void Game::TransitionDrawToFill(uint8_t chr, uint8_t color) {
     }
 }
 
+GBA_CODE_IWRAM
 void Game::BoardDrawTile(int16_t x, int16_t y) {
     Tile tile = board.tiles.get(x, y);
     if (!board.info.is_dark
@@ -312,11 +432,7 @@ void Game::SidebarPromptSlider(bool editable, int16_t x, int16_t y, const char *
 
     do {
         if (editable) {
-            if (driver->joystickMoved) {
-                driver->delay(45);
-            } else {
-                driver->idle(IMUntilFrame);
-            }
+            driver->idle(IMUntilFrame);
             driver->draw_char(x + value + 1, y + 1, 0x9F, 31);
 
             driver->update_input();
@@ -413,14 +529,12 @@ void Game::DisplayIOError(IOStream &stream) {
 void Game::WorldUnload(void) {
     BoardClose();
     for (int i = 0; i <= world.board_count; i++) {
-        if (world.board_len[i] > 0) {
-            free(world.board_data[i]);
-        }
+        world.free_board(i);
     }
 }
 
 bool Game::WorldLoad(const char *filename, const char *extension, bool titleOnly) {
-    interface->SidebarShowMessage(0x0F, " Loading.....");
+    interface->SidebarShowMessage(0x0F, " Loading.....", true);
 
     char joinedName[256];
     StrJoin(joinedName, 2, filename, extension);
@@ -429,8 +543,8 @@ bool Game::WorldLoad(const char *filename, const char *extension, bool titleOnly
     if (!stream->errored()) {
         WorldUnload();
         
-        bool result = worldSerializer->deserialize(world, *stream, titleOnly, [this](auto bid) {
-            interface->SidebarShowMessage(ProgressAnimColors[bid & 7], ProgressAnimStrings[bid & 7]);
+        bool result = worldSerializer->deserialize_world(world, *stream, titleOnly, [this](auto bid) {
+            interface->SidebarShowMessage(ProgressAnimColors[bid & 7], ProgressAnimStrings[bid & 7], true);
         });
 
         if (result) {
@@ -447,20 +561,21 @@ bool Game::WorldLoad(const char *filename, const char *extension, bool titleOnly
         DisplayIOError(*stream);
     }
 
+    interface->SidebarHideMessage();
     delete stream;
     return false;
 }
 
 bool Game::WorldSave(const char *filename, const char *extension) {
     BoardClose();
-    interface->SidebarShowMessage(0x0F, " Saving...");
+    interface->SidebarShowMessage(0x0F, " Saving...", true);
 
     char joinedName[256];
     StrJoin(joinedName, 2, filename, extension);
     IOStream *stream = filesystem->open_file(joinedName, true);
 
     if (!stream->errored()) {
-        bool result = worldSerializer->serialize(world, *stream, [](auto i){});
+        bool result = worldSerializer->serialize_world(world, *stream, [](auto i){});
 
         if (result) {
             BoardOpen(world.info.current_board);
@@ -965,7 +1080,7 @@ void Game::GamePlayLoop(bool boardChanged) {
 
     if (gameStateElement == EMonitor) {
         DisplayMessage(0, "");
-        interface->SidebarShowMessage(0x0B, "Pick a command:");
+        interface->SidebarShowMessage(0x0B, "Pick a command:", false);
     }
 
     if (boardChanged) {
@@ -996,7 +1111,7 @@ void Game::GamePlayLoop(bool boardChanged) {
                 }
             }
 
-            interface->SidebarShowMessage(0x0F, "  Pausing...");
+            interface->SidebarShowMessage(0x0F, "  Pausing...", true);
             driver->idle(IMUntilFrame);
             driver->update_input();
 

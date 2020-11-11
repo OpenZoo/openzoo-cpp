@@ -89,7 +89,7 @@ void Editor::AppendBoard(void) {
 
         game->world.board_count++;
         game->world.info.current_board = game->world.board_count;
-        game->world.board_len[game->world.board_count] = 0;
+        game->world.free_board(game->world.board_count);
         game->BoardCreate();
 
         game->TransitionDrawToBoard();
@@ -641,17 +641,18 @@ void Editor::TransferBoard(void) {
 
                 if (!stream->errored()) {
                     int board = game->world.info.current_board;
-
-                    game->BoardClose();
-                    free(game->world.board_data[board]);
-                    game->world.board_len[board] = stream->read16();
+                    uint16_t len = stream->read16();
                     if (!stream->errored()) {
-                        game->world.board_data[board] = (uint8_t*) malloc(game->world.board_len[board]);
-                        stream->read(game->world.board_data[board], game->world.board_len[board]);
+                        uint8_t *data = (uint8_t*) malloc(len);
+                        stream->read(data, len);
+                        if (!stream->errored()) {
+                            game->world.set_board(board, data, len, WorldFormatZZT);
+                        }
+                        free(data);
                     }
 
                     if (stream->errored()) {
-                        game->world.board_len[board] = 0;
+                        game->world.free_board(board);
                         game->DisplayIOError(*stream);
                         game->BoardCreate();
                         DrawRefresh();
@@ -679,11 +680,14 @@ void Editor::TransferBoard(void) {
 
                 if (!stream->errored()) {
                     int board = game->world.info.current_board;
+                    uint16_t len;
+                    uint8_t *data;
+                    bool temporary;
 
-                    game->BoardClose();
-                    stream->write16(game->world.board_len[board]);
-                    stream->write(game->world.board_data[board], game->world.board_len[board]);
-                    game->BoardOpen(board);
+                    game->world.get_board(board, data, len, temporary, WorldFormatZZT);
+                    stream->write16(len);
+                    stream->write(data, len);
+                    if (temporary) free(data);
                 }
 
                 game->DisplayIOError(*stream);

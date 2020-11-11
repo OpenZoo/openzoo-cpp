@@ -112,6 +112,9 @@ namespace ZZT {
 
     class StatData {
     public:
+#ifdef ROM_POINTERS
+        const char *data_rom = nullptr;
+#endif
         char *data = nullptr;
         int16_t len = 0;
     
@@ -313,11 +316,27 @@ namespace ZZT {
                 }
             }
         }
+
+        void free_all_data() {
+            for (int i = 0; i <= count; i++) {
+                Stat &stat = stats[i + 1];
+                if (stat.data.len > 0) {
+                    for (int j = i + 1; j <= count; j++) {
+                        Stat &stat2 = stats[j + 1];
+                        if (stat.data == stat2.data) {
+                            stat2.data.clear_data();
+                        }
+                    }
+                    stat.data.free_data();
+                }
+            }
+        }
     };
 
     class Board {
     public:
-        Board() { }
+        Board();
+        ~Board();
 
         sstring<50> name;
         TileMap<60, 25> tiles;
@@ -329,12 +348,25 @@ namespace ZZT {
     };
 
     class World {
+    private:
+        uint16_t board_len[MAX_BOARD + 1];
+        uint8_t board_format[MAX_BOARD + 1];
+        WorldFormat board_format_storage;
+        WorldFormat board_format_target;
+
     public:
-        World() { }
+        // TODO: move to private (Editor::GetBoardName)
+        uint8_t *board_data[MAX_BOARD + 1];
+
+        World(WorldFormat board_format_storage, WorldFormat board_format_target);
+
+        bool read_board(uint8_t id, Board &board);
+        bool write_board(uint8_t id, Board &board);
+        void get_board(uint8_t id, uint8_t *&data, uint16_t &len, bool &temporary, WorldFormat format);
+        void set_board(uint8_t id, uint8_t *data, uint16_t len, WorldFormat format);
+        void free_board(uint8_t id);
 
         int16_t board_count;
-        uint8_t *board_data[MAX_BOARD + 1];
-        size_t board_len[MAX_BOARD + 1];
         WorldInfo info;
     };
 
@@ -450,7 +482,6 @@ namespace ZZT {
         FilesystemDriver *filesystem;
 
         UserInterface *interface;
-        BoardSerializer *boardSerializer;
         WorldSerializer *worldSerializer;
 
         inline const ElementDef& elementDefAt(int16_t x, int16_t y) const {

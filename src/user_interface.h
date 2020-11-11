@@ -60,11 +60,11 @@ namespace ZZT {
         virtual void SidebarPromptString(const char *prompt, const char *extension, char *filename, int filenameLen, PromptMode mode);
         virtual void PopupPromptString(const char *question, char *buffer, size_t buffer_len);
         virtual void SidebarGameDraw(Game &game, uint32_t flags);
-        virtual void SidebarShowMessage(uint8_t color, const char *message);
+        virtual void SidebarShowMessage(uint8_t color, const char *message, bool temporary);
         virtual int HandleMenu(Game &game, const MenuEntry *entries, bool simulate);
 
         inline void SidebarHideMessage() {
-            SidebarShowMessage(0x0F, nullptr);
+            SidebarShowMessage(0x0F, nullptr, true);
         }
     };
 }

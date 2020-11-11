@@ -117,6 +117,10 @@ namespace Utils {
         return true;
     }
 
+    uint8_t *IOStream::ptr(void) {
+        return nullptr;
+    }
+
     // I/O - Memory
 
     ErroredIOStream::ErroredIOStream() {
@@ -202,6 +206,10 @@ namespace Utils {
 
     bool MemoryIOStream::eof(void) {
         return mem_pos < mem_len;
+    }
+
+    uint8_t *MemoryIOStream::ptr(void) {
+        return this->memory + mem_pos;
     }
 
     // Dynamic strings

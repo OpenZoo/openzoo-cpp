@@ -293,10 +293,6 @@ void TextWindow::Select(bool hyperlinkAsSelect, bool viewingFile) {
                 );
             }
         }
-
-        if (driver->joystickMoved) {
-            driver->delay(35);
-        }
     } while (driver->keyPressed != KeyEscape && driver->keyPressed != KeyEnter && !driver->shiftPressed);
 
     if (driver->keyPressed == KeyEscape) {

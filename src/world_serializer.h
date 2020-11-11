@@ -10,29 +10,49 @@ namespace ZZT {
     struct Board;
     struct World;
 
+    typedef enum {
+        WorldFormatAny,
+        WorldFormatZZT,
+        WorldFormatSuperZZT, // TODO
+        WorldFormatInternal  
+    } WorldFormat;
+
     class BoardSerializer {
     public:
-        virtual size_t estimate_buffer_size(Board &board) = 0;
-        virtual bool serialize(Board &board, Utils::IOStream &stream) = 0;
-        virtual bool deserialize(Board &board, Utils::IOStream &stream) = 0;
+        virtual size_t estimate_board_size(Board &board) = 0;
+        virtual bool serialize_board(Board &board, Utils::IOStream &stream) = 0;
+        virtual bool deserialize_board(Board &board, Utils::IOStream &stream) = 0;
     };
 
     class WorldSerializer {
     public:
-        virtual bool serialize(World &world, Utils::IOStream &stream, std::function<void(int)> ticker) = 0;
-        virtual bool deserialize(World &world, Utils::IOStream &stream, bool titleOnly, std::function<void(int)> ticker) = 0;
+        virtual bool serialize_world(World &world, Utils::IOStream &stream, std::function<void(int)> ticker) = 0;
+        virtual bool deserialize_world(World &world, Utils::IOStream &stream, bool titleOnly, std::function<void(int)> ticker) = 0;
+    };
+
+    class Serializer :
+        virtual public BoardSerializer,
+        virtual public WorldSerializer
+    {
+    protected:
+        WorldFormat format;
+    public:
+        inline WorldFormat get_format() {
+            return format;
+        }
     };
 
     class SerializerFormatZZT:
-        public BoardSerializer,
-        public WorldSerializer
+        virtual public Serializer
     {
     public:
-        size_t estimate_buffer_size(Board &board) override;
-        bool serialize(Board &board, Utils::IOStream &stream) override;
-        bool deserialize(Board &board, Utils::IOStream &stream) override;
-        bool serialize(World &world, Utils::IOStream &stream, std::function<void(int)> ticker) override;
-        bool deserialize(World &world, Utils::IOStream &stream, bool titleOnly, std::function<void(int)> ticker) override;
+        SerializerFormatZZT(WorldFormat format);
+
+        size_t estimate_board_size(Board &board) override;
+        bool serialize_board(Board &board, Utils::IOStream &stream) override;
+        bool deserialize_board(Board &board, Utils::IOStream &stream) override;
+        bool serialize_world(World &world, Utils::IOStream &stream, std::function<void(int)> ticker) override;
+        bool deserialize_world(World &world, Utils::IOStream &stream, bool titleOnly, std::function<void(int)> ticker) override;
     };
 };
 

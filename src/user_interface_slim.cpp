@@ -7,7 +7,7 @@ using namespace ZZT::Utils;
 
 UserInterfaceSlim::UserInterfaceSlim(Driver *driver)
 : UserInterface(driver) {
-
+    message_backup = nullptr;
 }
 
 VideoCopy *UserInterfaceSlim::BackupSidebar(void) {
@@ -199,6 +199,24 @@ void UserInterfaceSlim::SidebarGameDraw(Game &game, uint32_t flags) {
     }
 }
 
-void UserInterfaceSlim::SidebarShowMessage(uint8_t color, const char *message) {
-    // TODO
+void UserInterfaceSlim::SidebarShowMessage(uint8_t color, const char *message, bool temporary) {
+    if (temporary) {
+        if (message == nullptr) {
+            // clear
+            if (message_backup != nullptr) {
+                RestoreSidebar(message_backup);
+                message_backup = nullptr;
+            }
+        } else {
+            // set
+            if (message_backup == nullptr) {
+                message_backup = BackupSidebar();
+            }
+            size_t msglen = strlen(message);
+
+            for (int i = 0; i < 60; i++) {
+                driver->draw_char(i, 25, 0x10 | (color & 0x0F), (i >= 1 && i <= msglen) ? message[i - 1] : ' ');
+            }
+        }
+    }
 }

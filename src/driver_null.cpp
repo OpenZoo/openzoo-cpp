@@ -20,10 +20,6 @@ void NullDriver::update_input(void) {
     
 }
 
-void NullDriver::read_wait_key(void) {
-    
-}
-
 uint16_t NullDriver::get_hsecs(void) {
     return hsecs++;
 }
@@ -47,6 +43,11 @@ void NullDriver::draw_char(int16_t x, int16_t y, uint8_t col, uint8_t chr) {
 void NullDriver::read_char(int16_t x, int16_t y, uint8_t &col, uint8_t &chr) {
     col = 0;
     chr = 0;
+}
+
+void NullDriver::get_video_size(int16_t &width, int16_t &height) {
+	width = 80;
+	height = 25;
 }
 
 #include "gamevars.h"

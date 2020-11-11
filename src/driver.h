@@ -75,7 +75,7 @@ namespace ZZT {
         void set_key_pressed(uint16_t value);
         bool set_dpad(bool up, bool down, bool left, bool right);
         bool set_axis(int32_t axis_x, int32_t axis_y, int32_t axis_min, int32_t axis_max);
-        void set_joy_button_state(JoyButton button, bool value);
+        void set_joy_button_state(JoyButton button, bool value, bool is_constant);
         void update_joy_buttons();
 
         uint16_t joy_buttons_hsecs[JoyButtonMax];
@@ -99,7 +99,6 @@ namespace ZZT {
         bool shiftPressed;
         bool shiftAccepted;
         bool joystickEnabled;
-        bool joystickMoved;
 
         uint16_t keyPressed;
         bool keyLeftShiftHeld;
@@ -111,9 +110,9 @@ namespace ZZT {
 
         // required
         virtual void update_input(void) = 0;
-        virtual void read_wait_key(void) = 0;
 
         // optional
+        virtual void read_wait_key(void);
         virtual bool joy_button_pressed(JoyButton button, bool simulate);
         virtual bool joy_button_held(JoyButton button, bool simulate);
 
@@ -151,6 +150,7 @@ namespace ZZT {
         // required
         virtual void draw_char(int16_t x, int16_t y, uint8_t col, uint8_t chr) = 0;
         virtual void read_char(int16_t x, int16_t y, uint8_t &col, uint8_t &chr) = 0;
+        virtual void get_video_size(int16_t &width, int16_t &height) = 0;
 
         // optional
         virtual void draw_string(int16_t x, int16_t y, uint8_t col, const char* text);
@@ -159,6 +159,7 @@ namespace ZZT {
         virtual void set_border_color(uint8_t value);
         virtual void copy_chars(VideoCopy &copy, int x, int y, int width, int height, int destX, int destY);
         virtual void paste_chars(VideoCopy &copy, int x, int y, int width, int height, int destX, int destY);
+        virtual bool set_video_size(int16_t width, int16_t height);
     };
 }
 

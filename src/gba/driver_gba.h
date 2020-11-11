@@ -5,12 +5,9 @@
 #include "driver.h"
 
 namespace ZZT {
-    class NullDriver: public Driver {
-    private:
-        uint16_t hsecs;
-        
+    class GBADriver: public Driver {
     public:
-        NullDriver();
+        GBADriver();
 
         void install(void);
         void uninstall(void);
@@ -28,6 +25,9 @@ namespace ZZT {
         void draw_char(int16_t x, int16_t y, uint8_t col, uint8_t chr) override;
         void read_char(int16_t x, int16_t y, uint8_t &col, uint8_t &chr) override;
         void get_video_size(int16_t &width, int16_t &height) override;
+
+        // internal
+        void update_joy();
     };
 }
 

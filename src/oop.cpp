@@ -3,6 +3,7 @@
 #include <cstring>
 #include "gamevars.h"
 #include "txtwind.h"
+#include "platform_hacks.h"
 
 using namespace ZZT;
 using namespace ZZT::Utils;
@@ -150,6 +151,7 @@ void Game::OopReadDirection(Stat& stat, int16_t& position, int16_t& dx, int16_t&
 	}
 }
 
+GBA_CODE_IWRAM
 int16_t Game::OopFindString(Stat& stat, const char *str) {
 	int16_t pos = 0;
 	size_t str_len = strlen(str);
@@ -304,13 +306,13 @@ void Game::WorldClearFlag(const char *name) {
 
 void Game::OopStringToWord(const char *input, char *buf, size_t len) {
 	size_t pos = 0;
-	int input_len = strlen(input);
-	for (int i = 0; i < input_len; i++) {
-		if ((input[i] >= 'A' && input[i] <= 'Z') || (input[i] >= '0' && input[i] <= '9')) {
-			buf[pos++] = input[i];
+	while (*input != 0) {
+		char ch = *(input++);
+		if ((ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9')) {
+			buf[pos++] = ch;
 			if (pos >= (len - 1)) break;
-		} else if ((input[i] >= 'a' && input[i] <= 'z')) {
-			buf[pos++] = input[i] - 0x20;
+		} else if ((ch >= 'a' && ch <= 'z')) {
+			buf[pos++] = ch - 0x20;
 			if (pos >= (len - 1)) break;
 		}
 	}
@@ -353,6 +355,7 @@ uint8_t Game::GetColorForTileMatch(const Tile &tile) {
 	}
 }
 
+GBA_CODE_IWRAM
 bool Game::FindTileOnBoard(int16_t &x, int16_t &y, Tile tile) {
 	while (true) {
 		x++;

@@ -15,7 +15,6 @@ Driver::Driver(void) {
     shiftAccepted = false;
     joystickEnabled = false;
     keyPressed = 0;
-    joystickMoved = false;
 
     joy_buttons_held = 0;
     joy_buttons_pressed = 0;
@@ -73,7 +72,6 @@ bool Driver::set_dpad(bool up, bool down, bool left, bool right) {
         return false;
     }
 
-    joystickMoved = true;
     return true;
 }
 
@@ -84,21 +82,23 @@ bool Driver::set_axis(int32_t axis_x, int32_t axis_y, int32_t axis_min, int32_t 
     if (Abs(axis_x) > Abs(axis_y)) {
         deltaX = Signum(axis_x);
         deltaY = 0;
-        joystickMoved = deltaX != 0;
     } else {
         deltaX = 0;
         deltaY = Signum(axis_y);
-        joystickMoved = deltaY != 0;
     }
 
     return deltaX != 0 || deltaY != 0;
 }
 
-void Driver::set_joy_button_state(JoyButton button, bool value) {
+void Driver::set_joy_button_state(JoyButton button, bool value, bool is_constant) {
     if (value) {
+        if (is_constant) {
+            bool old_value = (joy_buttons_held & (1 << button)) != 0;
+            if (old_value) return;
+        }
         joy_buttons_hsecs[button] = get_hsecs() + joy_repeat_hsecs_delay;
-        joy_buttons_pressed |= 1 << button;
-        joy_buttons_held |= 1 << button;
+        joy_buttons_pressed |= (1 << button);
+        joy_buttons_held |= (1 << button);
     } else {
         joy_buttons_held &= ~(1 << button);
     }
@@ -135,6 +135,16 @@ bool Driver::joy_button_pressed(JoyButton button, bool simulate) {
 bool Driver::joy_button_held(JoyButton button, bool simulate) {
     bool result = (joy_buttons_held & button) != 0;
     return result || joy_button_pressed(button, simulate);
+}
+
+void Driver::read_wait_key(void) {
+    update_input();
+    if (keyPressed != 0) return;
+ 
+    do {
+        idle(IMUntilFrame);
+        update_input();
+    } while (keyPressed == 0);
 }
 
 /* SOUND/TIMER */
@@ -219,4 +229,8 @@ uint8_t col, chr;
             draw_char(destX + ix, destY + iy, col, chr);
         }
     }
+}
+
+bool Driver::set_video_size(int16_t width, int16_t height) {
+    return false;
 }
