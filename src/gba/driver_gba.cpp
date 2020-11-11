@@ -10,6 +10,7 @@ extern "C" {
 #include "platform_hacks.h"
 
 #include "gamevars.h"
+#include "sounds.h"
 
 using namespace ZZT;
 using namespace ZZT::Utils;
@@ -21,9 +22,46 @@ static uint16_t hsecs;
 static uint16_t acc_key_input;
 extern u32 __rom_end__;
 
-#define DEBUG_CONSOLE
+// #define DEBUG_CONSOLE
 
-// video logic
+// sound logic
+
+static const SoundDrum *drum = nullptr;
+static int16_t drum_pos = 0;
+static int16_t duration_counter = 0;
+
+GBA_CODE_IWRAM static inline void gba_play_sound(uint16_t freq) {
+	if (freq < 64) {
+		REG_SOUND2CNT_L = SSQR_DUTY1_2 | SSQR_IVOL(0);
+		REG_SOUND2CNT_H = SFREQ_RESET;
+	} else {
+		REG_SOUND2CNT_L = SSQR_DUTY1_2 | SSQR_IVOL(12);
+		REG_SOUND2CNT_H = (2048 - (131072 / (int)freq)) | SFREQ_RESET;
+	}
+}
+
+GBA_CODE_IWRAM
+static void irq_timer_drums(void) {
+	REG_IE |= (IRQ_VBLANK | IRQ_VCOUNT);
+	REG_IME = 1;
+
+	if (drum_pos < drum->len) {
+		// play
+		gba_play_sound(drum->data[drum_pos++]);
+
+		// set timer
+		REG_TM1CNT_L = 65536 - 262;
+		REG_TM1CNT_H = TM_FREQ_64 | TM_IRQ | TM_ENABLE;
+	} else if (drum_pos == drum->len) {
+		// finish
+		gba_play_sound(0);
+
+		// reset timer
+		REG_TM1CNT_H = 0;
+	}
+}
+
+// video/input
 
 #define FONT_HEIGHT 6
 #define MAP_Y_OFFSET 1
@@ -193,9 +231,11 @@ GBA_CODE_IWRAM static void irq_vblank(void) {
 		}
 	}
 
+#ifdef DEBUG_CONSOLE
 	sstring<20> num_str;
 	StrFromInt(num_str, platform_debug_free_memory());
 	platform_debug_puts(num_str, true);
+#endif
 }
 
 void zoo_video_gba_hide(void) {
@@ -226,11 +266,29 @@ void zoo_video_gba_set_blinking(bool val) {
 
 // timer code
 
-GBA_CODE_IWRAM static void irq_timer_pit(void) {
+GBA_CODE_IWRAM void ZZT::irq_timer_pit(void) {
 	REG_IE |= (IRQ_VBLANK | IRQ_VCOUNT);
 	REG_IME = 1;
 
 	hsecs += 11;
+
+	if ((--duration_counter) <= 0) {
+		gba_play_sound(0);
+		uint16_t note, duration;
+		if (!driver._queue.pop(note, duration)) {
+			driver._queue.is_playing = false;
+		} else {
+			if (note >= NOTE_MIN && note < NOTE_MAX) {
+				gba_play_sound(sound_notes[note - NOTE_MIN]);
+			} else if (note >= DRUM_MIN && note < DRUM_MAX) {
+				drum = &sound_drums[note - DRUM_MIN];
+				drum_pos = 0;
+				irq_timer_drums();
+			}
+
+			duration_counter = duration;
+		}
+	}
 }
 
 #define dbg_ticks() (REG_TM2CNT_L | (REG_TM3CNT_L << 16))
@@ -303,6 +361,13 @@ void GBADriver::install(void) {
 	zoo_video_gba_set_blinking(true);
 	zoo_video_gba_show();
 
+	// init sound
+	REG_SOUNDCNT_X = SSTAT_ENABLE;
+	REG_SOUNDCNT_L = SDMG_LVOL(7) | SDMG_RVOL(7) | SDMG_LSQR2 | SDMG_RSQR2;
+	REG_SOUNDCNT_H = SDS_DMG100;
+	irq_add(II_TIMER1, (fnptr) irq_timer_drums);
+
+	// init pit
 	irq_add(II_TIMER0, irq_timer_pit);
 }
 
@@ -365,7 +430,7 @@ void GBADriver::idle(IdleMode mode) {
 }
 
 void GBADriver::sound_stop(void) {
-	// TODO
+	gba_play_sound(0);
 }
 
 void GBADriver::draw_char(int16_t x, int16_t y, uint8_t col, uint8_t chr) {
@@ -387,7 +452,7 @@ int main(void) {
 	game.driver = &driver;
 	game.filesystem = new RomfsFilesystemDriver(&__rom_end__);
 	game.interface = new UserInterfaceSlim(&driver);
-	
+
 	game.GameTitleLoop();
 
 	delete game.interface;
