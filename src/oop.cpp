@@ -864,12 +864,16 @@ ReadCommand:
 
 		if (!StrEmpty(textWindow->hyperlink)) {
 			if (OopSend(stat_id, textWindow->hyperlink, false)) {
+				delete textWindow;
 				goto StartParsing;
 			}
 		}
+
+		delete textWindow;
 	} else if (textWindow->line_count == 1) {
 		DisplayMessage(200, textWindow->lines[0]->c_str());
 		textWindow->Clear();
+		delete textWindow;
 	}
 
 	if (replaceStat) {
