@@ -475,8 +475,7 @@ bool Game::OopSend(int16_t stat_id, const char *sendLabel, bool ignoreLock) {
 
 void Game::OopExecute(int16_t stat_id, int16_t &position, const char *default_name) {
 StartParsing:
-	TextWindow textWindow = TextWindow(driver, filesystem);
-	textWindow.selectable = false;
+	TextWindow *textWindow = nullptr;
 	bool stopRunning = false;
 	bool repeatInsNextTick = false;
 	bool replaceStat = false;
@@ -812,8 +811,9 @@ ReadCommand:
 				}
 			} break;
 			case '\r': {
-				if (textWindow.line_count > 0) {
-					textWindow.Append("");
+				// OpenZoo: implies textWindow.lineCount > 0
+				if (textWindow != nullptr) {
+					textWindow->Append("");
 				}
 			} break;
 			case 0: {
@@ -823,7 +823,11 @@ ReadCommand:
 				char textLine[66]; // should be enough?
 				textLine[0] = oopChar;
 				OopReadLineToEnd(stat, position, textLine + 1, sizeof(textLine) - 1);
-				textWindow.Append(textLine);
+				if (textWindow == nullptr) {
+					textWindow = new TextWindow(driver, filesystem);
+					textWindow->selectable = false;
+				}
+				textWindow->Append(textLine);
 			} break;
 		}
 	} while (!endOfProgram && !stopRunning && !repeatInsNextTick && !replaceStat && insCount <= 32);
@@ -836,7 +840,9 @@ ReadCommand:
 		position = -1;
 	}
 
-	if (textWindow.line_count > 1) {
+	if (textWindow == nullptr) {
+		// implies 0 lines
+	} else if (textWindow->line_count > 1) {
 		char name[256];
 		StrCopy(name, default_name);
 
@@ -850,20 +856,20 @@ ReadCommand:
 			StrCopy(name, "Interaction");
 		}
 
-		StrCopy(textWindow.title, name);
-		textWindow.DrawOpen();
-		textWindow.Select(true, false);
-		textWindow.DrawClose();
-		textWindow.Clear();
+		StrCopy(textWindow->title, name);
+		textWindow->DrawOpen();
+		textWindow->Select(true, false);
+		textWindow->DrawClose();
+		textWindow->Clear();
 
-		if (!StrEmpty(textWindow.hyperlink)) {
-			if (OopSend(stat_id, textWindow.hyperlink, false)) {
+		if (!StrEmpty(textWindow->hyperlink)) {
+			if (OopSend(stat_id, textWindow->hyperlink, false)) {
 				goto StartParsing;
 			}
 		}
-	} else if (textWindow.line_count == 1) {
-		DisplayMessage(200, textWindow.lines[0]->c_str());
-		textWindow.Clear();
+	} else if (textWindow->line_count == 1) {
+		DisplayMessage(200, textWindow->lines[0]->c_str());
+		textWindow->Clear();
 	}
 
 	if (replaceStat) {
