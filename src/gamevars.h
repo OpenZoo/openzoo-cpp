@@ -363,7 +363,7 @@ namespace ZZT {
         bool read_board(uint8_t id, Board &board);
         bool write_board(uint8_t id, Board &board);
         void get_board(uint8_t id, uint8_t *&data, uint16_t &len, bool &temporary, WorldFormat format);
-        void set_board(uint8_t id, uint8_t *data, uint16_t len, WorldFormat format);
+        void set_board(uint8_t id, uint8_t *data, uint16_t len, bool costlessly_loaded, WorldFormat format);
         void free_board(uint8_t id);
 
         int16_t board_count;

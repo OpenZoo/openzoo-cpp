@@ -646,7 +646,7 @@ void Editor::TransferBoard(void) {
                         uint8_t *data = (uint8_t*) malloc(len);
                         stream->read(data, len);
                         if (!stream->errored()) {
-                            game->world.set_board(board, data, len, WorldFormatZZT);
+                            game->world.set_board(board, data, len, false, WorldFormatZZT);
                         }
                         free(data);
                     }

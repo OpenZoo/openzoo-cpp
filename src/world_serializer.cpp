@@ -370,12 +370,16 @@ bool SerializerFormatZZT::deserialize_world(World &world, IOStream &stream, bool
             data = (uint8_t*) malloc(len);
             stream.read(data, len);
             if (!stream.errored()) {
-                world.set_board(bid, data, len, format);
+                world.set_board(bid, data, len, false, format);
             }
             free(data);
         } else {
             stream.skip(len);
-            world.set_board(bid, data, len, format);
+#ifdef ROM_POINTERS
+            world.set_board(bid, data, len, true, format);
+#else
+            world.set_board(bid, data, len, false, format);
+#endif
         }
 
         if (stream.errored()) break;
