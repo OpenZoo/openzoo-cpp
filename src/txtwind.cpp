@@ -158,7 +158,7 @@ void TextWindow::DrawLine(int16_t lpos, bool withoutFormatting, bool viewingFile
 				str++;
 				text_color = color | 0x0F;
 				// (window_width - 8 - strlen(str)) / 2
-				text_x = (text_width - 1 - strlen(str)) >> 1;
+				text_x = (text_width - 2 - strlen(str)) >> 1;
 				break;
 		}
     }
@@ -293,11 +293,14 @@ void TextWindow::Select(bool hyperlinkAsSelect, bool viewingFile) {
                 );
             }
         }
-    } while (driver->keyPressed != KeyEscape && driver->keyPressed != KeyEnter && !driver->shiftPressed);
+        
+        if (driver->keyPressed == KeyEscape || driver->joy_button_pressed(JoyButtonB, false)) {
+            rejected = true;
+        }
+    } while (!rejected && driver->keyPressed != KeyEnter && !driver->shiftPressed);
 
     if (driver->keyPressed == KeyEscape) {
         driver->keyPressed = 0;
-        rejected = true;
     }
 }
 

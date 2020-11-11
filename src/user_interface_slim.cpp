@@ -119,76 +119,105 @@ void UserInterfaceSlim::SidebarGameDraw(Game &game, uint32_t flags) {
 	int x = 1;
     bool redraw = flags == SIDEBAR_REDRAW;
 
-	if (game.gameStateElement == EMonitor) {
-		if (redraw) {
-			for (i = 0; i < 60; i++) {
-				driver->draw_char(i, 25, 0x0F, ' ');
-			}
-		}
-		return;
-	}
-
 	// left-aligned
 
-    if (flags & SIDEBAR_FLAG_UPDATE) {
-        {
-            driver->draw_char(x, 25, 0x1C, '\x03');
-            driver->draw_char(x + 1, 25, 0x1C, ' ');
-            write_number(driver, x + 2, 25, 0x1F, game.world.info.health, 6);
-        }
-        x += 8;
+	if (game.gameStateElement == EMonitor) {
+        x = 0;
 
-        {
-            driver->draw_char(x, 25, 0x1B, '\x84');
-            driver->draw_char(x + 1, 25, 0x1B, ' ');
-            write_number(driver, x + 2, 25, 0x1F, game.world.info.ammo, 6);
-        }
+        if (redraw) driver->draw_string(x, 25, 0x1F, " World: ");
         x += 8;
-
         {
-            driver->draw_char(x, 25, 0x1E, '\x9D');
-            driver->draw_char(x + 1, 25, 0x1E, ' ');
-            write_number_torch_bg(game.world.info.torch_ticks, driver, x + 2, 25, 0x1F, game.world.info.torches, 6);
-        }
-        x += 8;
-
-        {
-            driver->draw_char(x, 25, 0x19, '\x04');
-            driver->draw_char(x + 1, 25, 0x19, ' ');
-            write_number(driver, x + 2, 25, 0x1F, game.world.info.gems, 6);
-        }
-        x += 8;
-
-        {
-            driver->draw_char(x, 25, 0x17, '\x9E');
-            driver->draw_char(x + 1, 25, 0x17, ' ');
-            write_number(driver, x + 2, 25, 0x1F, game.world.info.score, 6);
-        }
-        x += 8;
-
-        {
-            for (i = 0; i < 7; i++) {
-                if (game.world.info.keys[i])
-                    driver->draw_char(x + i, 25, 0x19 + i, '\x0C');
-                else
-                    driver->draw_char(x + i, 25, 0x1F, ' ');
+            // truncate
+            sstring<8> name;
+            StrCopy(name, StrLength(game.world.info.name) != 0 ? game.world.info.name : "Untitled");
+            driver->draw_string(x, 25, 0x1F, name);
+            for (int i = strlen(name); i < 9; i++) {
+                driver->draw_char(x + i, 25, 0x1F, ' ');
             }
-            driver->draw_char(x + 7, 25, 0x1F, ' ');
+            x += 9;
         }
+        if (redraw) driver->draw_string(x, 25, 0x1F, "\xB3 Speed:");
         x += 8;
+        const char *speed_str = " F...:...S ";
+        for (int i = 0; i < 11; i++) {
+            char ch = speed_str[i];
+            if (game.tickSpeed == i) {
+                ch = '[';
+            } else if (game.tickSpeed == (i - 2)) {
+                ch = ']';
+            }
+            driver->draw_char(x++, 25, 0x1F, ch);
+        }
+        if (redraw) {
+            for (; x < (60 - 13); x++) {
+                driver->draw_char(x, 25, 0x1F, ' ');
+            }
+            driver->draw_string(x, 25, 0x1F, "[START]");
+            x += 7;
+            driver->draw_string(x, 25, 0x1F, " Menu ");
+            x += 6;
+        }
+    } else {
+        if (flags & SIDEBAR_FLAG_UPDATE) {
+            {
+                driver->draw_char(x, 25, 0x1C, '\x03');
+                driver->draw_char(x + 1, 25, 0x1C, ' ');
+                write_number(driver, x + 2, 25, 0x1F, game.world.info.health, 6);
+            }
+            x += 8;
 
-        {
-            if (game.board.info.time_limit_seconds > 0) {
-                driver->draw_char(x, 25, 0x1E, 'T');
+            {
+                driver->draw_char(x, 25, 0x1B, '\x84');
+                driver->draw_char(x + 1, 25, 0x1B, ' ');
+                write_number(driver, x + 2, 25, 0x1F, game.world.info.ammo, 6);
+            }
+            x += 8;
+
+            {
+                driver->draw_char(x, 25, 0x1E, '\x9D');
                 driver->draw_char(x + 1, 25, 0x1E, ' ');
-                write_number(driver, x + 2, 25, 0x1F, game.board.info.time_limit_seconds - game.world.info.board_time_sec, 6);
-            } else {
-                for (i = 0; i < 8; i++) {
-                    driver->draw_char(x + i, 25, 0x1E, ' ');
+                write_number_torch_bg(game.world.info.torch_ticks, driver, x + 2, 25, 0x1F, game.world.info.torches, 6);
+            }
+            x += 8;
+
+            {
+                driver->draw_char(x, 25, 0x19, '\x04');
+                driver->draw_char(x + 1, 25, 0x19, ' ');
+                write_number(driver, x + 2, 25, 0x1F, game.world.info.gems, 6);
+            }
+            x += 8;
+
+            {
+                driver->draw_char(x, 25, 0x17, '\x9E');
+                driver->draw_char(x + 1, 25, 0x17, ' ');
+                write_number(driver, x + 2, 25, 0x1F, game.world.info.score, 6);
+            }
+            x += 8;
+
+            {
+                for (i = 0; i < 7; i++) {
+                    if (game.world.info.keys[i])
+                        driver->draw_char(x + i, 25, 0x19 + i, '\x0C');
+                    else
+                        driver->draw_char(x + i, 25, 0x1F, ' ');
+                }
+                driver->draw_char(x + 7, 25, 0x1F, ' ');
+            }
+            x += 8;
+
+            {
+                if (game.board.info.time_limit_seconds > 0) {
+                    driver->draw_char(x, 25, 0x1E, 'T');
+                    driver->draw_char(x + 1, 25, 0x1E, ' ');
+                    write_number(driver, x + 2, 25, 0x1F, game.board.info.time_limit_seconds - game.world.info.board_time_sec, 6);
+                } else {
+                    for (i = 0; i < 8; i++) {
+                        driver->draw_char(x + i, 25, 0x1E, ' ');
+                    }
                 }
             }
+            x += 8;
         }
-        x += 8;
 
         if (redraw) {
             driver->draw_char(0, 25, 0x1F, ' ');

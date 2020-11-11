@@ -30,7 +30,7 @@ static const SoundDrum *drum = nullptr;
 static int16_t drum_pos = 0;
 static int16_t duration_counter = 0;
 
-GBA_CODE_IWRAM static inline void gba_play_sound(uint16_t freq) {
+static inline void gba_play_sound(uint16_t freq) {
 	if (freq < 64) {
 		REG_SOUND2CNT_L = SSQR_DUTY1_2 | SSQR_IVOL(0);
 		REG_SOUND2CNT_H = SFREQ_RESET;
@@ -272,21 +272,26 @@ GBA_CODE_IWRAM void ZZT::irq_timer_pit(void) {
 
 	hsecs += 11;
 
-	if ((--duration_counter) <= 0) {
+	if (!driver._queue.enabled) {
+		driver._queue.is_playing = false;
 		gba_play_sound(0);
-		uint16_t note, duration;
-		if (!driver._queue.pop(note, duration)) {
-			driver._queue.is_playing = false;
-		} else {
-			if (note >= NOTE_MIN && note < NOTE_MAX) {
-				gba_play_sound(sound_notes[note - NOTE_MIN]);
-			} else if (note >= DRUM_MIN && note < DRUM_MAX) {
-				drum = &sound_drums[note - DRUM_MIN];
-				drum_pos = 0;
-				irq_timer_drums();
-			}
+	} else {
+		if ((--duration_counter) <= 0) {
+			gba_play_sound(0);
+			uint16_t note, duration;
+			if (!driver._queue.pop(note, duration)) {
+				driver._queue.is_playing = false;
+			} else {
+				if (note >= NOTE_MIN && note < NOTE_MAX) {
+					gba_play_sound(sound_notes[note - NOTE_MIN]);
+				} else if (note >= DRUM_MIN && note < DRUM_MAX) {
+					drum = &sound_drums[note - DRUM_MIN];
+					drum_pos = 0;
+					irq_timer_drums();
+				}
 
-			duration_counter = duration;
+				duration_counter = duration;
+			}
 		}
 	}
 }

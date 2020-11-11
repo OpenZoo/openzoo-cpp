@@ -338,7 +338,6 @@ void Game::TransitionDrawToFill(uint8_t chr, uint8_t color) {
     }
 }
 
-GBA_CODE_IWRAM
 void Game::BoardDrawTile(int16_t x, int16_t y) {
     Tile tile = board.tiles.get(x, y);
     if (!board.info.is_dark
@@ -794,6 +793,14 @@ void Game::GameDrawSidebar(void) {
     interface->SidebarGameDraw(*this, SIDEBAR_REDRAW);
 }
 
+static const char * menu_str_restore(Game *game) {
+    return game->filesystem->is_read_only() ? nullptr : "Restore game";
+}
+
+static const char * menu_str_save(Game *game) {
+    return game->filesystem->is_read_only() ? nullptr : "Save game";
+}
+
 static const char * menu_str_sound(Game *game) {
     return game->driver->sound_is_enabled() ? "Be quiet" : "Be noisy";
 }
@@ -1073,10 +1080,10 @@ void Game::GamePlayLoop(bool boardChanged) {
     if (justStarted) {
         GameAboutScreen();
         if (StrLength(startupWorldFileName) != 0) {
-            interface->SidebarGameDraw(*this, SIDEBAR_FLAG_SET_WORLD_NAME);
             if (!WorldLoad(startupWorldFileName, ".ZZT", true)) {
                 WorldCreate();
             }
+            interface->SidebarGameDraw(*this, SIDEBAR_FLAG_SET_WORLD_NAME);
         }
         returnBoardId = world.info.current_board;
         BoardChange(0);
@@ -1217,7 +1224,7 @@ void Game::GamePlayLoop(bool boardChanged) {
 const MenuEntry ZZT::TitleMenu[] = {
     {.id = 'W', .keys = {'W'}, .name = "Load world"},
     {.id = 'P', .keys = {'P'}, .name = "Play"},
-    {.id = 'R', .keys = {'R'}, .name = "Restore game"},
+    {.id = 'R', .keys = {'R'}, .name_func = menu_str_restore},
     {.id = 'A', .keys = {'A'}, .name = "About ZZT"},
     {.id = 'E', .keys = {'E'}, .name_func = menu_str_editor},
     {.id = 'S', .keys = {'S'}, .name = "Game speed"},
@@ -1229,11 +1236,11 @@ const MenuEntry ZZT::TitleMenu[] = {
 
 const MenuEntry ZZT::PlayMenu[] = {
     {.id = 'T', .keys = {'T'}, .joy_button = JoyButtonB}, // Torch
-    {.id = 'S', .keys = {'S'}, .name = "Save game"},
+    {.id = 'S', .keys = {'S'}, .name_func = menu_str_save},
     {.id = 'P', .keys = {'P'}}, // Pause - hidden in menu mode
-    {.id = 'B', .keys = {'B'}, .name_func = menu_str_sound},
     {.id = 'H', .keys = {'H'}, .name = "Help"},
     {.id = '?', .keys = {'?'}, .name = "Console command"},
+    {.id = 'B', .keys = {'B'}, .name_func = menu_str_sound},
     {.id = 'Q', .keys = {'Q', KeyEscape}, .name = "Quit game"},
     {.id = -1}
 };
