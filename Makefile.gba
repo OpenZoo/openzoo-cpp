@@ -24,6 +24,7 @@ TARGET		:= $(notdir $(CURDIR))
 BUILD		:= build_gba
 SOURCES		:= \
 	src/cxx_shim.cpp \
+	src/assets.cpp \
 	src/driver.cpp \
 	src/editor.cpp \
 	src/elements.cpp \
@@ -85,16 +86,17 @@ ifneq ($(BUILD),$(notdir $(CURDIR)))
 
 export OUTPUT	:=	$(CURDIR)/$(TARGET)
 
-export VPATH	:=	$(CURDIR)/src $(CURDIR)/src/gba \
+export VPATH	:=	$(CURDIR)/src $(CURDIR)/src/gba $(CURDIR)/fonts \
+			$(CURDIR)/tools \
 			$(foreach dir,$(DATA),$(CURDIR)/$(dir)) \
 			$(foreach dir,$(GRAPHICS),$(CURDIR)/$(dir))
 
 export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 
-CFILES		:=	4x6_bin.c
+CFILES		:=
 CPPFILES	:=	$(foreach src,$(SOURCES),$(notdir $(src)))
 SFILES		:=
-BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
+BINFILES	:=	4x6.bin
 
 export LD	:=	$(CC)
 
@@ -151,6 +153,9 @@ $(OFILES_SOURCES) : $(HFILES)
 	@echo $(notdir $<)
 	@$(bin2o)
 
+
+4x6.bin: 4x6.png font2raw.py
+	@python3 ../tools/font2raw.py ../fonts/4x6.png 4 6 raw $@
 
 -include $(DEPSDIR)/*.d
 #---------------------------------------------------------------------------------------

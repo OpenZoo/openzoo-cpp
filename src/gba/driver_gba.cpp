@@ -4,6 +4,7 @@ extern "C" {
 	#include <tonc.h>
 	#include "4x6_bin.h"
 }
+#include "assets.h"
 #include "driver_gba.h"
 #include "filesystem_romfs.h"
 #include "user_interface_slim.h"
@@ -98,23 +99,6 @@ static void vram_update_bgcnt(void) {
 	REG_BG1CNT = BG_PRIO(2) | BG_CBB(0) | BG_SBB((MAP_ADDR_OFFSET >> 11) + 1) | BG_4BPP | BG_SIZE0;
 	REG_BG2CNT = BG_PRIO(1) | BG_CBB(fg_cbb) | BG_SBB((MAP_ADDR_OFFSET >> 11) + 2) | BG_4BPP | BG_SIZE0;
 	REG_BG3CNT = BG_PRIO(0) | BG_CBB(fg_cbb) | BG_SBB((MAP_ADDR_OFFSET >> 11) + 3) | BG_4BPP | BG_SIZE0;
-}
-
-GBA_CODE_IWRAM
-static void vram_write_tile_1bpp(const uint8_t *data, uint32_t *vram_pos) {
-	for (int iy = 0; iy < 8; iy++, data++) {
-		uint32_t out = 0;
-		uint8_t in = *data;
-		out |= ((in >> 7) & 1) << 28;
-		out |= ((in >> 6) & 1) << 24;
-		out |= ((in >> 5) & 1) << 20;
-		out |= ((in >> 4) & 1) << 16;
-		out |= ((in >> 3) & 1) << 12;
-		out |= ((in >> 2) & 1) << 8;
-		out |= ((in >> 1) & 1) << 4;
-		out |= ((in) & 1);
-		*(vram_pos++) = out;
-	}
 }
 
 #define GET_VRAM_PTRS \
@@ -305,8 +289,14 @@ void zoo_video_gba_install(const uint8_t *charset_bin) {
 	irq_add(II_VBLANK, irq_vblank);
 	
 	// load 4x6 charset
-	for (int i = 0; i < 256; i++) {
-		vram_write_tile_1bpp(charset_bin + i*8, ((uint32_t*) (MEM_VRAM + i*32)));
+	memset32(((uint32_t*) (MEM_VRAM)), 0x0000000, 256 * 32);
+	Charset charset = Charset(256, 4, 6, 1, _4x6_bin);
+	Charset::Iterator charsetIterator = charset.iterate();
+	while (charsetIterator.next()) {
+		if (charsetIterator.value >= 128) {
+			uint16_t &line = *(((uint16_t*) MEM_VRAM) + 1 + ((uint32_t) charsetIterator.y << 1) + ((uint32_t) charsetIterator.glyph << 4));
+			line |= (1 << (charsetIterator.x << 2));
+		}
 	}
 
 	// 32KB is used to faciliate blinking:

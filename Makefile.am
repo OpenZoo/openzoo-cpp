@@ -2,6 +2,7 @@ AUTOMAKE_OPTIONS = foreign subdir-objects
 
 bin_PROGRAMS = openzoo
 openzoo_SOURCES = \
+	src/assets.cpp \
 	src/driver.cpp \
 	src/editor.cpp \
 	src/elements.cpp \
