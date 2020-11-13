@@ -98,6 +98,7 @@ void HighScoreList::Display(const char *worldName, int16_t line_pos) {
 
 void HighScoreList::Add(const char *worldName, int16_t score) {
     if (score <= 0) return;
+    if (game->filesystem->is_read_only()) return;
 
     sstring<50> name;
     int16_t list_pos = 0;
