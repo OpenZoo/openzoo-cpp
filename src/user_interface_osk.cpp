@@ -6,6 +6,78 @@ using namespace ZZT::Utils;
 
 #define OSK_SPECIAL_SHIFT 0xE000
 
+#define ENTRIES_DIGIT_COUNT 12
+static const OSKEntry entries_digit[ENTRIES_DIGIT_COUNT] = {
+	{0,  0, '1', '1'},
+	{2,  0, '2', '2'},
+	{4,  0, '3', '3'},
+	{0,  2, '4', '4'},
+	{2,  2, '5', '5'},
+	{4,  2, '6', '6'},
+	{0,  4, '7', '7'},
+	{2,  4, '8', '8'},
+	{4,  4, '9', '9'},
+	{0,  6, 8, 27},
+	{2,  6, '0', '0'},
+	{4,  6, 13, 26}
+};
+static const OSKLayout layout_digit = {
+    .width = 5,
+    .height = 7,
+    .entries = entries_digit,
+    .entry_count = ENTRIES_DIGIT_COUNT,
+};
+
+#define ENTRIES_ALPHANUM_COUNT 40
+static const OSKEntry entries_alphanum[ENTRIES_ALPHANUM_COUNT] = {
+	{0,  0, '1', '1'},
+	{2,  0, '2', '2'},
+	{4,  0, '3', '3'},
+	{6,  0, '4', '4'},
+	{8,  0, '5', '5'},
+	{10, 0, '6', '6'},
+	{12, 0, '7', '7'},
+	{14, 0, '8', '8'},
+	{16, 0, '9', '9'},
+	{18, 0, '0', '0'},
+	{20, 0, '-', '-'},
+	{1,  1, 'q', 'Q'},
+	{3,  1, 'w', 'W'},
+	{5,  1, 'e', 'E'},
+	{7,  1, 'r', 'R'},
+	{9,  1, 't', 'T'},
+	{11, 1, 'y', 'Y'},
+	{13, 1, 'u', 'U'},
+	{15, 1, 'i', 'I'},
+	{17, 1, 'o', 'O'},
+	{19, 1, 'p', 'P'},
+	{21, 1, 8,   27},
+	{0, 2, OSK_SPECIAL_SHIFT, 24},
+	{2,  2, 'a', 'A'},
+	{4,  2, 's', 'S'},
+	{6,  2, 'd', 'D'},
+	{8,  2, 'f', 'F'},
+	{10, 2, 'g', 'G'},
+	{12, 2, 'h', 'H'},
+	{14, 2, 'j', 'J'},
+	{16, 2, 'k', 'K'},
+	{18, 2, 'l', 'L'},
+	{20, 2, 13,  26},
+	{3,  3, 'z', 'Z'},
+	{5,  3, 'x', 'X'},
+	{7,  3, 'c', 'C'},
+	{9,  3, 'v', 'V'},
+	{11, 3, 'b', 'B'},
+	{13, 3, 'n', 'N'},
+	{15, 3, 'm', 'M'}
+};
+static const OSKLayout layout_alphanum = {
+    .width = 22,
+    .height = 4,
+    .entries = entries_alphanum,
+    .entry_count = ENTRIES_ALPHANUM_COUNT,
+};
+
 #define ENTRIES_TEXT_COUNT 48
 static const OSKEntry entries_text[ENTRIES_TEXT_COUNT] = {
 	{0,  0, '1', '!'},
@@ -108,7 +180,9 @@ void OnScreenKeyboard::open(int16_t x, int16_t y, InputPromptMode mode) {
     int16_t dw, dh;
     driver->get_video_size(dw, dh);
 
-    this->layout = &layout_text;
+	if (mode == InputPMNumbers) this->layout = &layout_digit;
+    else if (mode == InputPMAlphanumeric) this->layout = &layout_alphanum;
+	else this->layout = &layout_text;
 
     this->x = x < 0 ? (dw - (layout->width + 6)) >> 1 : x;
     this->y = y < 0 ? (-y) - (layout->height + 4) : y;
@@ -158,10 +232,13 @@ void OnScreenKeyboard::update() {
 				continue;
 			}
         	const OSKEntry *i_entry = &(layout->entries[i]);
-			if (Signum(i_entry->y - entry->y) == Signum(delta_y)
-				&& ((Signum(i_entry->x - entry->x) == Signum(delta_y) || entry->x == i_entry->x)))
+			if (Signum(i_entry->y - entry->y) == Signum(delta_y))
 			{
 				dist = (Abs(i_entry->y - entry->y) << 2) + Abs(i_entry->x - entry->x);
+				if (!((Signum(i_entry->x - entry->x) == Signum(delta_y) || entry->x == i_entry->x))) {
+					// put all wrong-direction options after right-direction options
+					dist += 10000;
+				}
 				if (dist < min_dist) {
 					min_dist = dist;
 					min_pos = i;
