@@ -301,7 +301,7 @@ void UserInterface::SidebarShowMessage(uint8_t color, const char *message, bool 
 }
 
 int UserInterface::HandleMenu(Game &game, const MenuEntry *entries, bool simulate) {
-    if (driver->joy_button_pressed(JoyButtonStart, simulate)) {
+    if (driver->joy_button_pressed(JoyButtonStart, simulate) || driver->keyPressed == KeyF10) {
         if (simulate) {
             return 1;
         }

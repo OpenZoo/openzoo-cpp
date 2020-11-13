@@ -19,7 +19,7 @@ static Game game = Game();
 static GBADriver driver;
 
 static uint16_t hsecs;
-static uint16_t acc_key_input;
+static uint16_t prev_key_input;
 extern u32 __rom_end__;
 
 // #define DEBUG_CONSOLE
@@ -202,12 +202,12 @@ void platform_debug_puts(const char *text, bool status) {
 extern uint8_t *fake_heap_end;
 extern uint8_t *fake_heap_start;
 
-int platform_debug_free_memory(void) {
+static int platform_debug_free_memory(void) {
 	struct mallinfo info = mallinfo();
 	return info.fordblks + (fake_heap_end - (uint8_t*)sbrk(0));
 }
 
-GBA_CODE_IWRAM static void irq_vblank(void) {
+GBA_CODE_IWRAM void ZZT::irq_vblank(void) {
 	disp_y_offset = /* (inst_state->game_state == GS_PLAY) */ 1
 		? ((FONT_HEIGHT * MAP_Y_OFFSET) - ((SCREEN_HEIGHT - (FONT_HEIGHT * 26)) / 2))
 		: ((FONT_HEIGHT * MAP_Y_OFFSET) - ((SCREEN_HEIGHT - (FONT_HEIGHT * 25)) / 2));
@@ -242,7 +242,7 @@ void zoo_video_gba_hide(void) {
 	REG_DISPCNT = DCNT_BLANK;
 }
 
-GBA_CODE_IWRAM static void irq_vcount(void) {
+GBA_CODE_IWRAM void ZZT::irq_vcount(void) {
 	uint16_t next_vcount;
 	disp_y_offset += (8 - FONT_HEIGHT);
 	next_vcount = REG_VCOUNT + FONT_HEIGHT;
@@ -251,7 +251,8 @@ GBA_CODE_IWRAM static void irq_vcount(void) {
 	REG_BG1VOFS = disp_y_offset;
 	REG_BG2VOFS = disp_y_offset;
 	REG_BG3VOFS = disp_y_offset;
-	acc_key_input |= ~REG_KEYINPUT;
+
+	driver.update_joy();
 }
 
 void zoo_video_gba_show(void) {
@@ -345,7 +346,7 @@ void GBADriver::install(void) {
 	zoo_video_gba_hide();
 	irq_init(isr_master_nest);
 
-	acc_key_input = 0;
+	prev_key_input = 0;
 
 	// init game speed timer
 	hsecs = 0;
@@ -380,8 +381,9 @@ void GBADriver::uninstall(void) {
 }
 
 void GBADriver::update_joy(void) {
-	uint16_t ki = ~acc_key_input;
-	acc_key_input = ~REG_KEYINPUT;
+	uint16_t ki = REG_KEYINPUT;
+	if (ki == prev_key_input) return;
+	prev_key_input = ki;
 
 	set_joy_button_state(JoyButtonUp, (ki & KEY_UP) == 0, true);
 	set_joy_button_state(JoyButtonDown, (ki & KEY_DOWN) == 0, true);
@@ -393,14 +395,6 @@ void GBADriver::update_joy(void) {
 	set_joy_button_state(JoyButtonR, (ki & KEY_R) == 0, true);
 	set_joy_button_state(JoyButtonSelect, (ki & KEY_SELECT) == 0, true);
 	set_joy_button_state(JoyButtonStart, (ki & KEY_START) == 0, true);
-
-	if ((ki & KEY_A) == 0) {
-		if (!shiftAccepted) {
-			shiftPressed = true;
-		}
-	} else {
-		shiftAccepted = false;
-	}
 }
 
 void GBADriver::set_text_input(bool enabled, InputPromptMode mode) {
@@ -416,9 +410,7 @@ void GBADriver::update_input(void) {
     deltaY = 0;
 	keyPressed = 0;
     shiftPressed = false;
-    joy_buttons_pressed = 0;
-	
-	update_joy();
+
     update_joy_buttons();
 	if (keyboard.opened()) {
 		keyboard.update();
@@ -431,7 +423,6 @@ uint16_t GBADriver::get_hsecs(void) {
 }
 
 void GBADriver::delay(int ms) {
-	// TODO
 	if (ms > 1) {
 		do {
 			VBlankIntrWait();
@@ -441,9 +432,7 @@ void GBADriver::delay(int ms) {
 }
 
 void GBADriver::idle(IdleMode mode) {
-	if (mode == IMUntilFrame) {
-		VBlankIntrWait();
-	}
+	VBlankIntrWait();
 }
 
 void GBADriver::sound_stop(void) {

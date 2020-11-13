@@ -17,7 +17,9 @@ Driver::Driver(void) {
     keyPressed = 0;
 
     joy_buttons_held = 0;
+    joy_buttons_held_new = 0;
     joy_buttons_pressed = 0;
+    joy_buttons_pressed_new = 0;
     joy_repeat_hsecs_delay = 25;
     joy_repeat_hsecs_delay_next = 10;
 
@@ -93,35 +95,58 @@ bool Driver::set_axis(int32_t axis_x, int32_t axis_y, int32_t axis_min, int32_t 
 void Driver::set_joy_button_state(JoyButton button, bool value, bool is_constant) {
     if (value) {
         if (is_constant) {
-            bool old_value = (joy_buttons_held & (1 << button)) != 0;
+            bool old_value = (joy_buttons_held_new & (1 << button)) != 0;
             if (old_value) return;
         }
-        joy_buttons_hsecs[button] = get_hsecs() + joy_repeat_hsecs_delay;
-        joy_buttons_pressed |= (1 << button);
-        joy_buttons_held |= (1 << button);
+        joy_buttons_pressed_new |= (1 << button);
+        joy_buttons_held_new |= (1 << button);
     } else {
-        joy_buttons_held &= ~(1 << button);
+        joy_buttons_held_new &= ~(1 << button);
     }
 }
 
 void Driver::update_joy_buttons() {
     uint16_t hsecs = get_hsecs();
+
+    // joy_buttons_pressed_new -> joy_buttons_pressed
+    joy_buttons_held = joy_buttons_held_new;
+    joy_buttons_pressed = joy_buttons_pressed_new;
+    joy_buttons_pressed_new = 0;
+    auto pn = joy_buttons_pressed;
+    for (int i = 0; i < JoyButtonMax && pn != 0; i++, pn>>=1) {
+        if (pn&1) {
+            joy_buttons_hsecs[i] = hsecs + joy_repeat_hsecs_delay;
+        }
+    }
+
     // only autorepeat the D-pad
     for (int button = 0; button <= JoyButtonRight; button++) {
         if ((joy_buttons_held & (1 << button)) != 0) {
-            if (hsecs > joy_buttons_hsecs[button]) {
+            // hsecs > joy_button_hsecs when hsecs_diff near max limit
+            uint16_t hsecs_diff = joy_buttons_hsecs[button] - hsecs;
+            if (hsecs_diff >= 32768) {
                 joy_buttons_hsecs[button] = hsecs + joy_repeat_hsecs_delay_next;
                 joy_buttons_pressed |= (1 << button);
             }
         }
     }
 
+    // deltaX/Y
     set_dpad(
         joy_button_pressed(JoyButtonUp, false),
         joy_button_pressed(JoyButtonDown, false),
         joy_button_pressed(JoyButtonLeft, false),
         joy_button_pressed(JoyButtonRight, false)
     );
+
+    // shiftPressed
+	if (joy_button_held(JoyButtonA, true)) {
+		if (!shiftAccepted) {
+			shiftPressed = true;
+		}
+	} else {
+		shiftAccepted = false;
+	}
 }
 
 bool Driver::joy_button_pressed(JoyButton button, bool simulate) {
@@ -133,7 +158,7 @@ bool Driver::joy_button_pressed(JoyButton button, bool simulate) {
 }
 
 bool Driver::joy_button_held(JoyButton button, bool simulate) {
-    bool result = (joy_buttons_held & button) != 0;
+    bool result = (joy_buttons_held & (1 << button)) != 0;
     return result || joy_button_pressed(button, simulate);
 }
 
@@ -235,6 +260,6 @@ uint8_t col, chr;
     }
 }
 
-bool Driver::set_video_size(int16_t width, int16_t height) {
+bool Driver::set_video_size(int16_t width, int16_t height, bool simulate) {
     return false;
 }

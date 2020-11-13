@@ -113,7 +113,7 @@ void MSDOSDriver::update_input(void) {
 	keyNumLockHeld = (kmod & 0x20) != 0;
 
     set_key_pressed(k);
-    shiftPressed = keyShiftHeld;
+    shiftPressed |= keyShiftHeld;
 }
 
 uint16_t MSDOSDriver::get_hsecs(void) {

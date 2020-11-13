@@ -140,7 +140,7 @@ void World::set_board(uint8_t id, uint8_t *data, uint16_t len, bool costlessly_l
         this->board_data[id] = data;
         this->board_len[id] = len;
         this->board_format[id] = format;
-    } else if (board_format_storage != WorldFormatAny && format == board_format_storage) {
+    } else if (board_format_storage == WorldFormatAny || format == board_format_storage) {
         this->board_data[id] = (uint8_t *) malloc(len);
         memcpy(this->board_data[id], data, len);
         this->board_len[id] = len;

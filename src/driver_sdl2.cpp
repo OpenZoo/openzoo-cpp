@@ -60,30 +60,34 @@ CharsetTexture::~CharsetTexture() {
 
 CharsetTexture* SDL2Driver::loadCharsetFromBMP(const char *path) {
     SDL_Surface *surface = SDL_LoadBMP(path);
-    if (surface == NULL) {
+    if (surface == nullptr) {
         return nullptr;
     }
 
     SDL_Surface *surfaceOld = surface;
     surface = SDL_ConvertSurfaceFormat(surfaceOld, SDL_PIXELFORMAT_ARGB8888, 0);
     SDL_FreeSurface(surfaceOld);
-    if (surface == NULL) {
+    if (surface == nullptr) {
         return nullptr;
     }
 
     int32_t tex_width = surface->w;
     int32_t tex_height = surface->h;
     if (tex_width * tex_height < 256) {
+        SDL_FreeSurface(surface);
         return nullptr;
     }
 
     SDL_SetColorKey(surface, 1, ((uint32_t*) surface->pixels)[0] & 0x00FFFFFF);
 
     CharsetTexture *tex = new CharsetTexture();
-    if (tex == nullptr) return nullptr;
+    if (tex == nullptr) {
+        return nullptr;
+    }
 
     tex->texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_FreeSurface(surface);
+
     if (tex->texture == nullptr) {
         delete tex;
         return nullptr;
@@ -106,6 +110,7 @@ CharsetTexture* SDL2Driver::loadCharsetFromBMP(const char *path) {
         tex->charsetPitch <<= 1;
     }
 
+    // Failure to find texture size
     delete tex;
     return nullptr;
 }
@@ -301,16 +306,32 @@ void SDL2Driver::install(void) {
 
         // video
         window = SDL_CreateWindow("test", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 350, 0);
+        if (window == nullptr) {
+            fprintf(stderr, "[driver_sdl2] could not create window (%s)\n", SDL_GetError());
+            exit(1);
+        }
+
         renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+        if (window == nullptr) {
+            fprintf(stderr, "[driver_sdl2] could not create renderer (%s)\n", SDL_GetError());
+            exit(1);
+        }
+
         SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
 
         charsetTexture = loadCharsetFromBMP("ASCII.BMP");
         if (charsetTexture == nullptr) {
+            fprintf(stderr, "[driver_sdl2] could not load ASCII.BMP\n");
             exit(1);
         }
 
         playfieldTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
             width_chars * charsetTexture->charWidth, height_chars * charsetTexture->charHeight);
+        if (playfieldTexture == nullptr) {
+            fprintf(stderr, "[driver_sdl2] could not create playfield texure\n", SDL_GetError());
+            exit(1);
+        }
+
         SDL_SetWindowSize(window, width_chars * charsetTexture->charWidth, height_chars * charsetTexture->charHeight);
 
         playfieldMutex = SDL_CreateMutex();
@@ -334,7 +355,11 @@ void SDL2Driver::install(void) {
             .userdata = this
         };
         audioDevice = SDL_OpenAudioDevice(nullptr, 0, &requestedAudioSpec, &audioSpec, 0);
-        SDL_PauseAudioDevice(audioDevice, 0);
+        if (audioDevice != 0) {
+            SDL_PauseAudioDevice(audioDevice, 0);
+        } else {
+            fprintf(stderr, "[driver_sdl2] could not initialize audio device\n");
+        }
 
         installed = true;
     }
@@ -433,11 +458,18 @@ void SDL2Driver::get_video_size(int16_t &width, int16_t &height) {
 	height = height_chars;
 }
 
-bool SDL2Driver::set_video_size(int16_t width, int16_t height) {
+bool SDL2Driver::set_video_size(int16_t width, int16_t height, bool simulate) {
     if (width <= 0 || height <= 0) return false;
+
     if (!installed) {
-        width_chars = width;
-        height_chars = height;
+        if (!simulate) {
+            width_chars = width;
+            height_chars = height;
+        }
+        return true;
+    }
+
+    if (simulate) {
         return true;
     }
 
@@ -492,7 +524,6 @@ void SDL2Driver::update_input(void) {
     deltaX = 0;
     deltaY = 0;
     shiftPressed = false;
-    joy_buttons_pressed = 0;
 
     SDL_Event event;
     uint32_t scode, kcode;
@@ -542,23 +573,7 @@ void SDL2Driver::update_input(void) {
 
     set_key_pressed(k);
     update_joy_buttons();
-    shiftPressed = keyShiftHeld;
-
-    if (controller != nullptr) {
-        // emulate delta/shift behaviour on game controller
-        // TODO
-        /* int16_t axis_x = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX);
-        int16_t axis_y = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTY);
-        set_axis(axis_x, axis_y, -16384, 16384); */
-
-        if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_B)) {
-            if (!shiftAccepted) {
-                shiftPressed = true;
-            }
-        } else {
-            shiftAccepted = false;
-        }
-    }
+    shiftPressed |= keyShiftHeld;
 }
 
 void SDL2Driver::sound_stop(void) {
@@ -582,13 +597,11 @@ int main(int argc, char** argv) {
 
 	game.driver = &driver;
     game.filesystem = new PosixFilesystemDriver();
-//    game.interface = new UserInterface(&driver);
-    game.interface = new UserInterfaceSlim(&driver);
+    game.interface = new UserInterface(&driver);
 
 	driver.install();
 
 	driver.clrscr();
-    driver.set_video_size(60, 26);
 
     // Rendering code must run on the main thread.
     SDL_CreateThread((SDL_ThreadFunction) gameThread, "Game thread", &game);

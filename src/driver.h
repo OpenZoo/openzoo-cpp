@@ -74,6 +74,13 @@ namespace ZZT {
     };
  
     class Driver {
+    private:
+        uint16_t joy_buttons_hsecs[JoyButtonMax];
+        uint32_t joy_buttons_pressed_new;
+        uint32_t joy_buttons_held_new;
+        uint32_t joy_buttons_pressed;
+        uint32_t joy_buttons_held;
+
     protected:
         Driver(void);
         
@@ -84,11 +91,6 @@ namespace ZZT {
         bool set_axis(int32_t axis_x, int32_t axis_y, int32_t axis_min, int32_t axis_max);
         void set_joy_button_state(JoyButton button, bool value, bool is_constant);
         void update_joy_buttons();
-
-        uint16_t joy_buttons_hsecs[JoyButtonMax];
-        uint32_t joy_buttons_pressed_oneshot;
-        uint32_t joy_buttons_pressed;
-        uint32_t joy_buttons_held;
 
         /* SOUND/TIMER */
 
@@ -168,7 +170,7 @@ namespace ZZT {
         virtual void set_border_color(uint8_t value);
         virtual void copy_chars(VideoCopy &copy, int x, int y, int width, int height, int destX, int destY);
         virtual void paste_chars(VideoCopy &copy, int x, int y, int width, int height, int destX, int destY);
-        virtual bool set_video_size(int16_t width, int16_t height);
+        virtual bool set_video_size(int16_t width, int16_t height, bool simulate);
     };
 }
 
