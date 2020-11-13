@@ -1,0 +1,58 @@
+SRCDIR = src
+BUILDDIR = build_psp
+OBJDIR = $(BUILDDIR)/obj
+TARGET = openzoo
+
+BUILD_PRX = 1
+
+LIBS = -lpsputility -lpsppower -lpspaudiolib -lpspaudio -lpspgum -lpspgu -lm
+DEFINES = -DDISABLE_EDITOR
+CFLAGS = -O2 -G0 -Wall $(DEFINES)
+CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
+
+EXTRA_TARGETS = $(BUILDDIR)/EBOOT.PBP
+PSP_EBOOT = $(BUILDDIR)/EBOOT.PBP
+PSP_EBOOT_TITLE = OpenZoo
+PSP_EBOOT_ICON = assets/icon_psp.png
+
+OBJS = \
+	$(OBJDIR)/6x10_psp.o \
+	$(OBJDIR)/cxx_shim.o \
+	$(OBJDIR)/assets.o \
+	$(OBJDIR)/driver.o \
+	$(OBJDIR)/editor.o \
+	$(OBJDIR)/elements.o \
+	$(OBJDIR)/file_selector.o \
+	$(OBJDIR)/filesystem.o \
+	$(OBJDIR)/filesystem_posix.o \
+	$(OBJDIR)/game.o \
+	$(OBJDIR)/high_scores.o \
+	$(OBJDIR)/oop.o \
+	$(OBJDIR)/sounds.o \
+	$(OBJDIR)/txtwind.o \
+	$(OBJDIR)/user_interface.o \
+	$(OBJDIR)/utils.o \
+	$(OBJDIR)/world_serializer.o \
+	$(OBJDIR)/audio_simulator.o \
+	$(OBJDIR)/psp/driver_psp.o
+
+PSPSDK=$(shell psp-config --pspsdk-path)
+include $(PSPSDK)/lib/build.mak
+
+all: $(EXTRA_TARGETS)
+
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(OBJDIR)/6x10_psp.o
+	@mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) -I$(OBJDIR) -Isrc -Isrc/psp -c -o $@ $<
+
+$(OBJDIR)/%.o: $(OBJDIR)/%.c
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(OBJDIR)/6x10_psp.c: $(OBJDIR)/6x10_psp.bin tools/bin2c.py
+	@mkdir -p $(@D)
+	python3 tools/bin2c.py $(OBJDIR)/6x10_psp.c $(OBJDIR)/6x10_psp.h $(OBJDIR)/6x10_psp.bin
+
+$(OBJDIR)/6x10_psp.bin: fonts/6x10.png tools/font2raw.py
+	@mkdir -p $(@D)
+	python3 tools/font2raw.py fonts/6x10.png 6 10 raw $@

@@ -8,6 +8,10 @@
 namespace ZZT {
     class AudioSimulator {
     private:
+        int audio_frequency;
+        int samples_per_pit;
+        int samples_per_drum;
+
         SoundQueue *queue;
         int32_t current_note;
         uint32_t current_note_pos;
@@ -22,6 +26,7 @@ namespace ZZT {
         bool allowed;
 
         AudioSimulator(SoundQueue *queue);
+        int set_frequency(int frequency);
         void clear(void);
         void simulate(uint8_t *stream, size_t len);
     };

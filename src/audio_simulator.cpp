@@ -10,13 +10,11 @@ using namespace ZZT;
 
 /*
   Known issues:
-  - currently hardcoded to 48000Hz unsigned 8-bit samples
+  - currently hardcoded to unsigned 8-bit samples
 */
 
 #define PIT_DIVISOR 1193182
 #define AUDIO_FREQUENCY 48000
-#define SAMPLES_PER_PIT 2640
-#define SAMPLES_PER_DRUM 48
 #define SAMPLES_NOTE_DELAY 16
 #define AUDIO_MIN 64
 #define AUDIO_NONE 128
@@ -52,7 +50,7 @@ void AudioSimulator::note_to(uint32_t targetNotePos, uint32_t frequency, uint8_t
     if (iMax > 0) {
 #if 1
         // floating-point implementation
-        double samplesPerChange = ((double) AUDIO_FREQUENCY) / (((double) PIT_DIVISOR) / (uint32_t) (PIT_DIVISOR / frequency));
+        double samplesPerChange = ((double) audio_frequency) / (((double) PIT_DIVISOR) / (uint32_t) (PIT_DIVISOR / frequency));
 
         uint32_t samplePos = current_note_pos;
         for (uint32_t i = 0; i < iMax; i++, samplePos++) {
@@ -65,7 +63,7 @@ void AudioSimulator::note_to(uint32_t targetNotePos, uint32_t frequency, uint8_t
 #else
         // fixed-point implementation
         uint32_t pit_ticks = PIT_DIVISOR / frequency;
-        uint32_t samplesPerChange = ((uint64_t) (AUDIO_FREQUENCY * pit_ticks) << FIXED_SHIFT) / PIT_DIVISOR;
+        uint32_t samplesPerChange = ((uint64_t) (audio_frequency * pit_ticks) << FIXED_SHIFT) / PIT_DIVISOR;
 
         uint32_t samplePos = (current_note_pos << FIXED_SHIFT) % samplesPerChange;
         for (uint32_t i = 0; i < iMax; i++, samplePos += (1 << FIXED_SHIFT)) {
@@ -96,10 +94,17 @@ AudioSimulator::AudioSimulator(SoundQueue *queue) {
     this->queue = queue;
     this->allowed = false;
     clear();
+    set_frequency(48000);
 }
 
 void AudioSimulator::clear(void) {
     this->current_note = -1;
+}
+
+int AudioSimulator::set_frequency(int frequency) {
+    audio_frequency = frequency;
+    samples_per_pit = frequency * 11 / 200;
+    samples_per_drum = frequency / 1000;
 }
 
 void AudioSimulator::simulate(uint8_t *stream, size_t len) {
@@ -118,7 +123,7 @@ void AudioSimulator::simulate(uint8_t *stream, size_t len) {
                 } else {
                     current_note = note;
                     current_note_pos = 0;
-                    current_note_max = duration * SAMPLES_PER_PIT;
+                    current_note_max = duration * samples_per_pit;
                 }
             }
 
@@ -136,9 +141,9 @@ void AudioSimulator::simulate(uint8_t *stream, size_t len) {
                 }
             } else if (current_note >= DRUM_MIN && current_note < DRUM_MAX) {
                 const SoundDrum &drum = sound_drums[current_note - DRUM_MIN];
-                uint32_t drum_pos = current_note_pos / SAMPLES_PER_DRUM;
+                uint32_t drum_pos = current_note_pos / samples_per_drum;
                 if (drum_pos < drum.len) {
-                    note_to((drum_pos + 1) * SAMPLES_PER_DRUM, drum.data[drum_pos], stream, pos, len);
+                    note_to((drum_pos + 1) * samples_per_drum, drum.data[drum_pos], stream, pos, len);
                 } else {
                     silence_to(current_note_max, stream, pos, len);
                 }
