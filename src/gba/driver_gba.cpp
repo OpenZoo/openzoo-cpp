@@ -417,6 +417,7 @@ void GBADriver::delay(int ms) {
 }
 
 void GBADriver::idle(IdleMode mode) {
+	if (mode == IMYield) return;
 	VBlankIntrWait();
 }
 

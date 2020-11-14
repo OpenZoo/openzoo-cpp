@@ -1196,6 +1196,21 @@ void Game::GamePlayLoop(bool boardChanged) {
                 }
                 currentStatTicked = 0;
 
+                // OpenZoo: On some platforms, it is necessary to occasionally yield,
+                // which will not happen with a zero tick time duration otherwise.
+                if (tickTimeDuration == 0) {
+                    if (world.info.health <= 0) {
+                        // The game over state certainly shouldn't consume 100% CPU.
+                        // Pinning to VBlank should be sufficient to give the necessary "feel"
+                        // that the DOS version would, though.
+                        driver->idle(IMUntilFrame);
+                    } else {
+                        // If an user explicitly selects "fastest speed", just yield for as little
+                        // as possible.
+                        driver->idle(IMYield);
+                    }
+                }
+
                 driver->update_input();
             } else {
                 driver->idle(IMUntilPit);

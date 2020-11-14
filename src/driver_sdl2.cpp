@@ -487,6 +487,7 @@ void SDL2Driver::wake(IdleMode mode) {
 }
 
 void SDL2Driver::idle(IdleMode mode) {
+    if (mode == IMYield) return;
     SDL_LockMutex(timer_mutexes[mode]);
     SDL_CondWait(timer_conds[mode], timer_mutexes[mode]);
     SDL_UnlockMutex(timer_mutexes[mode]);

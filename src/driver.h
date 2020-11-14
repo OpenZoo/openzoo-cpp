@@ -6,6 +6,13 @@
 
 namespace ZZT {
     typedef enum {
+        IMYield,
+        IMUntilPit,
+        IMUntilFrame,
+        IdleModeCount
+    } IdleMode;
+
+    typedef enum {
         InputPMNumbers = 0,
         InputPMAlphanumeric = 1,
         InputPMAnyText = 2,

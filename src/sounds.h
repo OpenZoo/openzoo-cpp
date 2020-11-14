@@ -9,12 +9,6 @@
 #define DRUM_MAX 250
 
 namespace ZZT {
-    typedef enum {
-        IMUntilPit,
-        IMUntilFrame,
-        IdleModeCount
-    } IdleMode;
-
     struct SoundDrum {
         uint8_t len;
         const uint16_t data[16];

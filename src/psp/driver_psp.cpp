@@ -163,6 +163,10 @@ void PSPDriver::delay(int ms) {
 }
 
 void PSPDriver::idle(IdleMode mode) {
+	if (mode == IMYield) {
+		sceKernelDelayThreadCB(0);
+		return;
+	}
 	sceDisplayWaitVblankCB();
 }
 
