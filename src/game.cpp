@@ -125,7 +125,7 @@ void World::get_board(uint8_t id, uint8_t *&data, uint16_t &len, bool &temporary
 
         convert_board(this->board_data[id], this->board_len[id],
             (WorldFormat) this->board_format[id], format,
-            temporary, out_data, out_len);
+            false, out_data, out_len);
 
         data = out_data;
         len = out_len;
