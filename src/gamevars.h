@@ -482,7 +482,7 @@ namespace ZZT {
         FilesystemDriver *filesystem;
 
         UserInterface *interface;
-        WorldSerializer *worldSerializer;
+        WorldFormat world_storage_format;
 
         inline const ElementDef& elementDefAt(int16_t x, int16_t y) const {
             uint8_t element = board.tiles.get(x, y).element;

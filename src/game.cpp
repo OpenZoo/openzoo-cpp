@@ -184,7 +184,7 @@ Game::Game(void):
 #endif
     highScoreList(this)
 {
-    worldSerializer = get_serializer(WorldFormatZZT);
+    world_storage_format = WorldFormatZZT;
     tickSpeed = 4;
     debugEnabled = false;
 #ifndef DISABLE_EDITOR
@@ -554,7 +554,7 @@ bool Game::WorldLoad(const char *filename, const char *extension, bool titleOnly
     if (!stream->errored()) {
         WorldUnload();
         
-        bool result = worldSerializer->deserialize_world(world, *stream, titleOnly, [this](auto bid) {
+        bool result = get_serializer(world_storage_format)->deserialize_world(world, *stream, titleOnly, [this](auto bid) {
             interface->SidebarShowMessage(ProgressAnimColors[bid & 7], ProgressAnimStrings[bid & 7], true);
         });
 
@@ -586,7 +586,7 @@ bool Game::WorldSave(const char *filename, const char *extension) {
     IOStream *stream = filesystem->open_file(joinedName, true);
 
     if (!stream->errored()) {
-        bool result = worldSerializer->serialize_world(world, *stream, [](auto i){});
+        bool result = get_serializer(world_storage_format)->serialize_world(world, *stream, [](auto i){});
 
         if (result) {
             BoardOpen(world.info.current_board);
