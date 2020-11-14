@@ -38,4 +38,4 @@ endif
 
 openzoo_CFLAGS = $(DRIVER_CFLAGS)
 openzoo_CXXFLAGS = $(DRIVER_CFLAGS)
-openzoo_LDFLAGS = $(DRIVER_LDFLAGS)
+openzoo_LDADD = $(DRIVER_LDFLAGS)

@@ -8,7 +8,11 @@
 using namespace ZZT;
 using namespace ZZT::Utils;
 
-#if defined(WINDOWS) || defined(MSDOS)
+#if defined(WIN32)
+#include <windows.h>
+#endif
+
+#if defined(WIN32) || defined(MSDOS)
 #define CASE_SENSITIVE false
 #define HAS_PARENT_LENGTH 3
 #define PATH_SEPARATOR '\\'
@@ -71,7 +75,14 @@ PosixFilesystemDriver::PosixFilesystemDriver()
     if (StrEmpty(cwd_path)) {
         strcpy(cwd_path, ".");
     }
+#if defined(WIN32)
+    GetFullPathNameA(cwd_path, max_path_length + 1, this->current_path, NULL);
+#elif defined(HAVE_REALPATH)
     realpath(cwd_path, this->current_path);
+#else
+    strncpy(this->current_path, cwd_path, max_path_length);
+    this->current_path[max_path_length] = 0;
+#endif
     free(cwd_path);
 }
 

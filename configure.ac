@@ -6,6 +6,7 @@ AC_CONFIG_HEADERS([config.h])
 AC_PROG_CXX
 AC_LANG_PUSH([C++])
 
+AC_CANONICAL_HOST
 AC_CHECK_HEADERS([dirent.h sys/stat.h])
 
 AC_ARG_WITH([driver],
@@ -20,8 +21,18 @@ AS_CASE([$with_driver],
 	[null], [],
 	[sdl2], [
 		PKG_CHECK_MODULES(SDL2, sdl2 >= 2.0.0)
-		AC_SUBST([DRIVER_CFLAGS], [$SDL2_CFLAGS])
-		AC_SUBST([DRIVER_LDFLAGS], [$SDL2_LIBS])
+		AC_SUBST(DRIVER_CFLAGS)
+		AC_SUBST(DRIVER_LDFLAGS)
+		case "${host_os}" in
+			mingw*)
+				DRIVER_CFLAGS="-mwindows $SDL2_CFLAGS"
+				DRIVER_LDFLAGS="-Wl,-Bstatic -lstdc++ -lpthread -lmingw32 -lSDL2main -Wl,-Bdynamic $SDL2_LIBS -static-libgcc -static-libstdc++"
+				;;
+			*)
+				DRIVER_CFLAGS="$SDL2_CFLAGS"
+				DRIVER_LDFLAGS="$SDL2_LIBS"
+				;;
+		esac
 	],
 	[msdos], [],
 	[AC_MSG_ERROR("driver not selected or invalid driver")]
@@ -38,7 +49,7 @@ AC_CHECK_FUNCS([vsniprintf])
 AC_CHECK_FUNCS([strnlen])
 
 dnl filesystem_posix.cpp
-AC_CHECK_FUNCS([getcwd])
+AC_CHECK_FUNCS([getcwd realpath])
 
 dnl txtwind.cpp
 AC_CHECK_FUNCS([qsort])
