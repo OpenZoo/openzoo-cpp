@@ -177,14 +177,14 @@ void OnScreenKeyboard::draw(bool redraw) {
 void OnScreenKeyboard::open(int16_t x, int16_t y, InputPromptMode mode) {
     close();
 
-    int16_t dw, dh;
-    driver->get_video_size(dw, dh);
+    // int16_t dw, dh;
+    // driver->get_video_size(dw, dh);
 
 	if (mode == InputPMNumbers) this->layout = &layout_digit;
     else if (mode == InputPMAlphanumeric) this->layout = &layout_alphanum;
 	else this->layout = &layout_text;
 
-    this->x = x < 0 ? (dw - (layout->width + 6)) >> 1 : x;
+    this->x = x < 0 ? (60 - (layout->width + 6)) >> 1 : x;
     this->y = y < 0 ? (-y) - (layout->height + 4) : y;
     this->backup = new VideoCopy(layout->width + 6, layout->height + 4);
     driver->copy_chars(*backup, this->x, this->y, backup->width(), backup->height(), 0, 0);
@@ -207,6 +207,13 @@ void OnScreenKeyboard::update() {
 
 	if (driver->joy_button_pressed(JoyButtonB, false)) {
 		key_pressed = KeyEscape;
+		return;
+	} else if (driver->joy_button_pressed(JoyButtonX, false)) {
+		key_pressed = KeyBackspace;
+		return;
+	} else if (driver->joy_button_pressed(JoyButtonY, false)) {
+		shifted = !shifted;
+		draw(false);
 		return;
 	}
 

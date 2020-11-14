@@ -131,13 +131,20 @@ void ZZT::psp_audio_callback(void *stream, unsigned int len, void *userdata) {
 	}
 }
 
-void PSPDriver::update_input(void) {
-    deltaX = 0;
-    deltaY = 0;
-	keyPressed = 0;
-    shiftPressed = false;
+void PSPDriver::set_text_input(bool enabled, InputPromptMode mode) {
+	if (enabled) {
+		keyboard.open(-1, 2, mode);
+	} else {
+		keyboard.close();
+	}
+}
 
-    advance_input();    
+void PSPDriver::update_input(void) {
+    advance_input();
+	if (keyboard.opened()) {
+		keyboard.update();
+		keyPressed = keyboard.key_pressed;
+	}
 }
 
 SceUInt ZZT::psp_timer_callback(SceUID uid, SceInt64 requested, SceInt64 actual, void *args) {
@@ -276,6 +283,8 @@ PSPDriver::PSPDriver(void): soundSimulator(&_queue) {
 }
 
 void PSPDriver::install(void) {
+	keyboard.driver = this;
+
 	running = true;
 
 	exit_thread_id = start_thread("Exit handler", psp_exit_thread, 0x1E, 0x800);

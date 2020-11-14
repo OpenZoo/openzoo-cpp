@@ -31,6 +31,7 @@ OBJS = \
 	$(OBJDIR)/sounds.o \
 	$(OBJDIR)/txtwind.o \
 	$(OBJDIR)/user_interface.o \
+	$(OBJDIR)/user_interface_osk.o \
 	$(OBJDIR)/utils.o \
 	$(OBJDIR)/world_serializer.o \
 	$(OBJDIR)/audio_simulator.o \

@@ -6,6 +6,7 @@
 #include <pspctrl.h>
 #include "driver.h"
 #include "audio_simulator.h"
+#include "user_interface_osk.h"
 
 namespace ZZT {
     class PSPDriver: public Driver {
@@ -23,6 +24,7 @@ namespace ZZT {
         uint8_t screen_colors[80*25];
         
         AudioSimulator soundSimulator;
+        OnScreenKeyboard keyboard;
 
     public:
         bool running;
@@ -37,6 +39,7 @@ namespace ZZT {
 
         // required (input)
         void update_input(void) override;
+        void set_text_input(bool enabled, InputPromptMode mode) override;
 
         // required (sound)
         uint16_t get_hsecs(void) override;
