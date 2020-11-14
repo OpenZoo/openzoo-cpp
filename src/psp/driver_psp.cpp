@@ -137,7 +137,7 @@ void PSPDriver::update_input(void) {
 	keyPressed = 0;
     shiftPressed = false;
 
-    update_joy_buttons();    
+    advance_input();    
 }
 
 SceUInt ZZT::psp_timer_callback(SceUID uid, SceInt64 requested, SceInt64 actual, void *args) {

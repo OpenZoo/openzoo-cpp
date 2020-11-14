@@ -13,6 +13,15 @@ namespace ZZT {
     } InputPromptMode;
 
     typedef enum {
+        KeyModLeftShift = 1,
+        KeyModRightShift = 2,
+        KeyModShift = 3,
+        KeyModCtrl = 4,
+        KeyModAlt = 8,
+        KeyModNumLock = 16
+    } KeyModifier;
+
+    typedef enum {
         JoyButtonNone = -1,
         JoyButtonUp = 0,
         JoyButtonDown = 1,
@@ -80,6 +89,9 @@ namespace ZZT {
         uint32_t joy_buttons_held_new;
         uint32_t joy_buttons_pressed;
         uint32_t joy_buttons_held;
+        uint16_t key_pressed_new;
+        uint16_t key_modifiers_new;
+        uint16_t key_modifiers;
 
     protected:
         Driver(void);
@@ -87,10 +99,11 @@ namespace ZZT {
         /* INPUT */
 
         void set_key_pressed(uint16_t value);
+        void set_key_modifier_state(KeyModifier modifier, bool value);
         bool set_dpad(bool up, bool down, bool left, bool right);
         bool set_axis(int32_t axis_x, int32_t axis_y, int32_t axis_min, int32_t axis_max);
         void set_joy_button_state(JoyButton button, bool value, bool is_constant);
-        void update_joy_buttons();
+        void advance_input();
 
         /* SOUND/TIMER */
 
@@ -111,12 +124,6 @@ namespace ZZT {
         bool joystickEnabled;
 
         uint16_t keyPressed;
-        bool keyLeftShiftHeld;
-        bool keyRightShiftHeld;
-        bool keyShiftHeld;
-        bool keyCtrlHeld;
-        bool keyAltHeld;
-        bool keyNumLockHeld;
 
         // required
         virtual void update_input(void) = 0;
@@ -124,8 +131,10 @@ namespace ZZT {
         // optional
         virtual void set_text_input(bool enabled, InputPromptMode mode); // intended for OSK toggling
         virtual void read_wait_key(void);
-        virtual bool joy_button_pressed(JoyButton button, bool simulate);
-        virtual bool joy_button_held(JoyButton button, bool simulate);
+        
+        bool key_modifier_held(KeyModifier modifier);
+        bool joy_button_pressed(JoyButton button, bool simulate);
+        bool joy_button_held(JoyButton button, bool simulate);
 
         /* SOUND/TIMER */
 

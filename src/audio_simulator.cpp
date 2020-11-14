@@ -14,7 +14,6 @@ using namespace ZZT;
 */
 
 #define PIT_DIVISOR 1193182
-#define AUDIO_FREQUENCY 48000
 #define SAMPLES_NOTE_DELAY 16
 #define AUDIO_MIN 64
 #define AUDIO_NONE 128
@@ -101,7 +100,7 @@ void AudioSimulator::clear(void) {
     this->current_note = -1;
 }
 
-int AudioSimulator::set_frequency(int frequency) {
+void AudioSimulator::set_frequency(int frequency) {
     audio_frequency = frequency;
     samples_per_pit = frequency * 11 / 200;
     samples_per_drum = frequency / 1000;

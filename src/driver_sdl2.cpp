@@ -223,8 +223,78 @@ void SDL2Driver::render_char_fg(int16_t x, int16_t y, bool blink) {
     SDL_RenderCopy(renderer, charsetTexture->texture, &in_rect, &out_rect);
 }
 
-uint32_t ZZT::videoRenderThread(SDL2Driver *driver) {
+static JoyButton sdl_to_pc_joybutton(SDL_GameControllerButton button) {
+    switch (button) {
+        case SDL_CONTROLLER_BUTTON_A: return JoyButtonB;
+        case SDL_CONTROLLER_BUTTON_B: return JoyButtonA;
+        case SDL_CONTROLLER_BUTTON_X: return JoyButtonY;
+        case SDL_CONTROLLER_BUTTON_Y: return JoyButtonX;
+        case SDL_CONTROLLER_BUTTON_START: return JoyButtonStart;
+        case SDL_CONTROLLER_BUTTON_BACK: return JoyButtonSelect;
+        case SDL_CONTROLLER_BUTTON_LEFTSHOULDER: return JoyButtonL;
+        case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER: return JoyButtonR;
+        case SDL_CONTROLLER_BUTTON_DPAD_UP: return JoyButtonUp;
+        case SDL_CONTROLLER_BUTTON_DPAD_LEFT: return JoyButtonLeft;
+        case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: return JoyButtonRight;
+        case SDL_CONTROLLER_BUTTON_DPAD_DOWN: return JoyButtonDown;
+        default: return JoyButtonNone;
+    }
+}
+
+uint32_t ZZT::videoInputThread(SDL2Driver *driver) {
     while (driver->renderThreadRunning) {
+        SDL_LockMutex(driver->inputMutex);
+
+        SDL_Event event;
+        uint32_t scode, kcode;
+        uint8_t k = 0;
+
+        while (SDL_PollEvent(&event) != 0) {
+            switch (event.type) {
+                case SDL_TEXTINPUT: {
+                    k = event.text.text[0];
+                    if (k >= 32 && k < 127) {
+                        driver->set_key_pressed(k);
+                    }
+                } break;
+                case SDL_KEYDOWN: {
+                    driver->update_keymod(event.key.keysym.mod);
+                    scode = event.key.keysym.scancode;
+                    kcode = event.key.keysym.sym;
+                    if (kcode > 0 && kcode < 127) {
+                        if (!(kcode >= 32 && kcode < 127)) {
+                            driver->set_key_pressed(kcode);
+                        }
+                    } else if (scode <= sdl_to_pc_scancode_max) {
+                        driver->set_key_pressed(sdl_to_pc_scancode[scode] | 0x80);
+                    } else {
+                        k = 0;
+                    }
+                } break;
+                case SDL_KEYUP: {
+                    driver->update_keymod(event.key.keysym.mod);
+                } break;
+                case SDL_CONTROLLERBUTTONDOWN: {
+                    JoyButton button = sdl_to_pc_joybutton((SDL_GameControllerButton) event.cbutton.button);
+                    if (button != JoyButtonNone) {
+                        driver->set_joy_button_state(button, true, false);
+                    }
+                } break;
+                case SDL_CONTROLLERBUTTONUP: {
+                    JoyButton button = sdl_to_pc_joybutton((SDL_GameControllerButton) event.cbutton.button);
+                    if (button != JoyButtonNone) {
+                        driver->set_joy_button_state(button, false, false);
+                    }
+                } break;
+                case SDL_QUIT: {
+                    // TODO
+                    exit(1);
+                } break;
+            }
+        }
+
+        SDL_UnlockMutex(driver->inputMutex);
+
         SDL_RenderClear(driver->renderer);
         SDL_SetRenderTarget(driver->renderer, driver->playfieldTexture);
 
@@ -334,6 +404,7 @@ void SDL2Driver::install(void) {
 
         SDL_SetWindowSize(window, width_chars * charsetTexture->charWidth, height_chars * charsetTexture->charHeight);
 
+        inputMutex = SDL_CreateMutex();
         playfieldMutex = SDL_CreateMutex();
 
         SDL_RenderClear(renderer);
@@ -381,6 +452,7 @@ void SDL2Driver::uninstall(void) {
 
         delete charsetTexture;
         SDL_DestroyMutex(playfieldMutex);
+        SDL_DestroyMutex(inputMutex);
         SDL_DestroyTexture(playfieldTexture);
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
@@ -494,86 +566,17 @@ bool SDL2Driver::set_video_size(int16_t width, int16_t height, bool simulate) {
 }
 
 void SDL2Driver::update_keymod(uint16_t kmod) {
-    keyLeftShiftHeld = (kmod & KMOD_LSHIFT) != 0;
-    keyRightShiftHeld = (kmod & KMOD_RSHIFT) != 0;
-    keyShiftHeld = (kmod & KMOD_SHIFT) != 0;
-    keyCtrlHeld = (kmod & KMOD_CTRL) != 0;
-    keyAltHeld = (kmod & KMOD_ALT) != 0;
-    keyNumLockHeld = (kmod & KMOD_NUM) != 0;
-}
-
-static JoyButton sdl_to_pc_joybutton(SDL_GameControllerButton button) {
-    switch (button) {
-        case SDL_CONTROLLER_BUTTON_A: return JoyButtonB;
-        case SDL_CONTROLLER_BUTTON_B: return JoyButtonA;
-        case SDL_CONTROLLER_BUTTON_X: return JoyButtonY;
-        case SDL_CONTROLLER_BUTTON_Y: return JoyButtonX;
-        case SDL_CONTROLLER_BUTTON_START: return JoyButtonStart;
-        case SDL_CONTROLLER_BUTTON_BACK: return JoyButtonSelect;
-        case SDL_CONTROLLER_BUTTON_LEFTSHOULDER: return JoyButtonL;
-        case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER: return JoyButtonR;
-        case SDL_CONTROLLER_BUTTON_DPAD_UP: return JoyButtonUp;
-        case SDL_CONTROLLER_BUTTON_DPAD_LEFT: return JoyButtonLeft;
-        case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: return JoyButtonRight;
-        case SDL_CONTROLLER_BUTTON_DPAD_DOWN: return JoyButtonDown;
-        default: return JoyButtonNone;
-    }
+    set_key_modifier_state(KeyModLeftShift, (kmod & KMOD_LSHIFT) != 0);
+    set_key_modifier_state(KeyModRightShift, (kmod & KMOD_RSHIFT) != 0);
+    set_key_modifier_state(KeyModCtrl, (kmod & KMOD_CTRL) != 0);
+    set_key_modifier_state(KeyModAlt, (kmod & KMOD_ALT) != 0);
+    set_key_modifier_state(KeyModNumLock, (kmod & KMOD_NUM) != 0);
 }
 
 void SDL2Driver::update_input(void) {
-    deltaX = 0;
-    deltaY = 0;
-    shiftPressed = false;
-
-    SDL_Event event;
-    uint32_t scode, kcode;
-    uint8_t k = 0;
-
-    while (SDL_PollEvent(&event) != 0) {
-        switch (event.type) {
-            case SDL_TEXTINPUT: {
-                k = event.text.text[0];
-                if (!(k >= 32 && k < 127)) {
-                    k = 0;
-                }
-            } break;
-            case SDL_KEYDOWN: {
-                update_keymod(event.key.keysym.mod);
-                scode = event.key.keysym.scancode;
-                kcode = event.key.keysym.sym;
-                if (kcode > 0 && kcode < 127) {
-                    k = kcode;
-                } else if (scode <= sdl_to_pc_scancode_max) {
-                    k = sdl_to_pc_scancode[scode] | 0x80;
-                } else {
-                    k = 0;
-                }
-            } break;
-            case SDL_KEYUP: {
-                update_keymod(event.key.keysym.mod);
-            } break;
-            case SDL_CONTROLLERBUTTONDOWN: {
-                JoyButton button = sdl_to_pc_joybutton((SDL_GameControllerButton) event.cbutton.button);
-                if (button != JoyButtonNone) {
-                    set_joy_button_state(button, true, false);
-                }
-            } break;
-            case SDL_CONTROLLERBUTTONUP: {
-                JoyButton button = sdl_to_pc_joybutton((SDL_GameControllerButton) event.cbutton.button);
-                if (button != JoyButtonNone) {
-                    set_joy_button_state(button, false, false);
-                }
-            } break;
-            case SDL_QUIT: {
-                // TODO
-                exit(1);
-            } break;
-        }
-    }
-
-    set_key_pressed(k);
-    update_joy_buttons();
-    shiftPressed |= keyShiftHeld;
+    SDL_LockMutex(inputMutex);
+    advance_input();
+    SDL_UnlockMutex(inputMutex);
 }
 
 void SDL2Driver::sound_stop(void) {
@@ -605,7 +608,7 @@ int main(int argc, char** argv) {
 
     // Rendering code must run on the main thread.
     SDL_CreateThread((SDL_ThreadFunction) gameThread, "Game thread", &game);
-    videoRenderThread(&driver);
+    videoInputThread(&driver);
 
 	driver.uninstall();
 

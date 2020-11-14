@@ -84,9 +84,6 @@ void MSDOSDriver::uninstall(void) {
 }
 
 void MSDOSDriver::update_input(void) {
-    deltaX = 0;
-    deltaY = 0;
-    shiftPressed = false;
 	uint16_t k = 0;
 
 	// get key
@@ -106,14 +103,14 @@ void MSDOSDriver::update_input(void) {
 
 	// update keymod
 	int kmod = bioskey(2);
-	keyRightShiftHeld = (kmod & 0x01) != 0;
-	keyLeftShiftHeld = (kmod & 0x02) != 0;
-	keyCtrlHeld = (kmod & 0x04) != 0;
-	keyAltHeld = (kmod & 0x08) != 0;
-	keyNumLockHeld = (kmod & 0x20) != 0;
+	set_key_modifier_state(KeyModRightShift, (kmod & 0x01) != 0);
+	set_key_modifier_state(KeyModLeftShift, (kmod & 0x02) != 0);
+	set_key_modifier_state(KeyModCtrl, (kmod & 0x04) != 0);
+	set_key_modifier_state(KeyModAlt, (kmod & 0x08) != 0);
+	set_key_modifier_state(KeyModNumLock, (kmod & 0x20) != 0);
 
     set_key_pressed(k);
-    shiftPressed |= keyShiftHeld;
+	advance_input();
 }
 
 uint16_t MSDOSDriver::get_hsecs(void) {

@@ -24,7 +24,7 @@ namespace ZZT {
 
     class SDL2Driver: public Driver {
         friend uint32_t pitTimerCallback(uint32_t interval, SDL2Driver *driver);
-        friend uint32_t videoRenderThread(SDL2Driver *driver);
+        friend uint32_t videoInputThread(SDL2Driver *driver);
         friend uint32_t gameThread(Game *game);
         friend void audioCallback(SDL2Driver *driver, uint8_t *stream, int32_t len);
 
@@ -45,6 +45,7 @@ namespace ZZT {
         // video
         SDL_Window *window;
         SDL_Renderer *renderer;
+        SDL_mutex *inputMutex;
         SDL_mutex *playfieldMutex;
         SDL_Texture *playfieldTexture;
         CharsetTexture *charsetTexture;

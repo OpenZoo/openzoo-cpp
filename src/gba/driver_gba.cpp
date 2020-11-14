@@ -396,12 +396,7 @@ void GBADriver::set_text_input(bool enabled, InputPromptMode mode) {
 }
 
 void GBADriver::update_input(void) {
-    deltaX = 0;
-    deltaY = 0;
-	keyPressed = 0;
-    shiftPressed = false;
-
-    update_joy_buttons();
+    advance_input();
 	if (keyboard.opened()) {
 		keyboard.update();
 		keyPressed = keyboard.key_pressed;

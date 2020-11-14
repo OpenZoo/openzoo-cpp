@@ -14,7 +14,11 @@ Driver::Driver(void) {
     shiftPressed = false;
     shiftAccepted = false;
     joystickEnabled = false;
+
     keyPressed = 0;
+    key_pressed_new = 0;
+    key_modifiers = 0;
+    key_modifiers_new = 0;
 
     joy_buttons_held = 0;
     joy_buttons_held_new = 0;
@@ -32,7 +36,18 @@ Driver::Driver(void) {
 /* INPUT */
 
 void Driver::set_key_pressed(uint16_t k) {
-    keyPressed = k;
+    key_pressed_new = k;
+}
+
+void Driver::set_key_modifier_state(KeyModifier modifier, bool value) {
+    if (value) {
+        key_modifiers_new |= (uint16_t) modifier;
+    } else {
+        key_modifiers_new &= ~((uint16_t) modifier);
+    }
+}
+
+bool Driver::set_dpad(bool up, bool down, bool left, bool right) {
     switch (keyPressed) {
         case KeyUp:
         case '8': {
@@ -54,24 +69,23 @@ void Driver::set_key_pressed(uint16_t k) {
             deltaX = 0;
             deltaY = 1;
         } break;
-    }
-}
-
-bool Driver::set_dpad(bool up, bool down, bool left, bool right) {
-    if (up) {
-        deltaX = 0;
-        deltaY = -1;
-    } else if (left) {
-        deltaX = -1;
-        deltaY = 0;
-    } else if (right) {
-        deltaX = 1;
-        deltaY = 0;
-    } else if (down) {
-        deltaX = 0;
-        deltaY = 1;
-    } else {
-        return false;
+        default: {
+            if (up) {
+                deltaX = 0;
+                deltaY = -1;
+            } else if (left) {
+                deltaX = -1;
+                deltaY = 0;
+            } else if (right) {
+                deltaX = 1;
+                deltaY = 0;
+            } else if (down) {
+                deltaX = 0;
+                deltaY = 1;
+            } else {
+                return false;
+            }
+        } break;
     }
 
     return true;
@@ -105,8 +119,17 @@ void Driver::set_joy_button_state(JoyButton button, bool value, bool is_constant
     }
 }
 
-void Driver::update_joy_buttons() {
+void Driver::advance_input() {
     uint16_t hsecs = get_hsecs();
+
+    deltaX = 0;
+    deltaY = 0;
+    shiftPressed = false;
+
+    // keyPressed
+    keyPressed = key_pressed_new;
+    key_pressed_new = 0;
+    key_modifiers = key_modifiers_new;
 
     // joy_buttons_pressed_new -> joy_buttons_pressed
     joy_buttons_held = joy_buttons_held_new;
@@ -140,6 +163,7 @@ void Driver::update_joy_buttons() {
     );
 
     // shiftPressed
+    shiftPressed |= key_modifier_held(KeyModShift);
 	if (joy_button_held(JoyButtonA, true)) {
 		if (!shiftAccepted) {
 			shiftPressed = true;
@@ -147,6 +171,10 @@ void Driver::update_joy_buttons() {
 	} else {
 		shiftAccepted = false;
 	}
+}
+
+bool Driver::key_modifier_held(KeyModifier modifier) {
+    return (key_modifiers & modifier) != 0;
 }
 
 bool Driver::joy_button_pressed(JoyButton button, bool simulate) {

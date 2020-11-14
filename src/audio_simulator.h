@@ -26,7 +26,7 @@ namespace ZZT {
         bool allowed;
 
         AudioSimulator(SoundQueue *queue);
-        int set_frequency(int frequency);
+        void set_frequency(int frequency);
         void clear(void);
         void simulate(uint8_t *stream, size_t len);
     };
