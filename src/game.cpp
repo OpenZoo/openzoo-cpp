@@ -86,6 +86,12 @@ World::World(WorldFormat board_format_storage, WorldFormat board_format_target) 
     memset(board_len, 0, sizeof(board_len));
 }
 
+World::~World() {
+    for (int i = 0; i <= board_count; i++) {
+        free_board(i);
+    }
+}
+
 bool World::read_board(uint8_t id, Board &board) {
     Serializer *fromS = get_serializer((WorldFormat) this->board_format[id]);
     MemoryIOStream inputStream(this->board_data[id], this->board_len[id]);
@@ -193,11 +199,18 @@ Game::Game(void):
     StrCopy(startupWorldFileName, "TOWN");
     StrCopy(savedGameFileName, "SAVED");
     StrCopy(savedBoardFileName, "TEMP");
-    GenerateTransitionTable();
-    WorldCreate();
+    initialized = false;
 }
 
 Game::~Game() {
+}
+
+void Game::Initialize() {
+    if (!initialized) {
+        GenerateTransitionTable();
+        WorldCreate();
+        initialized = true;
+    }
 }
 
 void Game::GenerateTransitionTable(void) {
@@ -1261,6 +1274,8 @@ const MenuEntry ZZT::PlayMenu[] = {
 };
 
 void Game::GameTitleLoop(void) {
+    Initialize();
+
     gameTitleExitRequested = false;
     justStarted = true;
     returnBoardId = 0;

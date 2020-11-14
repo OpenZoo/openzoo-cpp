@@ -594,27 +594,29 @@ void SDL2Driver::sound_unlock(void) {
     SDL_UnlockMutex(soundBufferMutex);
 }
 
-static Game game = Game();
+static Game *game;
 
 int main(int argc, char** argv) {
 	SDL2Driver driver = SDL2Driver(80, 25);
+    game = new Game();
 
-	game.driver = &driver;
-    game.filesystem = new PosixFilesystemDriver();
-    game.interface = new UserInterface(&driver);
+	game->driver = &driver;
+    game->filesystem = new PosixFilesystemDriver();
+    game->interface = new UserInterface(&driver);
 
 	driver.install();
 
 	driver.clrscr();
 
     // Rendering code must run on the main thread.
-    SDL_CreateThread((SDL_ThreadFunction) gameThread, "Game thread", &game);
+    SDL_CreateThread((SDL_ThreadFunction) gameThread, "Game thread", game);
     videoInputThread(&driver);
 
 	driver.uninstall();
 
-    delete game.interface;
-    delete game.filesystem;
+    delete game->interface;
+    delete game->filesystem;
+    delete game;
 
 	return 0;
 }

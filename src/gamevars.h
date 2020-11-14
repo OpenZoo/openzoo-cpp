@@ -359,6 +359,7 @@ namespace ZZT {
         uint8_t *board_data[MAX_BOARD + 1];
 
         World(WorldFormat board_format_storage, WorldFormat board_format_target);
+        ~World();
 
         bool read_board(uint8_t id, Board &board);
         bool write_board(uint8_t id, Board &board);
@@ -417,6 +418,8 @@ namespace ZZT {
 
     class Game {
     private:
+        bool initialized;
+
         // elements.cpp
         void InitElementDefs(void);
 
@@ -500,6 +503,7 @@ namespace ZZT {
         void InitElementsEditor(void);
 
         // game.cpp
+        void Initialize(void);
         void SidebarClearLine(int y);
         void SidebarClear();
         void GenerateTransitionTable(void);
