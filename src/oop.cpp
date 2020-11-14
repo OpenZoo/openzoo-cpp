@@ -461,7 +461,7 @@ bool Game::OopSend(int16_t stat_id, const char *sendLabel, bool ignoreLock) {
 
 	while (OopFindLabel(stat_id, sendLabel, i_stat_id, i_data_pos, "\r:")) {
 		Stat &i_stat = board.stats[i_stat_id];
-		if ((i_stat.p2 == 0 || ignoreLock) || ((stat_id == i_stat_id) && !ignoreSelfLock)) {
+		if ((i_stat.p2 == 0) || ignoreLock || ((stat_id == i_stat_id) && !ignoreSelfLock)) {
 			if (i_stat_id == stat_id) {
 				result = true;
 			}
@@ -469,7 +469,7 @@ bool Game::OopSend(int16_t stat_id, const char *sendLabel, bool ignoreLock) {
 			i_stat.data_pos = i_data_pos;
 		}
 	}
-	
+
 	return result;
 }
 

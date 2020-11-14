@@ -324,7 +324,7 @@ TryMove:
     game.currentStatTicked--;
     if (tile.element == EObject || tile.element == EScroll) {
         int16_t target_id = game.board.stats.id_at(ix, iy);
-        game.OopSend(target_id, "SHOT", false);
+        game.OopSend(-target_id, "SHOT", false);
     }
 }
 
