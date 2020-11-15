@@ -16,7 +16,8 @@ Driver::Driver(void) {
     joystickEnabled = false;
 
     keyPressed = 0;
-    key_pressed_new = 0;
+    memset(keys_pressed, 0, sizeof(keys_pressed));
+    keys_pressed_pos = 0;
     key_modifiers = 0;
     key_modifiers_new = 0;
 
@@ -25,7 +26,7 @@ Driver::Driver(void) {
     joy_buttons_pressed = 0;
     joy_buttons_pressed_new = 0;
     joy_repeat_hsecs_delay = 25;
-    joy_repeat_hsecs_delay_next = 10;
+    joy_repeat_hsecs_delay_next = 4;
 
     /* SOUND/TIMER */
 
@@ -35,8 +36,34 @@ Driver::Driver(void) {
 
 /* INPUT */
 
-void Driver::set_key_pressed(uint16_t k) {
-    key_pressed_new = k;
+#define KEY_PRESSED 1
+#define KEY_HELD 2
+
+void Driver::set_key_pressed(uint16_t key, bool value, bool one_time) {
+    int kid = -1;
+    for (int i = 0; i < MAX_KEYS_PRESSED; i++) {
+        if (keys_pressed[i].value == key) {
+           kid = i;
+           break;
+        }
+    }
+    if (kid == -1 && value) {
+        for (int i = 0; i < MAX_KEYS_PRESSED; i++) {
+            if (keys_pressed[i].flags == 0) {
+                kid = i;
+                break;
+            }
+        }
+    }
+    if (kid >= 0) {
+        if (value) {
+            keys_pressed[kid].value = key;
+            keys_pressed[kid].hsecs = get_hsecs() + joy_repeat_hsecs_delay;
+            keys_pressed[kid].flags |= KEY_PRESSED | (one_time ? 0 : KEY_HELD);
+        } else {
+            keys_pressed[kid].flags &= ~KEY_HELD;
+        }
+    }
 }
 
 void Driver::set_key_modifier_state(KeyModifier modifier, bool value) {
@@ -127,8 +154,27 @@ void Driver::advance_input() {
     shiftPressed = false;
 
     // keyPressed
-    keyPressed = key_pressed_new;
-    key_pressed_new = 0;
+    keyPressed = 0;
+    for (int i = 0; i < MAX_KEYS_PRESSED; i++, keys_pressed_pos++) {
+        int kid = (keys_pressed_pos & (MAX_KEYS_PRESSED - 1));
+        if (keys_pressed[kid].flags != 0) {
+            if ((keys_pressed[kid].flags & (KEY_HELD | KEY_PRESSED)) == KEY_HELD) {
+                // hsecs > joy_button_hsecs when hsecs_diff near max limit
+                uint16_t hsecs_diff = keys_pressed[kid].hsecs - hsecs;
+                if (hsecs_diff >= 32768) {
+                    keys_pressed[kid].hsecs = hsecs + joy_repeat_hsecs_delay_next;
+                    keys_pressed[kid].flags |= KEY_PRESSED;
+                }
+            }
+            if (keys_pressed[kid].flags & KEY_PRESSED) {
+                keys_pressed[kid].flags &= ~KEY_PRESSED;
+                keyPressed = keys_pressed[kid].value;
+                keys_pressed_pos++; // try next key on next update_input
+                break;
+            }
+        }
+    }
+    keys_pressed_pos &= (MAX_KEYS_PRESSED - 1);
     key_modifiers = key_modifiers_new;
 
     // joy_buttons_pressed_new -> joy_buttons_pressed

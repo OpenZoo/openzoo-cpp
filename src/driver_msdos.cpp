@@ -109,7 +109,7 @@ void MSDOSDriver::update_input(void) {
 	set_key_modifier_state(KeyModAlt, (kmod & 0x08) != 0);
 	set_key_modifier_state(KeyModNumLock, (kmod & 0x20) != 0);
 
-    set_key_pressed(k);
+    if (k != 0) set_key_pressed(k, true, true);
 	advance_input();
 }
 

@@ -4,6 +4,8 @@
 #include <cstdint>
 #include "sounds.h"
 
+#define MAX_KEYS_PRESSED 8
+
 namespace ZZT {
     typedef enum {
         IMYield,
@@ -88,6 +90,12 @@ namespace ZZT {
         void get(uint8_t x, uint8_t y, uint8_t &col, uint8_t &chr);
         void set(uint8_t x, uint8_t y, uint8_t col, uint8_t chr);
     };
+
+    struct KeyPress {
+        uint16_t value;
+        uint16_t hsecs;
+        uint8_t flags;
+    };
  
     class Driver {
     private:
@@ -96,7 +104,8 @@ namespace ZZT {
         uint32_t joy_buttons_held_new;
         uint32_t joy_buttons_pressed;
         uint32_t joy_buttons_held;
-        uint16_t key_pressed_new;
+        KeyPress keys_pressed[MAX_KEYS_PRESSED];
+        uint8_t keys_pressed_pos;
         uint16_t key_modifiers_new;
         uint16_t key_modifiers;
 
@@ -105,7 +114,7 @@ namespace ZZT {
         
         /* INPUT */
 
-        void set_key_pressed(uint16_t value);
+        void set_key_pressed(uint16_t key, bool value, bool one_time);
         void set_key_modifier_state(KeyModifier modifier, bool value);
         bool set_dpad(bool up, bool down, bool left, bool right);
         bool set_axis(int32_t axis_x, int32_t axis_y, int32_t axis_min, int32_t axis_max);

@@ -254,25 +254,24 @@ uint32_t ZZT::videoInputThread(SDL2Driver *driver) {
                 case SDL_TEXTINPUT: {
                     k = event.text.text[0];
                     if (k >= 32 && k < 127) {
-                        driver->set_key_pressed(k);
+                        driver->set_key_pressed(k, true, true);
                     }
                 } break;
-                case SDL_KEYDOWN: {
+                case SDL_KEYDOWN:
+                case SDL_KEYUP: {
                     driver->update_keymod(event.key.keysym.mod);
+                    if (event.key.repeat != 0) break;
                     scode = event.key.keysym.scancode;
                     kcode = event.key.keysym.sym;
                     if (kcode > 0 && kcode < 127) {
                         if (!(kcode >= 32 && kcode < 127)) {
-                            driver->set_key_pressed(kcode);
+                            driver->set_key_pressed(kcode, event.type == SDL_KEYDOWN, false);
                         }
                     } else if (scode <= sdl_to_pc_scancode_max) {
-                        driver->set_key_pressed(sdl_to_pc_scancode[scode] | 0x80);
+                        driver->set_key_pressed(sdl_to_pc_scancode[scode] | 0x80, event.type == SDL_KEYDOWN, false);
                     } else {
                         k = 0;
                     }
-                } break;
-                case SDL_KEYUP: {
-                    driver->update_keymod(event.key.keysym.mod);
                 } break;
                 case SDL_CONTROLLERBUTTONDOWN: {
                     JoyButton button = sdl_to_pc_joybutton((SDL_GameControllerButton) event.cbutton.button);
