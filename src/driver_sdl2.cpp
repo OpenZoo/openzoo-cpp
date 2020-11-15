@@ -424,8 +424,9 @@ void SDL2Driver::install(void) {
             .callback = (SDL_AudioCallback) audioCallback,
             .userdata = this
         };
-        audioDevice = SDL_OpenAudioDevice(nullptr, 0, &requestedAudioSpec, &audioSpec, 0);
+        audioDevice = SDL_OpenAudioDevice(nullptr, 0, &requestedAudioSpec, &audioSpec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
         if (audioDevice != 0) {
+            soundSimulator.set_frequency(audioSpec.freq);
             SDL_PauseAudioDevice(audioDevice, 0);
         } else {
             fprintf(stderr, "[driver_sdl2] could not initialize audio device\n");

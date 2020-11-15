@@ -20,7 +20,7 @@ using namespace ZZT;
 #define AUDIO_MAX 192
 
 // longest sample would be 2640 * 256 = 675840 samples
-#define FIXED_SHIFT 8
+#define FIXED_SHIFT 9
 
 uint32_t AudioSimulator::calc_jump(uint32_t targetNotePos, int32_t streamPos, int32_t streamLen) {
     int32_t maxTargetChange = targetNotePos - current_note_pos;
@@ -47,7 +47,7 @@ void AudioSimulator::note_to(uint32_t targetNotePos, uint32_t frequency, uint8_t
     uint32_t iMax = calc_jump(targetNotePos, streamPos, streamLen);
 
     if (iMax > 0) {
-#if 1
+#if 0
         // floating-point implementation
         double samplesPerChange = ((double) audio_frequency) / (((double) PIT_DIVISOR) / (uint32_t) (PIT_DIVISOR / frequency));
 
@@ -64,13 +64,27 @@ void AudioSimulator::note_to(uint32_t targetNotePos, uint32_t frequency, uint8_t
         uint32_t pit_ticks = PIT_DIVISOR / frequency;
         uint32_t samplesPerChange = ((uint64_t) (audio_frequency * pit_ticks) << FIXED_SHIFT) / PIT_DIVISOR;
 
+        uint32_t stepSize = (1 << FIXED_SHIFT);
         uint32_t samplePos = (current_note_pos << FIXED_SHIFT) % samplesPerChange;
-        for (uint32_t i = 0; i < iMax; i++, samplePos += (1 << FIXED_SHIFT)) {
+        for (uint32_t i = 0; i < iMax; i++, samplePos += stepSize) {
             while (samplePos >= samplesPerChange) samplePos -= samplesPerChange;
             if (samplePos < (samplesPerChange >> 1)) {
-                stream[streamPos + i] = AUDIO_MIN;
+                if (samplePos < stepSize) {
+                    // transition from max to min
+                    uint32_t trans_val = ((AUDIO_MAX * (stepSize - samplePos)) + (AUDIO_MIN * samplePos)) >> FIXED_SHIFT;
+                    stream[streamPos + i] = trans_val;
+                } else {
+                    stream[streamPos + i] = AUDIO_MIN;
+                }
             } else {
-                stream[streamPos + i] = AUDIO_MAX;
+                int midPos = samplePos - (samplesPerChange >> 1);
+                if (midPos < stepSize) {
+                    // transition from min to max
+                    uint32_t trans_val = ((AUDIO_MIN * (stepSize - midPos)) + (AUDIO_MAX * midPos)) >> FIXED_SHIFT;
+                    stream[streamPos + i] = trans_val;
+                } else {
+                    stream[streamPos + i] = AUDIO_MAX;
+                }
             }
         }
 #endif

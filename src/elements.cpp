@@ -1384,17 +1384,7 @@ void ElementMonitorTick(Game &game, int16_t stat_id) {
 #include "element_defs.inc"
 
 void Game::ResetMessageNotShownFlags(void) {
-    msgFlags.AmmoNotShown = true;
-    msgFlags.OutOfAmmoNotShown = true;
-    msgFlags.NoShootingNotShown = true;
-    msgFlags.TorchNotShown = true;
-    msgFlags.OutOfTorchesNotShown = true;
-    msgFlags.RoomNotDarkNotShown = true;
-    msgFlags.HintTorchNotShown = true;
-    msgFlags.ForestNotShown = true;
-    msgFlags.FakeNotShown = true;
-    msgFlags.GemNotShown = true;
-    msgFlags.EnergizerNotShown = true;
+    memset(&msgFlags, true, sizeof(MessageFlags));
 }
 
 void Game::InitElementDefs(void) {
