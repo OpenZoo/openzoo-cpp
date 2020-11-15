@@ -1208,8 +1208,8 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
         game.board.tiles.set_color(stat.x, stat.y,
             (game.currentTick & 2) != 0 ? 0x0F : ((((game.currentTick % 7) + 1) << 4) | 0x0F));
         game.BoardDrawTile(stat.x, stat.y);
-    } else if (game.board.tiles.get(stat.x, stat.y).color != 0x1F || game.elementCharOverrides[EPlayer] != 0) {
-        game.board.tiles.set_color(stat.x, stat.y, 0x1F);
+    } else if (game.board.tiles.get(stat.x, stat.y).color != game.elementDefs[EPlayer].color || game.elementCharOverrides[EPlayer] != 0) {
+        game.board.tiles.set_color(stat.x, stat.y, game.elementDefs[EPlayer].color);
         game.elementCharOverrides[EPlayer] = 0;
         game.BoardDrawTile(stat.x, stat.y);
     }
