@@ -603,7 +603,11 @@ ReadCommand:
 							goto ReadCommand;
 						}
 					} else if (StrEquals(oopWord, "WALK")) {
-						OopReadDirection(stat, position, stat.step_x, stat.step_y);
+						int16_t newStepX = stat.step_x;
+						int16_t newStepY = stat.step_y;
+						OopReadDirection(stat, position, newStepX, newStepY);
+						stat.step_x = newStepX;
+						stat.step_y = newStepY;
 					} else if (StrEquals(oopWord, "SET")) {
 						OopReadWord(stat, position);
 						WorldSetFlag(oopWord);
