@@ -940,7 +940,7 @@ bool Game::BoardShoot(uint8_t element, int16_t x, int16_t y, int16_t dx, int16_t
     } else if (destTile.element == EBreakable
         || (
             elementDefs[destTile.element].destructible
-            && (destTile.element == EPlayer)
+            && ((destTile.element == EPlayer) == (source != 0))
             && (world.info.energizer_ticks <= 0)
         ))
     {
