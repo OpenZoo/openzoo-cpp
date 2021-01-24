@@ -908,7 +908,7 @@ void Editor::Loop(void) {
             } break;
             case 'P': {
                 if (game->driver->keyPressed == 'P') {
-                    if (cursor_pattern > 1) {
+                    if (cursor_pattern > 0) {
                         cursor_pattern--;
                     } else {
                         cursor_pattern = EditorPatternCount + COPIED_TILES_COUNT - 1;
@@ -917,7 +917,7 @@ void Editor::Loop(void) {
                     if (cursor_pattern < (EditorPatternCount + COPIED_TILES_COUNT - 1)) {
                         cursor_pattern++;
                     } else {
-                        cursor_pattern = 1;
+                        cursor_pattern = 0;
                     }
                 }
                 UpdateCursorPattern();
