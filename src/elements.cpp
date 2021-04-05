@@ -1337,7 +1337,7 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
 
     if (game.board.info.time_limit_seconds > 0 && game.world.info.health > 0) {
         if (game.HasTimeElapsed(game.world.info.board_time_hsec, 100)) {
-            game.world.info.board_time_sec--;
+            game.world.info.board_time_sec++;
 
             if ((game.board.info.time_limit_seconds - 10) == (game.world.info.board_time_sec)) {
                 game.DisplayMessage(200, "Running out of time!");
