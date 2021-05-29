@@ -16,6 +16,7 @@ void Game::OopError(Stat& stat, const char *message) {
 	stat.data_pos = -1;
 }
 
+#define OOP_READ_CHAR_SIMPLE
 void Game::OopReadChar(Stat& stat, int16_t& position) {
 	if (position >= 0 && position < stat.data.len) {
 		oopChar = stat.data.data[position++];
@@ -152,16 +153,25 @@ void Game::OopReadDirection(Stat& stat, int16_t& position, int16_t& dx, int16_t&
 }
 
 GBA_CODE_IWRAM
-int16_t Game::OopFindString(Stat& stat, const char *str) {
-	int16_t pos = 0;
+int16_t Game::OopFindString(Stat& stat, int16_t start_pos, char *str) {
+	int16_t pos = start_pos;
 	size_t str_len = strlen(str);
+	int16_t max_pos = stat.data.len - str_len;
 
-	while (pos <= stat.data.len) {
+	for (int i = 0; i < str_len; i++) {
+		str[i] = UpCase(str[i]);
+	}
+
+	while (pos <= max_pos) {
 		size_t word_pos = 0;
 		int16_t cmp_pos = pos;
 		do {
+#ifdef OOP_READ_CHAR_SIMPLE
+			oopChar = stat.data.data[cmp_pos++];
+#else
 			OopReadChar(stat, cmp_pos);
-			if (UpCase(str[word_pos]) != UpCase(oopChar)) {
+#endif
+			if (str[word_pos] != UpCase(oopChar)) {
 				goto NoMatch;
 			}
 			word_pos++;
@@ -690,7 +700,7 @@ ReadCommand:
 
 							do {
 								labelStat.data.data[labelDataPos + 1] = ':';
-								labelDataPos = OopFindString(labelStat, oopSearchStr);
+								labelDataPos = OopFindString(labelStat, labelDataPos + 1, oopSearchStr);
 							} while (labelDataPos > 0);
 						}
 					} else if (StrEquals(oopWord, "LOCK")) {

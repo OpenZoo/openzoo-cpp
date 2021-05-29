@@ -540,7 +540,10 @@ namespace ZZT {
         void OopSkipLine(Stat& stat, int16_t& position);
         bool OopParseDirection(Stat& stat, int16_t& position, int16_t& dx, int16_t& dy);
         void OopReadDirection(Stat& stat, int16_t& position, int16_t& dx, int16_t& dy);
-        int16_t OopFindString(Stat& stat, const char *str);
+        inline int16_t OopFindString(Stat& stat, char *str) {
+            return OopFindString(stat, 0, str);
+        }
+        int16_t OopFindString(Stat& stat, int16_t startPos, char *str);
         bool OopIterateStat(int16_t stat_id, int16_t &i_stat, const char *lookup);
         bool OopFindLabel(int16_t stat_id, const char *sendLabel, int16_t &i_stat, int16_t &i_data_pos, const char *labelPrefix);
         int16_t WorldGetFlagPosition(const char *name);
