@@ -282,8 +282,8 @@ void PSPDriver::get_video_size(int16_t &width, int16_t &height) {
 	height = 25;
 }
 
-PSPDriver::PSPDriver(void): soundSimulator(&_queue) {
-	soundSimulator.set_frequency(44100);
+PSPDriver::PSPDriver(void): soundSimulator(&_queue, 44100, false) {
+
 }
 
 void PSPDriver::install(void) {

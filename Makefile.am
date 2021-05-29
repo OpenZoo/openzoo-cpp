@@ -22,7 +22,8 @@ if DRIVER_SDL2
 openzoo_SOURCES += \
 	src/driver_sdl2.cpp \
 	src/filesystem_posix.cpp \
-	src/audio_simulator.cpp
+	src/audio_simulator.cpp \
+	src/audio_simulator_bandlimited.cpp
 endif
 
 if DRIVER_NULL

@@ -165,7 +165,7 @@ CharsetTexture* SDL2Driver::loadCharsetFromBytes(const uint8_t *buf, size_t len)
 
 uint32_t ZZT::pitTimerCallback(uint32_t interval, SDL2Driver *driver) {
     driver->timer_hsecs += (PIT_SPEED_MS) / 5;
-    driver->soundSimulator.allowed = driver->_queue.is_playing;
+    driver->soundSimulator->allowed = driver->_queue.is_playing;
 
     driver->wake(IMUntilPit);
     return PIT_SPEED_MS;
@@ -333,20 +333,22 @@ uint32_t ZZT::gameThread(Game *game) {
 
 void ZZT::audioCallback(SDL2Driver *driver, uint8_t *stream, int32_t len) {
     driver->sound_lock();
-    driver->soundSimulator.simulate(stream, len);
+    driver->soundSimulator->simulate(stream, len);
     driver->sound_unlock();
 }
 
-SDL2Driver::SDL2Driver(int width_chars, int height_chars): soundSimulator(&_queue) {
+SDL2Driver::SDL2Driver(int width_chars, int height_chars) {
     this->installed = false;
     this->width_chars = width_chars;
     this->height_chars = height_chars;
     this->screen_buffer = (uint8_t*) malloc(width_chars * height_chars * sizeof(uint8_t) * 2);
     this->screen_buffer_changed = (bool*) malloc(width_chars * height_chars * sizeof(bool) * 2);
     memset(this->screen_buffer_changed, 0, width_chars * height_chars * sizeof(bool) * 2);
+    this->soundSimulator = new AudioSimulatorBandlimited(&_queue, 48000, false);
 }
 
 SDL2Driver::~SDL2Driver() {
+    delete this->soundSimulator;
     free(this->screen_buffer_changed);
     free(this->screen_buffer);
 }
@@ -426,7 +428,7 @@ void SDL2Driver::install(void) {
         };
         audioDevice = SDL_OpenAudioDevice(nullptr, 0, &requestedAudioSpec, &audioSpec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
         if (audioDevice != 0) {
-            soundSimulator.set_frequency(audioSpec.freq);
+            soundSimulator->set_frequency(audioSpec.freq);
             SDL_PauseAudioDevice(audioDevice, 0);
         } else {
             fprintf(stderr, "[driver_sdl2] could not initialize audio device\n");
@@ -582,7 +584,7 @@ void SDL2Driver::update_input(void) {
 
 void SDL2Driver::sound_stop(void) {
     sound_lock();
-    soundSimulator.clear();
+    soundSimulator->clear();
     sound_unlock();
 }
 

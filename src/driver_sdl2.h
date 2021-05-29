@@ -4,6 +4,7 @@
 #include <cstdint>
 #include "driver.h"
 #include "audio_simulator.h"
+#include "audio_simulator_bandlimited.h"
 
 namespace ZZT {
     class Game;
@@ -63,7 +64,7 @@ namespace ZZT {
         void render_char_fg(int16_t x, int16_t y, bool blink);
 
         // audio
-        AudioSimulator soundSimulator;
+        AudioSimulator *soundSimulator;
         SDL_mutex *soundBufferMutex;
         SDL_AudioDeviceID audioDevice;
         SDL_AudioSpec audioSpec;

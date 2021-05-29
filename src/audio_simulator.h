@@ -7,7 +7,12 @@
 
 namespace ZZT {
     class AudioSimulator {
-    private:
+    protected:
+        uint8_t sample_min;
+        uint8_t sample_none;
+        uint8_t sample_max;
+
+        bool audio_signed;
         int audio_frequency;
         int samples_per_pit;
         int samples_per_drum;
@@ -19,13 +24,15 @@ namespace ZZT {
     
         uint32_t calc_jump(uint32_t targetNotePos, int32_t streamPos, int32_t streamLen);
         void jump_by(uint32_t amount, int32_t &streamPos);
-        void note_to(uint32_t targetNotePos, uint32_t frequency, uint8_t *stream, int32_t &streamPos, int32_t streamLen);
+        virtual void note_to(uint32_t targetNotePos, uint32_t frequency, uint8_t *stream, int32_t &streamPos, int32_t streamLen);
         void silence_to(uint32_t targetNotePos, uint8_t *stream, int32_t &streamPos, int32_t streamLen);
 
     public:
         bool allowed;
 
-        AudioSimulator(SoundQueue *queue);
+        AudioSimulator(SoundQueue *queue, int audio_frequency, bool audio_signed);
+        int volume() const;
+        void set_volume(int volume); /* 0 .. 127 */
         void set_frequency(int frequency);
         void clear(void);
         void simulate(uint8_t *stream, size_t len);

@@ -15,9 +15,6 @@ using namespace ZZT;
 
 #define PIT_DIVISOR 1193182
 #define SAMPLES_NOTE_DELAY 16
-#define AUDIO_MIN 64
-#define AUDIO_NONE 128
-#define AUDIO_MAX 192
 
 // longest sample would be 2640 * 256 = 675840 samples
 #define FIXED_SHIFT 9
@@ -54,9 +51,9 @@ void AudioSimulator::note_to(uint32_t targetNotePos, uint32_t frequency, uint8_t
         uint32_t samplePos = current_note_pos;
         for (uint32_t i = 0; i < iMax; i++, samplePos++) {
             if (fmod(samplePos, samplesPerChange) < (samplesPerChange / 2.0)) {
-                stream[streamPos + i] = AUDIO_MIN;
+                stream[streamPos + i] = sample_min;
             } else {
-                stream[streamPos + i] = AUDIO_MAX;
+                stream[streamPos + i] = sample_max;
             }
         }
 #else
@@ -71,19 +68,19 @@ void AudioSimulator::note_to(uint32_t targetNotePos, uint32_t frequency, uint8_t
             if (samplePos < (samplesPerChange >> 1)) {
                 if (samplePos < stepSize) {
                     // transition from max to min
-                    uint32_t trans_val = ((AUDIO_MAX * (stepSize - samplePos)) + (AUDIO_MIN * samplePos)) >> FIXED_SHIFT;
+                    uint32_t trans_val = ((sample_max * (stepSize - samplePos)) + (sample_min * samplePos)) >> FIXED_SHIFT;
                     stream[streamPos + i] = trans_val;
                 } else {
-                    stream[streamPos + i] = AUDIO_MIN;
+                    stream[streamPos + i] = sample_min;
                 }
             } else {
                 int midPos = samplePos - (samplesPerChange >> 1);
                 if (midPos < stepSize) {
                     // transition from min to max
-                    uint32_t trans_val = ((AUDIO_MIN * (stepSize - midPos)) + (AUDIO_MAX * midPos)) >> FIXED_SHIFT;
+                    uint32_t trans_val = ((sample_min * (stepSize - midPos)) + (sample_max * midPos)) >> FIXED_SHIFT;
                     stream[streamPos + i] = trans_val;
                 } else {
-                    stream[streamPos + i] = AUDIO_MAX;
+                    stream[streamPos + i] = sample_max;
                 }
             }
         }
@@ -97,21 +94,39 @@ void AudioSimulator::silence_to(uint32_t targetNotePos, uint8_t *stream, int32_t
     uint32_t iMax = calc_jump(targetNotePos, streamPos, streamLen);
     if (iMax > 0) {
         for (uint32_t i = 0; i < iMax; i++) {
-            stream[streamPos + i] = AUDIO_NONE;
+            stream[streamPos + i] = sample_none;
         }
     }
     jump_by(iMax, streamPos);
 }
 
-AudioSimulator::AudioSimulator(SoundQueue *queue) {
+AudioSimulator::AudioSimulator(SoundQueue *queue, int audio_frequency, bool audio_signed) {
     this->queue = queue;
     this->allowed = false;
+    this->audio_signed = audio_signed;
     clear();
-    set_frequency(48000);
+    set_volume(64);
+    set_frequency(audio_frequency);
 }
 
 void AudioSimulator::clear(void) {
     this->current_note = -1;
+}
+
+int AudioSimulator::volume(void) const {
+    return this->sample_none - this->sample_min;
+}
+
+void AudioSimulator::set_volume(int volume) {
+    this->sample_none = 128;
+    this->sample_min = 128 - volume;
+    this->sample_max = 128 + volume;
+
+    if (audio_signed) {
+        this->sample_min ^= 0x80;
+        this->sample_none ^= 0x80;
+        this->sample_max ^= 0x80;
+    }
 }
 
 void AudioSimulator::set_frequency(int frequency) {
@@ -123,7 +138,7 @@ void AudioSimulator::set_frequency(int frequency) {
 void AudioSimulator::simulate(uint8_t *stream, size_t len) {
     if (!queue->enabled || !queue->is_playing || !allowed) {
         current_note = -1;
-        memset(stream, AUDIO_NONE, len);
+        memset(stream, sample_none, len);
     } else {
         int32_t pos = 0;
         while (pos < len) {
@@ -131,7 +146,7 @@ void AudioSimulator::simulate(uint8_t *stream, size_t len) {
                 uint16_t note, duration;
                 if (!queue->pop(note, duration)) {
                     queue->is_playing = false;
-                    memset(stream + pos, AUDIO_NONE, len - pos);
+                    memset(stream + pos, sample_none, len - pos);
                     break;
                 } else {
                     current_note = note;
