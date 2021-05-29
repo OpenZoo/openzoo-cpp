@@ -1326,7 +1326,7 @@ const MenuEntry ZZT::TitleMenu[] = {
     {.id = 'A', .keys = {'A'}, .name = "About ZZT"},
     {.id = 'E', .keys = {'E'}, .name_func = menu_str_editor},
     {.id = 'S', .keys = {'S'}, .name = "Game speed"},
-    {.id = 'H', .keys = {'H'}, .name = "Help"},
+    {.id = 'H', .keys = {'H'}, .name = "High scores"},
     {.id = '|', .keys = {'|'}, .name = "Console command"},
     {.id = 'Q', .keys = {'Q', KeyEscape}, .name = "Quit ZZT"},
     {.id = -1}
