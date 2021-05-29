@@ -373,13 +373,13 @@ namespace ZZT {
         int16_t editor_category = 0;
         char editor_shortcut = '\0';
         sstring<20> name = "";
-        sstring<20> category_name = "";
-        sstring<20> p1_name = "";
-        sstring<20> p2_name = "";
-        sstring<20> param_bullet_type_name = "";
-        sstring<20> param_board_name = "";
-        sstring<20> param_direction_name = "";
-        sstring<20> param_text_name = "";
+        const char *category_name = "";
+        const char *p1_name = "";
+        const char *p2_name = "";
+        const char *param_bullet_type_name = "";
+        const char *param_board_name = "";
+        const char *param_direction_name = "";
+        const char *param_text_name = "";
         int16_t score_value = 0;
     };
     
