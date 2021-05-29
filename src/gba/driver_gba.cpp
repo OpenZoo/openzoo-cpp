@@ -25,6 +25,9 @@ extern u32 __rom_end__;
 
 // #define DEBUG_CONSOLE
 
+uint8_t ext_tile_memory[62 * 27 * sizeof(Tile)];
+uint8_t ext_stat_memory[153 * sizeof(Stat)];
+
 // sound logic
 
 static const SoundDrum *drum = nullptr;
@@ -102,7 +105,7 @@ static void vram_update_bgcnt(void) {
 }
 
 #define GET_VRAM_PTRS \
-	u16* tile_bg_ptr = (u16*) (MEM_VRAM + MAP_ADDR_OFFSET + ((x&1) << 11) + ((x>>1) << 1) + ((y + MAP_Y_OFFSET) << 6)); \
+	u16* tile_bg_ptr = (u16*) (MEM_VRAM + MAP_ADDR_OFFSET + ((x&1) << 11) + (x&(~1)) + ((y + MAP_Y_OFFSET) << 6)); \
 	u16* tile_fg_ptr = &tile_bg_ptr[1 << 11]
 
 GBA_CODE_IWRAM static void vram_write_char(int16_t x, int16_t y, uint8_t col, uint8_t chr) {

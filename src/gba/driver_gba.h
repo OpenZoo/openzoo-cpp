@@ -1,5 +1,5 @@
-#ifndef __DRIVER_NULL_H__
-#define __DRIVER_NULL_H__
+#ifndef __DRIVER_GBA_H__
+#define __DRIVER_GBA_H__
 
 #include <cstdint>
 #include "driver.h"

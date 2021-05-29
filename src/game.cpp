@@ -29,14 +29,83 @@ const uint8_t ZZT::LineChars[16] = {
     249, 208, 210, 186, 181, 188, 187, 185, 198, 200, 201, 204, 205, 202, 203, 206
 };
 
+#if defined(__GBA__) || defined(__NDS__)
+extern uint8_t ext_tile_memory[];
+extern uint8_t ext_stat_memory[];
+#endif
+
+// TileMap
+
+TileMap::TileMap(uint8_t _width, uint8_t _height)
+    : width(_width), height(_height) {
+#if defined(__GBA__) || defined(__NDS__)
+    if (width <= 60 && height <= 25) {
+        this->tiles = (Tile*) ext_tile_memory;
+    } else
+#endif
+    this->tiles = (Tile*) malloc((width + 2) * (height + 2) * sizeof(Tile));
+    memset(this->tiles, 0, (width + 2) * (height + 2) * sizeof(Tile));
+}
+
+TileMap::~TileMap() {
+#if defined(__GBA__) || defined(__NDS__)
+    if (width <= 60 && height <= 25) {} else
+#endif
+    free(this->tiles);
+}
+
+// StatList
+
+StatList::StatList(int16_t _size)
+    : size(_size) {
+#if defined(__GBA__) || defined(__NDS__)
+    if (size <= 150) {
+        this->stats = (Stat*) ext_stat_memory;
+    } else
+#endif
+    this->stats = (Stat*) malloc((size + 3) * sizeof(Stat));
+    memset(this->stats + 1, 0, (size + 2) * sizeof(Stat));
+
+    // set stat -1 to out of bounds values
+    this->stats[0] = {
+        .x = 0,
+        .y = 1,
+        .step_x = 256,
+        .step_y = 256,
+        .cycle = 256,
+        .p1 = 0,
+        .p2 = 1,
+        .p3 = 0,
+        .follower = 1,
+        .leader = 1,
+        .under = {
+            .element = 1,
+            .color = 0x00
+        },
+        .data = {
+            .len = 1
+        },
+        .data_pos = 1
+    };
+}
+
+StatList::~StatList() {
+    free_all_data();
+#if defined(__GBA__) || defined(__NDS__)
+    if (size <= 150) {} else
+#endif
+    free(this->stats);
+}
+
 // Board
 
-Board::Board() {
+Board::Board(uint8_t width, uint8_t height, int16_t stat_size)
+    : tiles(TileMap(width, height)), stats(StatList(stat_size)) {
 
 }
 
 Board::~Board() {
-    stats.free_all_data();
+    
 }
 
 // World
@@ -57,7 +126,7 @@ static Serializer *get_serializer(WorldFormat format) {
 }
 
 static void convert_board(const uint8_t *data, size_t data_len, WorldFormat from, WorldFormat to, bool destroyDataUponCompletion, uint8_t *&out_data, size_t &out_data_len) {
-    Board *board = new Board();
+    Board *board = new Board(60, 25, 150);
     Serializer *fromS = get_serializer(from);
     Serializer *toS = get_serializer(to);
 
@@ -183,6 +252,7 @@ void World::free_board(uint8_t bid) {
 // Game
 
 Game::Game(void):
+    board(60, 25, 150),
 #ifdef ROM_POINTERS
     world(WorldFormatInternal, WorldFormatInternal),
 #else

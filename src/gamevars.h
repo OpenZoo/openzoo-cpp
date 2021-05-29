@@ -200,68 +200,52 @@ namespace ZZT {
         bool is_save;
     };
 
-    template<int bwidth, int bheight>
     class TileMap {
-        Tile tiles[(bwidth + 2) * (bheight + 2)];
+        Tile *tiles;
         Tile empty = {.element = EBoardEdge, .color = 0x00};
 
     public:
+        const uint8_t width;
+        const uint8_t height;
+        
+        TileMap(uint8_t width, uint8_t height);
+        ~TileMap();
+
         bool valid(int16_t x, int16_t y) const {
-            return x >= 0 && y >= 0 && x <= (bwidth + 1) && y <= (bheight + 1);
+            return x >= 0 && y >= 0 && x <= (width + 1) && y <= (width + 1);
         }
 
         const Tile& get(int16_t x, int16_t y) const {
-            return valid(x, y) ? tiles[x * (bheight + 2) + y] : empty;
+            return valid(x, y) ? tiles[x * (height + 2) + y] : empty;
         }
 
         void set(int16_t x, int16_t y, Tile tile) {
             if (valid(x, y)) {
-                tiles[x * (bheight + 2) + y] = tile;
+                tiles[x * (height + 2) + y] = tile;
             }
         }
 
         void set_element(int16_t x, int16_t y, uint8_t element) {
             if (valid(x, y)) {
-                tiles[x * (bheight + 2) + y].element = element;
+                tiles[x * (height + 2) + y].element = element;
             }
         }
 
         void set_color(int16_t x, int16_t y, uint8_t color) {
             if (valid(x, y)) {
-                tiles[x * (bheight + 2) + y].color = color;
+                tiles[x * (height + 2) + y].color = color;
             }
         }
     };
 
-    template<size_t size>
     class StatList {
         // -1 .. size + 1 => size + 3 stats
-        Stat stats[size + 3];
+        int16_t size;
+        Stat *stats;
     
     public:
-        StatList() {
-            // set stat -1 to out of bounds values
-            stats[0] = {
-                .x = 0,
-                .y = 1,
-                .step_x = 256,
-                .step_y = 256,
-                .cycle = 256,
-                .p1 = 0,
-                .p2 = 1,
-                .p3 = 0,
-                .follower = 1,
-                .leader = 1,
-                .under = {
-                    .element = 1,
-                    .color = 0x00
-                },
-                .data = {
-                    .len = 1
-                },
-                .data_pos = 1
-            };
-        }
+        StatList(int16_t size);
+        ~StatList();
 
         int16_t count;
 
@@ -335,16 +319,16 @@ namespace ZZT {
 
     class Board {
     public:
-        Board();
+        Board(uint8_t width, uint8_t height, int16_t stat_size);
         ~Board();
 
         sstring<50> name;
-        TileMap<60, 25> tiles;
-        StatList<MAX_STAT> stats;
+        TileMap tiles;
+        StatList stats;
         BoardInfo info;
 
-        constexpr int width(void) { return 60; }
-        constexpr int height(void) { return 25; }
+        int width(void) { return tiles.width; }
+        int height(void) { return tiles.height; }
     };
 
     class World {
