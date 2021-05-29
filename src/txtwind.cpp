@@ -512,7 +512,7 @@ void TextWindow::OpenFile(const char *filename, bool errorIfMissing) {
                 Append(line);
                 lpos = 0;
                 StrClear(line);
-            } else {
+            } else if (c != '\n') {
                 if (lpos < StrSize(line)) {
                     line[lpos++] = c;
                 }
