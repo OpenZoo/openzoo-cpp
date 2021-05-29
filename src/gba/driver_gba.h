@@ -7,7 +7,6 @@
 
 namespace ZZT {
     class GBADriver: public Driver {
-        friend void irq_vcount(void);
         friend void irq_vblank(void);
         friend void irq_timer_pit(void);
 

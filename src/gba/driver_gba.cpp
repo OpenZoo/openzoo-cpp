@@ -46,7 +46,7 @@ static inline void gba_play_sound(uint16_t freq) {
 
 GBA_CODE_IWRAM
 static void irq_timer_drums(void) {
-	REG_IE |= (IRQ_VBLANK | IRQ_VCOUNT);
+	REG_IE |= (IRQ_VBLANK);
 	REG_IME = 1;
 
 	if (drum_pos < drum->len) {
@@ -71,6 +71,12 @@ static void irq_timer_drums(void) {
 #define MAP_Y_OFFSET 1
 #define MAP_ADDR_OFFSET 0x8000
 
+typedef struct {
+	uint16_t hofs0, vofs0, hofs1, vofs1, hofs2, vofs2, hofs3, vofs3;
+} hdma_ofs_t;
+
+static hdma_ofs_t hdma_offsets[160];
+
 static const u16 default_palette[] = {
 	0x0000,
 	0x5000,
@@ -90,7 +96,6 @@ static const u16 default_palette[] = {
 	0x7FFF
 };
 
-static uint16_t disp_y_offset;
 static bool blinking_enabled = false;
 static uint8_t blink_ticks;
 
@@ -194,23 +199,61 @@ static int platform_debug_free_memory(void) {
 	return info.fordblks + (fake_heap_end - (uint8_t*)sbrk(0));
 }
 
-GBA_CODE_IWRAM void ZZT::irq_vblank(void) {
-	disp_y_offset = /* (inst_state->game_state == GS_PLAY) */ 1
+static uint8_t last_hdma_offset = 0;
+
+#ifdef DEBUG_CONSOLE
+GBA_CODE_IWRAM
+#endif
+static void recalculate_hdma_offsets(bool debug) {
+#ifdef DEBUG_CONSOLE
+	uint8_t next_hdma_offset = debug ? 2 : 1;
+	if (next_hdma_offset == last_hdma_offset) {
+		return;
+	}
+	last_hdma_offset = next_hdma_offset;
+#endif
+	uint16_t disp_y_offset = /* (inst_state->game_state == GS_PLAY) */ 1
 		? ((FONT_HEIGHT * MAP_Y_OFFSET) - ((SCREEN_HEIGHT - (FONT_HEIGHT * 26)) / 2))
 		: ((FONT_HEIGHT * MAP_Y_OFFSET) - ((SCREEN_HEIGHT - (FONT_HEIGHT * 25)) / 2));
-	REG_DISPSTAT = DSTAT_VBL_IRQ | DSTAT_VCT_IRQ | DSTAT_VCT(FONT_HEIGHT - disp_y_offset);
+	if (debug) {
+		disp_y_offset = (8 * 31) - (8 * 26) + 2;
+	}
+	int next_vcount = FONT_HEIGHT - disp_y_offset;
+
+	for (int i = 0; i < 160; i++) {
+		if (i == next_vcount-1) {
+			disp_y_offset += (8 - FONT_HEIGHT);	
+			next_vcount += FONT_HEIGHT;	
+		}
+		hdma_offsets[i] = {
+			4, disp_y_offset, 0, disp_y_offset, 4, disp_y_offset, 0, disp_y_offset
+		};
+	}
+}
+
+GBA_CODE_IWRAM void ZZT::irq_vblank(void) {
+	REG_DMA0CNT = 0;
+	REG_BG0HOFS = 4;
+	REG_BG0VOFS = 0;
+	REG_BG1HOFS = 0;
+	REG_BG1VOFS = 0;
+	REG_BG2HOFS = 4;
+	REG_BG2VOFS = 0;
+	REG_BG3HOFS = 0;
+	REG_BG3VOFS = 0;
+	REG_DMA0SAD = (vu32) hdma_offsets;
+	REG_DMA0DAD = (vu32) &REG_BG0HOFS;
+	REG_DMA0CNT = DMA_AT_HBLANK | DMA_REPEAT | DMA_SRC_INC | DMA_DST_RELOAD | (sizeof(hdma_ofs_t) >> 2) | DMA_32 | DMA_ENABLE;
 
 #ifdef DEBUG_CONSOLE
 	if ((REG_KEYINPUT & KEY_R) == 0) {
-		disp_y_offset = (8 * 31) - (8 * 26) + 2;
-		REG_DISPSTAT = DSTAT_VBL_IRQ | DSTAT_VCT_IRQ | DSTAT_VCT(4);
+		recalculate_hdma_offsets(true);
+	} else {
+		recalculate_hdma_offsets(false);
 	}
 #endif
 
-	REG_BG0VOFS = disp_y_offset;
-	REG_BG1VOFS = disp_y_offset;
-	REG_BG2VOFS = disp_y_offset;
-	REG_BG3VOFS = disp_y_offset;
+	driver.update_joy();
 
 	if (blinking_enabled) {
 		if (((blink_ticks++) & 15) == 0) {
@@ -229,19 +272,6 @@ void zoo_video_gba_hide(void) {
 	REG_DISPCNT = DCNT_BLANK;
 }
 
-GBA_CODE_IWRAM void ZZT::irq_vcount(void) {
-	uint16_t next_vcount;
-	disp_y_offset += (8 - FONT_HEIGHT);
-	next_vcount = REG_VCOUNT + FONT_HEIGHT;
-	REG_DISPSTAT = DSTAT_VBL_IRQ | DSTAT_VCT_IRQ | DSTAT_VCT(next_vcount);
-	REG_BG0VOFS = disp_y_offset;
-	REG_BG1VOFS = disp_y_offset;
-	REG_BG2VOFS = disp_y_offset;
-	REG_BG3VOFS = disp_y_offset;
-
-	driver.update_joy();
-}
-
 void zoo_video_gba_show(void) {
 	VBlankIntrWait();
 	REG_DISPCNT = DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3;
@@ -255,7 +285,7 @@ void zoo_video_gba_set_blinking(bool val) {
 // timer code
 
 GBA_CODE_IWRAM void ZZT::irq_timer_pit(void) {
-	REG_IE |= (IRQ_VBLANK | IRQ_VCOUNT);
+	REG_IE |= (IRQ_VBLANK);
 	REG_IME = 1;
 
 	hsecs += 11;
@@ -287,8 +317,9 @@ GBA_CODE_IWRAM void ZZT::irq_timer_pit(void) {
 #define dbg_ticks() (REG_TM2CNT_L | (REG_TM3CNT_L << 16))
 
 void zoo_video_gba_install(const uint8_t *charset_bin) {
+	recalculate_hdma_offsets(false);
+
 	// add interrupts
-	irq_add(II_VCOUNT, irq_vcount);
 	irq_add(II_VBLANK, irq_vblank);
 	
 	// load 4x6 charset
@@ -319,14 +350,6 @@ void zoo_video_gba_install(const uint8_t *charset_bin) {
 
 	// initialize background registers
 	vram_update_bgcnt();
-	REG_BG0HOFS = 4;
-	REG_BG0VOFS = 0;
-	REG_BG1HOFS = 0;
-	REG_BG1VOFS = 0;
-	REG_BG2HOFS = 4;
-	REG_BG2VOFS = 0;
-	REG_BG3HOFS = 0;
-	REG_BG3VOFS = 0;
 
 	// clear display
 	memset32((void*) (MEM_VRAM + MAP_ADDR_OFFSET), 0x00000000, 64 * 32 * 2);

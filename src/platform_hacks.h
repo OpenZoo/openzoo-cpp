@@ -3,8 +3,10 @@
 
 #ifdef __GBA__
 #define GBA_CODE_IWRAM __attribute__((section(".iwram"), long_call, target("arm")))
+#define GBA_DATA_IWRAM __attribute__((section(".iwram")))
 #else
 #define GBA_CODE_IWRAM
+#define GBA_DATA_IWRAM
 #endif
 
 #endif
