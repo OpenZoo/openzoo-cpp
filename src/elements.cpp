@@ -241,15 +241,12 @@ void ElementCentipedeHeadTick(Game &game, int16_t stat_id) {
 
             if (it.follower > 0) {
                 Stat& follower = game.board.stats[it.follower];
-                // OpenZoo: Tim's Super ZZT centipede fixes.
-                if (game.board.tiles.get(follower.x, follower.y).element == ECentipedeSegment) {
-                    follower.leader = stat_id;
-                    follower.p1 = it.p1;
-                    follower.p2 = it.p2;
-                    follower.step_x = tx - follower.x;
-                    follower.step_y = ty - follower.y;
-                    game.MoveStat(it.follower, tx, ty);
-                }
+                follower.leader = stat_id;
+                follower.p1 = it.p1;
+                follower.p2 = it.p2;
+                follower.step_x = tx - follower.x;
+                follower.step_y = ty - follower.y;
+                game.MoveStat(it.follower, tx, ty);
             }
 
             stat_id = it.follower;
