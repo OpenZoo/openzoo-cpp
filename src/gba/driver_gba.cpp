@@ -201,9 +201,6 @@ static int platform_debug_free_memory(void) {
 
 static uint8_t last_hdma_offset = 0;
 
-#ifdef DEBUG_CONSOLE
-GBA_CODE_IWRAM
-#endif
 static void recalculate_hdma_offsets(bool debug) {
 #ifdef DEBUG_CONSOLE
 	uint8_t next_hdma_offset = debug ? 2 : 1;
@@ -215,10 +212,11 @@ static void recalculate_hdma_offsets(bool debug) {
 	uint16_t disp_y_offset = /* (inst_state->game_state == GS_PLAY) */ 1
 		? ((FONT_HEIGHT * MAP_Y_OFFSET) - ((SCREEN_HEIGHT - (FONT_HEIGHT * 26)) / 2))
 		: ((FONT_HEIGHT * MAP_Y_OFFSET) - ((SCREEN_HEIGHT - (FONT_HEIGHT * 25)) / 2));
-	if (debug) {
-		disp_y_offset = (8 * 31) - (8 * 26) + 2;
-	}
 	int next_vcount = FONT_HEIGHT - disp_y_offset;
+	if (debug) {
+		disp_y_offset = (8 * 31) - (8 * 26) + 1;
+		next_vcount = 5;
+	}
 
 	for (int i = 0; i < 160; i++) {
 		if (i == next_vcount-1) {
