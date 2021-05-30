@@ -182,7 +182,7 @@ namespace ZZT {
         }
 
         /* VIDEO */
-        bool monochrome;
+        virtual bool is_monochrome(void) { return false; }
 
         // required
         virtual void draw_char(int16_t x, int16_t y, uint8_t col, uint8_t chr) = 0;

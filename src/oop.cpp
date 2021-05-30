@@ -7,6 +7,10 @@
 
 using namespace ZZT;
 
+static inline uint8_t& stat_lock(Stat& stat, Game& game) {
+	return game.engineDefinition.is(QUIRK_OOP_SUPER_ZZT_MOVEMENT) ? stat.p3 : stat.p2;
+}
+
 void Game::OopError(Stat& stat, const char *message) {
 	char text[256];
 	StrJoin(text, 2, "ERR: ", message);
@@ -478,19 +482,22 @@ bool Game::OopSend(int16_t stat_id, const char *sendLabel, bool ignoreLock) {
 
 	while (OopFindLabel(stat_id, sendLabel, i_stat_id, i_data_pos, "\r:")) {
 		Stat &i_stat = board.stats[i_stat_id];
-		if ((i_stat.p2 == 0) || ignoreLock || ((stat_id == i_stat_id) && !ignoreSelfLock)) {
+		if ((stat_lock(i_stat, *this) == 0) || ignoreLock || ((stat_id == i_stat_id) && !ignoreSelfLock)) {
 			if (i_stat_id == stat_id) {
 				result = true;
 			}
 
 			i_stat.data_pos = i_data_pos;
+			if (engineDefinition.is(QUIRK_OOP_SUPER_ZZT_MOVEMENT)) {
+				i_stat.p2 = 0;
+			}
 		}
 	}
 
 	return result;
 }
 
-void Game::OopExecute(int16_t stat_id, int16_t &position, const char *default_name) {
+bool Game::OopExecute(int16_t stat_id, int16_t &position, const char *default_name) {
 StartParsing:
 	TextWindow *textWindow = nullptr;
 	bool stopRunning = false;
@@ -524,28 +531,42 @@ ReadInstruction:
 				OopSkipLine(stat, position);
 			} break;
 			case '/':
-				repeatInsNextTick = true;
 			case '?': {
 				int16_t deltaX, deltaY;
+				bool is_try = (oopChar == '?');
+				if (engineDefinition.isNot(QUIRK_OOP_SUPER_ZZT_MOVEMENT)) {
+					repeatInsNextTick = !is_try;
+				}
 
 				OopReadWord(stat, position);
 				if (OopParseDirection(stat, position, deltaX, deltaY)) {
-					if (deltaX != 0 || deltaY != 0) {
-						int16_t destX = stat.x + deltaX;
-						int16_t destY = stat.y + deltaY;
-						if (!elementDefAt(destX, destY).walkable) {
-							ElementPushablePush(*this, destX, destY, deltaX, deltaY);
-						}
+					if (engineDefinition.is(QUIRK_OOP_SUPER_ZZT_MOVEMENT)) {
+						// Super ZZT movement logic
+						OopReadValue(stat, position);
+						if (oopValue < 0) oopValue = 1;
 
-						destX = stat.x + deltaX;
-						destY = stat.y + deltaY;					
+						stat.step_x = deltaX;
+						stat.step_y = deltaY;
+						stat.p2 = is_try ? -oopValue : oopValue;
+					} else {
+						// ZZT movement logic
+						if (deltaX != 0 || deltaY != 0) {
+							int16_t destX = stat.x + deltaX;
+							int16_t destY = stat.y + deltaY;
+							if (!elementDefAt(destX, destY).walkable) {
+								ElementPushablePush(*this, destX, destY, deltaX, deltaY);
+							}
 
-						if (elementDefAt(destX, destY).walkable) {
-							MoveStat(stat_id, destX, destY);
+							destX = stat.x + deltaX;
+							destY = stat.y + deltaY;
+
+							if (elementDefAt(destX, destY).walkable) {
+								MoveStat(stat_id, destX, destY);
+								repeatInsNextTick = false;
+							}
+						} else {
 							repeatInsNextTick = false;
 						}
-					} else {
-						repeatInsNextTick = false;
 					}
 
 					OopReadChar(stat, position);
@@ -653,6 +674,8 @@ ReadCommand:
 							counterPtr = &world.info.score;
 						} else if (StrEquals(oopWord, "TIME")) {
 							counterPtr = &world.info.board_time_sec;
+						} else if (engineDefinition.is(QUIRK_SUPER_ZZT_STONES_OF_POWER) && StrEquals(oopWord, "Z")) {
+							counterPtr = &world.info.stones_of_power;
 						}
 
 						if (counterPtr != nullptr) {
@@ -711,9 +734,9 @@ ReadCommand:
 							} while (labelDataPos > 0);
 						}
 					} else if (StrEquals(oopWord, "LOCK")) {
-						stat.p2 = 1;
+						stat_lock(stat, *this) = 1;
 					} else if (StrEquals(oopWord, "UNLOCK")) {
-						stat.p2 = 0;
+						stat_lock(stat, *this) = 0;
 					} else if (StrEquals(oopWord, "SEND")) {
 						OopReadWord(stat, position);
 						// state->oop_word is used by OopIterateStat
@@ -900,7 +923,11 @@ ReadCommand:
 	if (replaceStat) {
 		int16_t ix = stat.x;
 		int16_t iy = stat.y;
-		DamageStat(stat_id);
+		if (engineDefinition.isNot(QUIRK_SUPER_ZZT_COMPAT_MISC)) {
+			DamageStat(stat_id);
+		}
 		OopPlaceTile(ix, iy, replaceTile);
 	}
+
+	return replaceStat;
 }

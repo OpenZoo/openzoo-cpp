@@ -28,6 +28,10 @@ const uint8_t ZZT::LineChars[16] = {
     249, 208, 210, 186, 181, 188, 187, 185, 198, 200, 201, 204, 205, 202, 203, 206
 };
 
+const uint8_t ZZT::WebChars[16] = {
+    250, 179, 179, 179, 196, 217, 191, 180, 196, 192, 218, 195, 196, 193, 194, 197
+};
+
 #if defined(__GBA__) || defined(__NDS__)
 extern uint8_t ext_tile_memory[];
 extern uint8_t ext_stat_memory[];
@@ -257,6 +261,30 @@ void World::free_board(uint8_t bid) {
     }
 }
 
+// Viewport
+
+bool Viewport::set(int16_t nx, int16_t ny) {
+    if (x != nx || y != ny) {
+        x = nx;
+        y = ny;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool Viewport::point_at(Board &board, int16_t sx, int16_t sy) {
+    int16_t nx = sx - (width >> 1);
+    int16_t ny = sy - (height >> 1);
+
+    if (nx < 0) nx = 0;
+    else if (nx > (board.width() - width)) nx = board.width() - width;
+    if (ny < 0) ny = 0;
+    else if (ny > (board.height() - height)) ny = board.height() - height;
+
+    return set(nx, ny);
+}
+
 // Game
 
 Game::Game(void):
@@ -451,7 +479,7 @@ void Game::BoardDrawTile(int16_t x, int16_t y) {
         } else {
             if (tile.element == ETextWhite) {
                 driver->draw_char(x - 1, y - 1, 0x0F, tile.color);
-            } else if (driver->monochrome) {
+            } else if (driver->is_monochrome()) {
                 driver->draw_char(x - 1, y - 1, ((tile.element - ETextBlue + 1) << 4), tile.color);
             } else {
                 driver->draw_char(x - 1, y - 1, ((tile.element - ETextBlue + 1) << 4) | 0x0F, tile.color);

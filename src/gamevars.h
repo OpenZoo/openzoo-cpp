@@ -93,6 +93,9 @@ namespace ZZT {
         ElementCount
     } ElementType;
 
+// TODO: SZZT placeholders
+#define EWeb ElementCount
+
     static constexpr const uint8_t ColorSpecialMin = 0xF0;
     static constexpr const uint8_t ColorChoiceOnBlack = 0xFF;
     static constexpr const uint8_t ColorWhiteOnChoice = 0xFE;
@@ -200,6 +203,9 @@ namespace ZZT {
         int16_t board_time_sec;
         int16_t board_time_hsec;
         bool is_save;
+
+        // Super ZZT
+        int16_t stones_of_power;
     };
 
     class TileMap {
@@ -416,15 +422,30 @@ namespace ZZT {
     void ElementPushablePush(Game &game, int16_t x, int16_t y, int16_t delta_x, int16_t delta_y);
 
     enum EngineQuirk {
-        QUIRK_PASSAGE_SENDS_ENTER, // Super ZZT
         QUIRK_BULLET_DRAWTILE_FIX, // Super ZZT
-        QUIRK_PLAYER_BGCOLOR_FROM_FLOOR, // Super ZZT
-        QUIRK_OOP_LENIENT_COLOR_MATCHES, // Super ZZT
+        QUIRK_BOARD_EDGE_TOUCH_DESINATION_FIX, // Super ZZT
         QUIRK_CENTIPEDE_EXTRA_CHECKS, // Super ZZT
+        QUIRK_CONNECTION_DRAWING_CHECKS_UNDER_STAT, // Super ZZT
+        QUIRK_OOP_LENIENT_COLOR_MATCHES, // Super ZZT
+        QUIRK_OOP_SUPER_ZZT_MOVEMENT, // Super ZZT (also moves locking to P3)
+        QUIRK_BOARD_CHANGE_SENDS_ENTER, // Super ZZT
+        QUIRK_PLAYER_BGCOLOR_FROM_FLOOR, // Super ZZT
+        QUIRK_SUPER_ZZT_STONES_OF_POWER, // Super ZZT - affects OOP #GIVE/#TAKE
+        QUIRK_SUPER_ZZT_COMPAT_MISC, // Super ZZT - assorted
         EngineQuirkCount  
     };
 
-    // TODO
+    class Viewport {
+    public:
+        int16_t x, y, width, height;
+
+        bool set(int16_t nx, int16_t ny);
+        bool point_at(Board& board, int16_t sx, int16_t sy);
+        bool point_at(Board& board, Stat& stat) {
+            return point_at(board, stat.x, stat.y);
+        }
+    };
+
     class EngineDefinition {
     public:
         QuirkSet<EngineQuirk, EngineQuirkCount> quirks;
@@ -442,6 +463,22 @@ namespace ZZT {
         inline const ElementDef& elementDef(uint8_t element) const {
             return elementDefs[element >= elementCount ? EEmpty : element];
         }
+    };
+
+    class OopState {
+    public:
+        Game *game;
+        Stat *stat;
+
+        TextWindow *textWindow;
+        bool stopRunning;
+        bool repeatInsNextTick;
+        bool replaceStat;
+        bool endOfProgram;
+        bool lineFinished;
+        int16_t insCount;
+        int16_t lastPosition;
+        Tile replaceTile;
     };
 
     class Game {
@@ -609,7 +646,7 @@ namespace ZZT {
         bool OopCheckCondition(Stat &stat, int16_t &position);
         void OopReadLineToEnd(Stat &stat, int16_t &position, char *buf, size_t len);
         bool OopSend(int16_t stat_id, const char *sendLabel, bool ignoreLock);
-        void OopExecute(int16_t stat_id, int16_t &position, const char *name);
+        bool OopExecute(int16_t stat_id, int16_t &position, const char *name);
 
         // sounds.cpp
         bool HasTimeElapsed(int16_t &counter, int16_t duration);
@@ -624,6 +661,7 @@ namespace ZZT {
     extern const int16_t NeighborDeltaX[4];
     extern const int16_t NeighborDeltaY[4];
     extern const uint8_t LineChars[16];
+    extern const uint8_t WebChars[16];
 
     extern const MenuEntry TitleMenu[];
     extern const MenuEntry PlayMenu[];

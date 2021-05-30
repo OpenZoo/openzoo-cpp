@@ -26,11 +26,6 @@ Driver::Driver(void) {
     joy_buttons_pressed_new = 0;
     joy_repeat_hsecs_delay = 25;
     joy_repeat_hsecs_delay_next = 4;
-
-    /* SOUND/TIMER */
-
-    /* VIDEO */
-    monochrome = false;
 }
 
 /* INPUT */
