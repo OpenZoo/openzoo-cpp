@@ -384,6 +384,7 @@ void GBADriver::install(void) {
 	REG_SOUNDCNT_X = SSTAT_ENABLE;
 	REG_SOUNDCNT_L = SDMG_LVOL(7) | SDMG_RVOL(7) | SDMG_LSQR2 | SDMG_RSQR2;
 	REG_SOUNDCNT_H = SDS_DMG100;
+	REG_SOUNDBIAS = 0xC200;
 	irq_add(II_TIMER1, (fnptr) irq_timer_drums);
 
 	// init pit
