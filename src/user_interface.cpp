@@ -170,7 +170,7 @@ void UserInterface::SidebarGameDraw(Game &game, uint32_t flags) {
         SidebarClearLine(1);
         SidebarClearLine(2);
         driver->draw_string(61, 0, 0x1F, "    - - - - -      ");
-        driver->draw_string(62, 1, 0x70, "      ZZT      ");
+        driver->draw_string(62, 1, 0x70, "      ZZT*     ");
         driver->draw_string(61, 2, 0x1F, "    - - - - -      ");
         if (game.gameStateElement == EPlayer) {
             driver->draw_string(64, 7, 0x1E,  " Health:");
