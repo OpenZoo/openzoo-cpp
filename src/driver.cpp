@@ -328,6 +328,23 @@ uint8_t col, chr;
     }
 }
 
+void Driver::scroll_chars(int x, int y, int width, int height, int deltaX, int deltaY) {
+    if (Abs(deltaX) >= width || Abs(deltaY) >= height) {
+        return;
+    }
+    int copy_width = width - Abs(deltaX);
+    int copy_height = height - Abs(deltaY);
+    int from_x = (deltaX < 0) ? (x - deltaX) : x;
+    int from_y = (deltaY < 0) ? (y - deltaY) : y;
+    int to_x = (deltaX < 0) ? x : (x + deltaX);
+    int to_y = (deltaY < 0) ? y : (y + deltaY);
+    // TODO: optimize
+    VideoCopy *copy = new VideoCopy(copy_width, copy_height);
+    copy_chars(*copy, from_x, from_y, copy_width, copy_height, 0, 0);
+    paste_chars(*copy, 0, 0, copy_width, copy_height, to_x, to_y);
+    delete copy;
+}
+
 bool Driver::set_video_size(int16_t width, int16_t height, bool simulate) {
     return false;
 }

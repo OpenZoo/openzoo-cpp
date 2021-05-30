@@ -1279,6 +1279,7 @@ static void ElementBoardEdgeTouch(Game &game, int16_t x, int16_t y, int16_t sour
                 game.MoveStat(0, entry_x, entry_y);
             }
 
+            game.BoardUpdateDrawOffset();
             game.TransitionDrawBoardChange();
             delta_x = 0;
             delta_y = 0;

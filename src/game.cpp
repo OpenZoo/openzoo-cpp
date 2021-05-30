@@ -266,9 +266,9 @@ void World::free_board(uint8_t bid) {
 // Viewport
 
 bool Viewport::set(int16_t nx, int16_t ny) {
-    if (x != nx || y != ny) {
-        x = nx;
-        y = ny;
+    if (cx_offset != nx || cy_offset != ny) {
+        cx_offset = nx;
+        cy_offset = ny;
         return true;
     } else {
         return false;
@@ -276,8 +276,8 @@ bool Viewport::set(int16_t nx, int16_t ny) {
 }
 
 bool Viewport::point_at(Board &board, int16_t sx, int16_t sy) {
-    int16_t nx = sx - (width >> 1);
-    int16_t ny = sy - (height >> 1);
+    int16_t nx = (sx - 1) - (width >> 1);
+    int16_t ny = (sy - 1) - (height >> 1);
 
     if (nx < 0) nx = 0;
     else if (nx > (board.width() - width)) nx = board.width() - width;
@@ -291,6 +291,7 @@ bool Viewport::point_at(Board &board, int16_t sx, int16_t sy) {
 
 Game::Game(void):
     board(60, 25, 150),
+    viewport(0, 0, 60, 25),
 #ifdef ROM_POINTERS
     world(WorldFormatInternal, WorldFormatInternal, 100),
 #else
@@ -420,6 +421,8 @@ void Game::BoardCreate(void) {
     board.stats[0].x = playerX;
     board.stats[0].y = playerY;
     board.stats[0].cycle = 1;
+
+    BoardUpdateDrawOffset();
 }
 
 void Game::WorldCreate(void) {
@@ -461,6 +464,8 @@ void Game::TransitionDrawToFill(uint8_t chr, uint8_t color) {
 
 void Game::BoardDrawTile(int16_t x, int16_t y) {
     Tile tile = board.tiles.get(x, y);
+    uint8_t drawn_char, drawn_color;
+
     if (!board.info.is_dark
         || elementDef(tile.element).visible_in_dark
         || (
@@ -469,28 +474,44 @@ void Game::BoardDrawTile(int16_t x, int16_t y) {
         ) || forceDarknessOff
     ) {
         if (tile.element == EEmpty) {
-            driver->draw_char(x - 1, y - 1, 0x0F, ' ');
+            drawn_color = 0x0F;
+            drawn_char = ' ';
         } else if (elementDef(tile.element).has_draw_proc) {
-            uint8_t ch;
-            elementDef(tile.element).draw(*this, x, y, ch);
-            driver->draw_char(x - 1, y - 1, tile.color, ch);
+            drawn_color = tile.color;
+            elementDef(tile.element).draw(*this, x, y, drawn_char);
         } else if (tile.element < ETextBlue) {
-            uint8_t ch = elementCharOverrides[tile.element];
-            if (ch == 0) ch = elementDef(tile.element).character;
-            driver->draw_char(x - 1, y - 1, tile.color, ch);
+            drawn_color = tile.color;
+            drawn_char = elementCharOverrides[tile.element];
+            if (drawn_char == 0) drawn_char = elementDef(tile.element).character;
         } else {
+            drawn_char = tile.color;
             if (tile.element == ETextWhite) {
-                driver->draw_char(x - 1, y - 1, 0x0F, tile.color);
+                drawn_color = 0x0F;
             } else if (driver->is_monochrome()) {
-                driver->draw_char(x - 1, y - 1, ((tile.element - ETextBlue + 1) << 4), tile.color);
+                drawn_color = ((tile.element - ETextBlue + 1) << 4);
             } else {
-                driver->draw_char(x - 1, y - 1, ((tile.element - ETextBlue + 1) << 4) | 0x0F, tile.color);
+                drawn_color = ((tile.element - ETextBlue + 1) << 4) | 0x0F;
             }
         }
     } else {
         // darkness
-        driver->draw_char(x - 1, y - 1, 0x07, 176);
+        drawn_color = 0x07;
+        drawn_char = 176;
     }
+
+    BoardDrawChar(x, y, drawn_color, drawn_char);
+}
+
+void Game::BoardDrawChar(int16_t x, int16_t y, uint8_t drawn_color, uint8_t drawn_char) {
+    int16_t x_pos = x - 1 - viewport.cx_offset;
+    int16_t y_pos = y - 1 - viewport.cy_offset;
+    if (x_pos >= 0 && y_pos >= 0 && x_pos < viewport.width && y_pos < viewport.height) {
+        driver->draw_char(x_pos + viewport.x, y_pos + viewport.y, drawn_color, drawn_char);
+    }
+}
+
+bool Game::BoardUpdateDrawOffset(void) {
+    return viewport.point_at(board, board.stats[0]);
 }
 
 void Game::BoardDrawBorder(void) {
@@ -886,6 +907,32 @@ void Game::MoveStat(int16_t stat_id, int16_t newX, int16_t newY) {
     stat.x = newX;
     stat.y = newY;
 
+    if (stat_id == 0) {
+        // TODO: More accurate Super ZZT behaviour
+        int16_t old_cx_offset = viewport.cx_offset;
+        int16_t old_cy_offset = viewport.cy_offset;
+        if (BoardUpdateDrawOffset()) {
+            int deltaX = old_cx_offset - viewport.cx_offset;
+            int deltaY = old_cy_offset - viewport.cy_offset;
+            if ((Abs(deltaX) + Abs(deltaY)) == 1) {
+                driver->scroll_chars(viewport.x, viewport.y, viewport.width, viewport.height, deltaX, deltaY);
+                if (deltaX == 0) {
+                    int y_pos = ((deltaY > 0) ? viewport.cy_offset : (viewport.cy_offset + viewport.height - 1)) + 1;
+                    for (int i = 0; i < viewport.width; i++) {
+                        BoardDrawTile(viewport.cx_offset + i + 1, y_pos);
+                    }
+                } else {
+                    int x_pos = ((deltaX > 0) ? viewport.cx_offset : (viewport.cx_offset + viewport.width - 1)) + 1;
+                    for (int i = 0; i < viewport.height; i++) {
+                        BoardDrawTile(x_pos, viewport.cy_offset + i + 1);
+                    }
+                }
+            } else {
+                TransitionDrawToBoard();
+            }
+        }
+    }
+
     BoardDrawTile(stat.x, stat.y);
     BoardDrawTile(oldX, oldY);
 
@@ -1134,6 +1181,7 @@ void Game::BoardPassageTeleport(int16_t x, int16_t y) {
 		"\x32\x01\x36\x01\x39\x01"
 		"\x33\x01\x37\x01\x3A\x01"
 		"\x34\x01\x38\x01\x40\x01");
+    BoardUpdateDrawOffset();
     TransitionDrawBoardChange();
     BoardEnter();
 }
@@ -1221,6 +1269,8 @@ void Game::GamePlayLoop(bool boardChanged) {
         interface->SidebarShowMessage(0x0B, "Pick a command:", false);
     }
 
+    BoardUpdateDrawOffset();
+
     if (boardChanged) {
         TransitionDrawBoardChange();
     }
@@ -1240,10 +1290,10 @@ void Game::GamePlayLoop(bool boardChanged) {
             }
 
             if (pauseBlink) {
-                driver->draw_char(player.x - 1, player.y - 1, elementDef(EPlayer).color, elementDef(EPlayer).character);
+                BoardDrawChar(player.x, player.y, elementDef(EPlayer).color, elementDef(EPlayer).character);
             } else {
                 if (board.tiles.get(player.x, player.y).element == EPlayer) {
-                    driver->draw_char(player.x - 1, player.y - 1, 0x0F, ' ');
+                    BoardDrawChar(player.x, player.y, 0x0F, ' ');
                 } else {
                     BoardDrawTile(player.x, player.y);
                 }

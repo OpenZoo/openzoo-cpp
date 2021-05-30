@@ -437,7 +437,10 @@ namespace ZZT {
 
     class Viewport {
     public:
-        int16_t x, y, width, height;
+        int16_t cx_offset, cy_offset, x, y, width, height;
+
+        Viewport(int16_t _x, int16_t _y, int16_t _width, int16_t _height)
+            : x(_x), y(_y), width(_width), height(_height) { }
 
         bool set(int16_t nx, int16_t ny);
         bool point_at(Board& board, int16_t sx, int16_t sy);
@@ -518,6 +521,7 @@ namespace ZZT {
         uint8_t tickSpeed;
 
         EngineDefinition engineDefinition;
+        Viewport viewport;
 
         // TODO: move to EngineDefinition
         uint8_t elementCharOverrides[MAX_ELEMENT];
@@ -590,6 +594,8 @@ namespace ZZT {
         void WorldCreate(void);
         void TransitionDrawToFill(uint8_t chr, uint8_t color);
         void BoardDrawTile(int16_t x, int16_t y);
+        void BoardDrawChar(int16_t x, int16_t y, uint8_t drawn_color, uint8_t drawn_char);
+        bool BoardUpdateDrawOffset(void);
         void BoardDrawBorder(void);
         void TransitionDrawToBoard(void);
         void SidebarPromptCharacter(bool editable, int16_t x, int16_t y, const char *prompt, uint8_t &value);
