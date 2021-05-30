@@ -240,12 +240,15 @@ void ElementCentipedeHeadTick(Game &game, int16_t stat_id) {
 
             if (it.follower > 0) {
                 Stat& follower = game.board.stats[it.follower];
-                follower.leader = stat_id;
-                follower.p1 = it.p1;
-                follower.p2 = it.p2;
-                follower.step_x = tx - follower.x;
-                follower.step_y = ty - follower.y;
-                game.MoveStat(it.follower, tx, ty);
+                if (game.engineDefinition.isNot(QUIRK_CENTIPEDE_EXTRA_CHECKS)
+                    || game.board.tiles.get(follower.x, follower.y).element == ECentipedeSegment) {
+                    follower.leader = stat_id;
+                    follower.p1 = it.p1;
+                    follower.p2 = it.p2;
+                    follower.step_x = tx - follower.x;
+                    follower.step_y = ty - follower.y;
+                    game.MoveStat(it.follower, tx, ty);
+                }
             }
 
             stat_id = it.follower;
@@ -295,6 +298,9 @@ TryMove:
                 game.GameUpdateSidebar();
             }
             game.BoardAttack(stat_id, ix, iy);
+            if (game.engineDefinition.is(QUIRK_BULLET_DRAWTILE_FIX)) {
+                game.BoardDrawTile(ix, iy);
+            }
             return;
         }
 
@@ -975,7 +981,7 @@ void ElementPassageTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_i
     delta_x = 0;
     delta_y = 0;
 
-    if (game.engineDefinition.is(PASSAGE_SENDS_ENTER)) {
+    if (game.engineDefinition.is(QUIRK_PASSAGE_SENDS_ENTER)) {
         game.OopSend(0, "ALL:ENTER", false);
     }
 }

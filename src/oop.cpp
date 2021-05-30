@@ -365,7 +365,9 @@ uint8_t Game::GetColorForTileMatch(const Tile &tile) {
 }
 
 GBA_CODE_IWRAM
-bool Game::FindTileOnBoard(int16_t &x, int16_t &y, Tile tile) {
+bool Game::FindTileOnBoard(int16_t &x, int16_t &y, Tile tile) {	
+	bool lenient = engineDefinition.is(QUIRK_OOP_LENIENT_COLOR_MATCHES);
+
 	while (true) {
 		x++;
 		if (x > board.width()) {
@@ -378,8 +380,14 @@ bool Game::FindTileOnBoard(int16_t &x, int16_t &y, Tile tile) {
 
 		Tile found = board.tiles.get(x, y);
 		if (found.element == tile.element) {
-			if (tile.color == 0 || GetColorForTileMatch(found) == tile.color) {
-				return true;
+			if (!lenient) {
+				if (tile.color == 0 || GetColorForTileMatch(found) == tile.color) {
+					return true;
+				}
+			} else {
+				if (tile.color == 0 || (GetColorForTileMatch(found) & 0x07) == (tile.color & 0x07)) {
+					return true;
+				}
 			}
 		}
 	}

@@ -839,7 +839,7 @@ void Game::MoveStat(int16_t stat_id, int16_t newX, int16_t newY) {
     const Tile& curTile = board.tiles.get(stat.x, stat.y);
     Tile newTile = curTile;
 
-    if (curTile.element == EPlayer) {
+    if (curTile.element == EPlayer && engineDefinition.isNot(QUIRK_PLAYER_BGCOLOR_FROM_FLOOR)) {
         // ignore color change
     } else if (stat.under.element == EEmpty) {
         newTile.color &= 0xF; // strip background color

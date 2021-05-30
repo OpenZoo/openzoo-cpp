@@ -416,8 +416,12 @@ namespace ZZT {
     void ElementPushablePush(Game &game, int16_t x, int16_t y, int16_t delta_x, int16_t delta_y);
 
     enum EngineQuirk {
-        PASSAGE_SENDS_ENTER,
-        EngineQuirkCount
+        QUIRK_PASSAGE_SENDS_ENTER, // Super ZZT
+        QUIRK_BULLET_DRAWTILE_FIX, // Super ZZT
+        QUIRK_PLAYER_BGCOLOR_FROM_FLOOR, // Super ZZT
+        QUIRK_OOP_LENIENT_COLOR_MATCHES, // Super ZZT
+        QUIRK_CENTIPEDE_EXTRA_CHECKS, // Super ZZT
+        EngineQuirkCount  
     };
 
     // TODO
@@ -431,6 +435,10 @@ namespace ZZT {
             return quirks.is(quirk);
         }
 
+        inline const bool isNot(EngineQuirk quirk) const {
+            return quirks.isNot(quirk);
+        }
+
         inline const ElementDef& elementDef(uint8_t element) const {
             return elementDefs[element >= elementCount ? EEmpty : element];
         }
@@ -442,6 +450,9 @@ namespace ZZT {
 
         // elements.cpp
         void InitElementDefs(void);
+
+        // oop.cpp
+        uint8_t GetColorForTileMatch(const Tile &tile);
 
     public:
         Random random;
@@ -593,7 +604,6 @@ namespace ZZT {
         void WorldClearFlag(const char *name);
         void OopStringToWord(const char *input, char *buf, size_t len);
         bool OopParseTile(Stat &stat, int16_t &position, Tile &tile);
-        uint8_t GetColorForTileMatch(const Tile &tile);
         bool FindTileOnBoard(int16_t &x, int16_t &y, Tile tile);
         void OopPlaceTile(int16_t x, int16_t y, Tile tile);
         bool OopCheckCondition(Stat &stat, int16_t &position);
