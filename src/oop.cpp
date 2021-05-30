@@ -8,7 +8,7 @@
 using namespace ZZT;
 
 static inline uint8_t& stat_lock(Stat& stat, Game& game) {
-	return game.engineDefinition.is(QUIRK_OOP_SUPER_ZZT_MOVEMENT) ? stat.p3 : stat.p2;
+	return game.engineDefinition.is<QUIRK_OOP_SUPER_ZZT_MOVEMENT>() ? stat.p3 : stat.p2;
 }
 
 void Game::OopError(Stat& stat, const char *message) {
@@ -370,7 +370,7 @@ uint8_t Game::GetColorForTileMatch(const Tile &tile) {
 
 GBA_CODE_IWRAM
 bool Game::FindTileOnBoard(int16_t &x, int16_t &y, Tile tile) {	
-	bool lenient = engineDefinition.is(QUIRK_OOP_LENIENT_COLOR_MATCHES);
+	bool lenient = engineDefinition.is<QUIRK_OOP_LENIENT_COLOR_MATCHES>();
 
 	while (true) {
 		x++;
@@ -488,7 +488,7 @@ bool Game::OopSend(int16_t stat_id, const char *sendLabel, bool ignoreLock) {
 			}
 
 			i_stat.data_pos = i_data_pos;
-			if (engineDefinition.is(QUIRK_OOP_SUPER_ZZT_MOVEMENT)) {
+			if (engineDefinition.is<QUIRK_OOP_SUPER_ZZT_MOVEMENT>()) {
 				i_stat.p2 = 0;
 			}
 		}
@@ -534,13 +534,13 @@ ReadInstruction:
 			case '?': {
 				int16_t deltaX, deltaY;
 				bool is_try = (oopChar == '?');
-				if (engineDefinition.isNot(QUIRK_OOP_SUPER_ZZT_MOVEMENT)) {
+				if (engineDefinition.isNot<QUIRK_OOP_SUPER_ZZT_MOVEMENT>()) {
 					repeatInsNextTick = !is_try;
 				}
 
 				OopReadWord(stat, position);
 				if (OopParseDirection(stat, position, deltaX, deltaY)) {
-					if (engineDefinition.is(QUIRK_OOP_SUPER_ZZT_MOVEMENT)) {
+					if (engineDefinition.is<QUIRK_OOP_SUPER_ZZT_MOVEMENT>()) {
 						// Super ZZT movement logic
 						OopReadValue(stat, position);
 						if (oopValue < 0) oopValue = 1;
@@ -674,7 +674,7 @@ ReadCommand:
 							counterPtr = &world.info.score;
 						} else if (StrEquals(oopWord, "TIME")) {
 							counterPtr = &world.info.board_time_sec;
-						} else if (engineDefinition.is(QUIRK_SUPER_ZZT_STONES_OF_POWER) && StrEquals(oopWord, "Z")) {
+						} else if (engineDefinition.is<QUIRK_SUPER_ZZT_STONES_OF_POWER>() && StrEquals(oopWord, "Z")) {
 							counterPtr = &world.info.stones_of_power;
 						}
 
@@ -923,7 +923,7 @@ ReadCommand:
 	if (replaceStat) {
 		int16_t ix = stat.x;
 		int16_t iy = stat.y;
-		if (engineDefinition.isNot(QUIRK_SUPER_ZZT_COMPAT_MISC)) {
+		if (engineDefinition.isNot<QUIRK_SUPER_ZZT_COMPAT_MISC>()) {
 			DamageStat(stat_id);
 		}
 		OopPlaceTile(ix, iy, replaceTile);

@@ -867,7 +867,7 @@ void Game::MoveStat(int16_t stat_id, int16_t newX, int16_t newY) {
     const Tile& curTile = board.tiles.get(stat.x, stat.y);
     Tile newTile = curTile;
 
-    if (curTile.element == EPlayer && engineDefinition.isNot(QUIRK_PLAYER_BGCOLOR_FROM_FLOOR)) {
+    if (curTile.element == EPlayer && engineDefinition.isNot<QUIRK_PLAYER_BGCOLOR_FROM_FLOOR>()) {
         // ignore color change
     } else if (stat.under.element == EEmpty) {
         newTile.color &= 0xF; // strip background color
@@ -1089,7 +1089,7 @@ void Game::BoardEnter(void) {
     board.info.start_player_x = board.stats[0].x;
     board.info.start_player_y = board.stats[0].y;
 
-    if (board.info.is_dark && msgFlags.first(MESSAGE_HINT_TORCH)) {
+    if (board.info.is_dark && msgFlags.first<MESSAGE_HINT_TORCH>()) {
         DisplayMessage(200, "Room is dark - you need to light a torch!");
     }
 

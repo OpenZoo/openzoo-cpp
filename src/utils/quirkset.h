@@ -26,29 +26,40 @@ namespace ZZT {
             }
         }
 
-        inline bool is(E value) const {
+        template<E value>
+        constexpr bool valid() const { return true; }
+
+        template<E value>
+        constexpr bool is() const {
+            if (!valid<value>()) return false;
             return (flags[value >> 3] & (1 << (value & 7))) != 0;
         }
 
-        inline bool isNot(E value) const {
-            return (flags[value >> 3] & (1 << (value & 7))) == 0;
+        template<E value>
+        constexpr bool isNot() const {
+            if (!valid<value>()) return true;
+            return !is<value>();
         }
 
         inline void clear() {
             memset(flags, 0, sizeof(flags));
         }
 
-        inline void unset(E value) {
+        template<E value>
+        constexpr void unset() {
             flags[value >> 3] &= ~(1 << (value & 7));
         }
 
-        inline void set(E value) {
+        template<E value>
+        constexpr void set() {
+            if(!valid<value>()) std::abort();
             flags[value >> 3] |= (1 << (value & 7));
         }
 
-        inline bool first(E value) {
-            if (isNot(value)) {
-                set(value);
+        template<E value>
+        inline bool first() {
+            if (isNot<value>()) {
+                set<value>();
                 return true;
             } else {
                 return false;

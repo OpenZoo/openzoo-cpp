@@ -427,7 +427,7 @@ namespace ZZT {
         QUIRK_CENTIPEDE_EXTRA_CHECKS, // Super ZZT
         QUIRK_CONNECTION_DRAWING_CHECKS_UNDER_STAT, // Super ZZT
         QUIRK_OOP_LENIENT_COLOR_MATCHES, // Super ZZT
-        QUIRK_OOP_SUPER_ZZT_MOVEMENT, // Super ZZT (also moves locking to P3)
+        QUIRK_OOP_SUPER_ZZT_MOVEMENT, // Super ZZT - also moves locking to P3
         QUIRK_BOARD_CHANGE_SENDS_ENTER, // Super ZZT
         QUIRK_PLAYER_BGCOLOR_FROM_FLOOR, // Super ZZT
         QUIRK_SUPER_ZZT_STONES_OF_POWER, // Super ZZT - affects OOP #GIVE/#TAKE
@@ -452,12 +452,14 @@ namespace ZZT {
         ElementDef elementDefs[MAX_ELEMENT];
         uint8_t elementCount;
 
-        inline const bool is(EngineQuirk quirk) const {
-            return quirks.is(quirk);
+        template<EngineQuirk quirk>
+        inline const bool is() const {
+            return quirks.is<quirk>();
         }
 
-        inline const bool isNot(EngineQuirk quirk) const {
-            return quirks.isNot(quirk);
+        template<EngineQuirk quirk>
+        inline const bool isNot() const {
+            return quirks.isNot<quirk>();
         }
 
         inline const ElementDef& elementDef(uint8_t element) const {

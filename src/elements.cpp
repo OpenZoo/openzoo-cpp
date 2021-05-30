@@ -10,19 +10,19 @@ static const uint8_t StarAnimChars[4] = {179, '/', 196, '\\'};
 static const uint8_t ForestSoundTable[8] = {0x45, 0x40, 0x47, 0x50, 0x46, 0x41, 0x48, 0x51};
 static uint8_t ForestSoundTableIdx; // TODO: Move to Game structure
 
-void ElementDefaultDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
+static void ElementDefaultDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
     chr = '?';
 }
 
-void ElementDefaultTick(Game &game, int16_t stat_id) {
+static void ElementDefaultTick(Game &game, int16_t stat_id) {
 
 }
 
-void ElementDefaultTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+static void ElementDefaultTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
 
 }
 
-void ElementMessageTimerTick(Game &game, int16_t stat_id) {
+static void ElementMessageTimerTick(Game &game, int16_t stat_id) {
     char message[256];
     Stat &stat = game.board.stats[stat_id];
     if (stat.x == 0) {
@@ -38,11 +38,11 @@ void ElementMessageTimerTick(Game &game, int16_t stat_id) {
     }
 }
 
-void ElementDamagingTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+static void ElementDamagingTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
     game.BoardAttack(source_stat_id, x, y);
 }
 
-void ElementLionTick(Game &game, int16_t stat_id) {
+static void ElementLionTick(Game &game, int16_t stat_id) {
     Stat &stat = game.board.stats[stat_id];
     int16_t dx, dy;
 
@@ -60,7 +60,7 @@ void ElementLionTick(Game &game, int16_t stat_id) {
     }
 }
 
-void ElementTigerTick(Game &game, int16_t stat_id) {
+static void ElementTigerTick(Game &game, int16_t stat_id) {
     Stat &stat = game.board.stats[stat_id];
     Stat &player = game.board.stats[0];
     uint8_t element = (stat.p2 >= 0x80) ? EStar : EBullet;
@@ -80,7 +80,7 @@ void ElementTigerTick(Game &game, int16_t stat_id) {
     ElementLionTick(game, stat_id);
 }
 
-void ElementSZZTRotonTick(Game &game, int16_t stat_id) {
+static void ElementSZZTRotonTick(Game &game, int16_t stat_id) {
     int16_t tmp;
 
     Stat &stat = game.board.stats[stat_id];
@@ -106,12 +106,12 @@ void ElementSZZTRotonTick(Game &game, int16_t stat_id) {
     }
 }
 
-void ElementSZZTDragonPupTick(Game &game, int16_t stat_id) {
+static void ElementSZZTDragonPupTick(Game &game, int16_t stat_id) {
     Stat &stat = game.board.stats[stat_id];
     game.BoardDrawTile(stat.x, stat.y);
 }
 
-void ElementSZZTDragonPupDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
+static void ElementSZZTDragonPupDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
     switch (game.currentTick & 3) {
         case 1: chr = 162; return;
         case 3: chr = 149; return;
@@ -133,7 +133,7 @@ static bool ElementSZZTSpiderTryMove(Game &game, int16_t stat_id, int16_t dx, in
     }
 }
 
-void ElementSZZTSpiderTick(Game &game, int16_t stat_id) {
+static void ElementSZZTSpiderTick(Game &game, int16_t stat_id) {
     Stat &stat = game.board.stats[stat_id];
     int16_t i, deltaX, deltaY;
 
@@ -155,7 +155,7 @@ void ElementSZZTSpiderTick(Game &game, int16_t stat_id) {
     }
 }
 
-void ElementRuffianTick(Game &game, int16_t stat_id) {
+static void ElementRuffianTick(Game &game, int16_t stat_id) {
     Stat &stat = game.board.stats[stat_id];
     Stat &player = game.board.stats[0];
 
@@ -188,7 +188,7 @@ void ElementRuffianTick(Game &game, int16_t stat_id) {
     }
 }
 
-void ElementBearTick(Game &game, int16_t stat_id) {
+static void ElementBearTick(Game &game, int16_t stat_id) {
     Stat &stat = game.board.stats[stat_id];
     Stat &player = game.board.stats[0];
     int16_t deltaX, deltaY;
@@ -229,7 +229,7 @@ static inline bool centipede_head_find_follower(Game &game, Stat &stat, int16_t 
     return false;
 }
 
-void ElementCentipedeHeadTick(Game &game, int16_t stat_id) {
+static void ElementCentipedeHeadTick(Game &game, int16_t stat_id) {
     Stat &stat = game.board.stats[stat_id];
     Stat &player = game.board.stats[0];
     int16_t ix, iy;
@@ -318,7 +318,7 @@ void ElementCentipedeHeadTick(Game &game, int16_t stat_id) {
 
             if (it.follower > 0) {
                 Stat& follower = game.board.stats[it.follower];
-                if (game.engineDefinition.isNot(QUIRK_CENTIPEDE_EXTRA_CHECKS)
+                if (game.engineDefinition.isNot<QUIRK_CENTIPEDE_EXTRA_CHECKS>()
                     || game.board.tiles.get(follower.x, follower.y).element == ECentipedeSegment) {
                     follower.leader = stat_id;
                     follower.p1 = it.p1;
@@ -334,7 +334,7 @@ void ElementCentipedeHeadTick(Game &game, int16_t stat_id) {
     }
 }
 
-void ElementCentipedeSegmentTick(Game &game, int16_t stat_id) {
+static void ElementCentipedeSegmentTick(Game &game, int16_t stat_id) {
     Stat& stat = game.board.stats[stat_id];
     if (stat.leader < 0) {
         if (stat.leader < -1) {
@@ -345,7 +345,7 @@ void ElementCentipedeSegmentTick(Game &game, int16_t stat_id) {
     }
 }
 
-void ElementBulletTick(Game &game, int16_t stat_id) {
+static void ElementBulletTick(Game &game, int16_t stat_id) {
     Stat& stat = game.board.stats[stat_id];
     bool firstTry = true;
 
@@ -376,7 +376,7 @@ TryMove:
                 game.GameUpdateSidebar();
             }
             game.BoardAttack(stat_id, ix, iy);
-            if (game.engineDefinition.is(QUIRK_BULLET_DRAWTILE_FIX)) {
+            if (game.engineDefinition.is<QUIRK_BULLET_DRAWTILE_FIX>()) {
                 game.BoardDrawTile(ix, iy);
             }
             return;
@@ -408,7 +408,7 @@ TryMove:
     }
 }
 
-void ElementSpinningGunDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
+static void ElementSpinningGunDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
     switch (game.currentTick & 7) {
         case 0: case 1: chr = 24; return;
         case 2: case 3: chr = 26; return;
@@ -417,9 +417,9 @@ void ElementSpinningGunDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
     }
 }
 
-void ElementConnectedDraw(Game &game, int16_t x, int16_t y, uint8_t &chr, uint8_t elementType, const uint8_t *lineTiles) {
+static void ElementConnectedDraw(Game &game, int16_t x, int16_t y, uint8_t &chr, uint8_t elementType, const uint8_t *lineTiles) {
     int v = 0;
-    if (game.engineDefinition.is(QUIRK_CONNECTION_DRAWING_CHECKS_UNDER_STAT)) {
+    if (game.engineDefinition.is<QUIRK_CONNECTION_DRAWING_CHECKS_UNDER_STAT>()) {
         for (int i = 0; i < 4; i++) {
             int16_t nx = x + NeighborDeltaX[i];
             int16_t ny = y + NeighborDeltaY[i];
@@ -444,15 +444,15 @@ void ElementConnectedDraw(Game &game, int16_t x, int16_t y, uint8_t &chr, uint8_
     chr = lineTiles[v];
 }
 
-void ElementLineDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
+static void ElementLineDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
     ElementConnectedDraw(game, x, y, chr, ELine, LineChars);
 }
 
-void ElementWebDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
+static void ElementWebDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
     ElementConnectedDraw(game, x, y, chr, EWeb, WebChars);
 }
 
-void ElementSpinningGunTick(Game &game, int16_t stat_id) {
+static void ElementSpinningGunTick(Game &game, int16_t stat_id) {
     int16_t delta_x, delta_y;
     Stat& stat = game.board.stats[stat_id];
     game.BoardDrawTile(stat.x, stat.y);
@@ -478,7 +478,7 @@ void ElementSpinningGunTick(Game &game, int16_t stat_id) {
     }
 }
 
-void ElementConveyorTick(Game &game, int16_t x, int16_t y, int16_t direction) {
+static void ElementConveyorTick(Game &game, int16_t x, int16_t y, int16_t direction) {
     Tile tiles[8];
     int16_t stat_ids[8];
     int16_t iMin = (direction == 1) ? 0 : 7;
@@ -535,7 +535,7 @@ void ElementConveyorTick(Game &game, int16_t x, int16_t y, int16_t direction) {
     }
 }
 
-void ElementConveyorCWDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
+static void ElementConveyorCWDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
     switch ((game.currentTick / game.elementDef(EConveyorCW).cycle) % 4) {
         case 0: chr = 179; return;
         case 1: chr = 47; return;
@@ -544,13 +544,13 @@ void ElementConveyorCWDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
     }
 }
 
-void ElementConveyorCWTick(Game &game, int16_t stat_id) {
+static void ElementConveyorCWTick(Game &game, int16_t stat_id) {
     Stat& stat = game.board.stats[stat_id];
     game.BoardDrawTile(stat.x, stat.y);
     ElementConveyorTick(game, stat.x, stat.y, 1);
 }
 
-void ElementConveyorCCWDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
+static void ElementConveyorCCWDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
     switch ((game.currentTick / game.elementDef(EConveyorCCW).cycle) % 4) {
         case 3: chr = 179; return;
         case 2: chr = 47; return;
@@ -559,18 +559,18 @@ void ElementConveyorCCWDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
     }
 }
 
-void ElementConveyorCCWTick(Game &game, int16_t stat_id) {
+static void ElementConveyorCCWTick(Game &game, int16_t stat_id) {
     Stat& stat = game.board.stats[stat_id];
     game.BoardDrawTile(stat.x, stat.y);
     ElementConveyorTick(game, stat.x, stat.y, -1);
 }
 
-void ElementBombDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
+static void ElementBombDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
     Stat& stat = game.board.stats.at(x, y);
     chr = (stat.p1 <= 1) ? 11 : (48 + stat.p1);
 }
 
-void ElementBombTick(Game &game, int16_t stat_id) {
+static void ElementBombTick(Game &game, int16_t stat_id) {
     Stat &stat = game.board.stats[stat_id];
     if (stat.p1 > 0) {
         stat.p1--;
@@ -590,7 +590,7 @@ void ElementBombTick(Game &game, int16_t stat_id) {
     }
 }
 
-void ElementBombTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+static void ElementBombTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
     Stat& stat = game.board.stats.at(x, y);
     if (stat.p1 == 0) {
         stat.p1 = 9;
@@ -602,7 +602,7 @@ void ElementBombTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, 
     }
 }
 
-void ElementTransporterMove(Game &game, int16_t x, int16_t y, int16_t dx, int16_t dy) {
+static void ElementTransporterMove(Game &game, int16_t x, int16_t y, int16_t dx, int16_t dy) {
     Stat& stat = game.board.stats.at(x + dx, y + dy);
     if (dx == stat.step_x && dy == stat.step_y) {
         int16_t ix = stat.x;
@@ -646,18 +646,18 @@ void ElementTransporterMove(Game &game, int16_t x, int16_t y, int16_t dx, int16_
     }
 }
 
-void ElementTransporterTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+static void ElementTransporterTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
     ElementTransporterMove(game, x - delta_x, y - delta_y, delta_x, delta_y);
     delta_x = 0;
     delta_y = 0;
 }
 
-void ElementTransporterTick(Game &game, int16_t stat_id) {
+static void ElementTransporterTick(Game &game, int16_t stat_id) {
     Stat& stat = game.board.stats[stat_id];
     game.BoardDrawTile(stat.x, stat.y);
 }
 
-void ElementTransporterDraw(Game &game, int16_t x, int16_t y, uint8_t &ch) {
+static void ElementTransporterDraw(Game &game, int16_t x, int16_t y, uint8_t &ch) {
     Stat &stat = game.board.stats.at(x, y);
     // OpenZoo: Prevent division by zero on 0-cycle transporters.
     int i = stat.cycle == 0 ? 0 : (game.currentTick / stat.cycle) % 4;
@@ -668,13 +668,13 @@ void ElementTransporterDraw(Game &game, int16_t x, int16_t y, uint8_t &ch) {
     }
 }
 
-void ElementStarDraw(Game &game, int16_t x, int16_t y, uint8_t &ch) {
+static void ElementStarDraw(Game &game, int16_t x, int16_t y, uint8_t &ch) {
     ch = StarAnimChars[game.currentTick & 3];
     const Tile& tile = game.board.tiles.get(x, y);
     game.board.tiles.set_color(x, y, (tile.color >= 15) ? 9 : (tile.color + 1));
 }
 
-void ElementStarTick(Game &game, int16_t stat_id) {
+static void ElementStarTick(Game &game, int16_t stat_id) {
     Stat &stat = game.board.stats[stat_id];
     stat.p2--;
     if (stat.p2 <= 0) {
@@ -698,7 +698,7 @@ void ElementStarTick(Game &game, int16_t stat_id) {
     }
 }
 
-void ElementEnergizerTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+static void ElementEnergizerTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
 	game.driver->sound_queue(9,
 		"\x20\x03\x23\x03\x24\x03\x25\x03\x35\x03\x25\x03\x23\x03\x20\x03"
 		"\x30\x03\x23\x03\x24\x03\x25\x03\x35\x03\x25\x03\x23\x03\x20\x03"
@@ -714,14 +714,14 @@ void ElementEnergizerTouch(Game &game, int16_t x, int16_t y, int16_t source_stat
     game.world.info.energizer_ticks = 75;
     game.GameUpdateSidebar();
 
-    if (game.msgFlags.first(MESSAGE_ENERGIZER)) {
+    if (game.msgFlags.first<MESSAGE_ENERGIZER>()) {
         game.DisplayMessage(200, "Energizer - You are invincible");
     }
 
     game.OopSend(0, "ALL:ENERGIZE", false);
 }
 
-void ElementSlimeTick(Game &game, int16_t stat_id) {
+static void ElementSlimeTick(Game &game, int16_t stat_id) {
     Stat &stat = game.board.stats[stat_id];
     if (stat.p1 < stat.p2) {
         stat.p1++;
@@ -761,7 +761,7 @@ void ElementSlimeTick(Game &game, int16_t stat_id) {
     }
 }
 
-void ElementSlimeTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+static void ElementSlimeTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
     uint8_t color = game.board.tiles.get(x, y).color;
     game.DamageStat(game.board.stats.id_at(x, y));
     game.board.tiles.set(x, y, {
@@ -772,7 +772,7 @@ void ElementSlimeTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id,
 	game.driver->sound_queue(2, "\x20\x01\x23\x01");
 }
 
-void ElementSharkTick(Game &game, int16_t stat_id) {
+static void ElementSharkTick(Game &game, int16_t stat_id) {
     Stat &stat = game.board.stats[stat_id];
     int16_t delta_x, delta_y;
 
@@ -790,11 +790,11 @@ void ElementSharkTick(Game &game, int16_t stat_id) {
     }
 }
 
-void ElementBlinkWallDraw(Game &game, int16_t x, int16_t y, uint8_t &ch) {
+static void ElementBlinkWallDraw(Game &game, int16_t x, int16_t y, uint8_t &ch) {
     ch = 206;
 }
 
-void ElementBlinkWallTick(Game &game, int16_t stat_id) {
+static void ElementBlinkWallTick(Game &game, int16_t stat_id) {
     Stat &stat = game.board.stats[stat_id];
     if (stat.p3 == 0) {
         stat.p3 = stat.p1 + 1;
@@ -913,7 +913,7 @@ void ZZT::ElementPushablePush(Game &game, int16_t x, int16_t y, int16_t delta_x,
     }
 }
 
-void ElementDuplicatorDraw(Game &game, int16_t x, int16_t y, uint8_t &ch) {
+static void ElementDuplicatorDraw(Game &game, int16_t x, int16_t y, uint8_t &ch) {
     Stat &stat = game.board.stats.at(x, y);
     switch (stat.p1) {
         case 1: ch = 250; return;
@@ -925,9 +925,9 @@ void ElementDuplicatorDraw(Game &game, int16_t x, int16_t y, uint8_t &ch) {
     }
 }
 
-void ElementObjectTick(Game &game, int16_t stat_id) {
+static void ElementObjectTick(Game &game, int16_t stat_id) {
     Stat &stat = game.board.stats[stat_id];
-    if (game.engineDefinition.is(QUIRK_OOP_SUPER_ZZT_MOVEMENT)) {
+    if (game.engineDefinition.is<QUIRK_OOP_SUPER_ZZT_MOVEMENT>()) {
         // Super ZZT object ticking logic
         
         if (stat.data_pos < 0 || stat.p2 != 0 || !game.OopExecute(stat_id, stat.data_pos, "Interaction")) {
@@ -981,16 +981,16 @@ void ElementObjectTick(Game &game, int16_t stat_id) {
     }
 }
 
-void ElementObjectDraw(Game &game, int16_t x, int16_t y, uint8_t &ch) {
+static void ElementObjectDraw(Game &game, int16_t x, int16_t y, uint8_t &ch) {
     ch = game.board.stats.at(x, y).p1;
 }
 
-void ElementObjectTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+static void ElementObjectTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
     int16_t stat_id = game.board.stats.id_at(x, y);
     game.OopSend(-stat_id, "TOUCH", false);
 }
 
-void ElementDuplicatorTick(Game &game, int16_t stat_id) {
+static void ElementDuplicatorTick(Game &game, int16_t stat_id) {
     Stat &stat = game.board.stats[stat_id];
     if (stat.p1 <= 4) {
         stat.p1++;
@@ -1038,14 +1038,14 @@ void ElementDuplicatorTick(Game &game, int16_t stat_id) {
     stat.cycle = (9 - stat.p2) * 3;
 }
 
-void ElementScrollTick(Game &game, int16_t stat_id) {
+static void ElementScrollTick(Game &game, int16_t stat_id) {
     Stat &stat = game.board.stats[stat_id];
     const Tile &tile = game.board.tiles.get(stat.x, stat.y);
     game.board.tiles.set_color(stat.x, stat.y, tile.color >= 15 ? 9 : (tile.color + 1));
     game.BoardDrawTile(stat.x, stat.y);
 }
 
-void ElementScrollTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+static void ElementScrollTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
     int16_t stat_id = game.board.stats.id_at(x, y);
     Stat &stat = game.board.stats[stat_id];
     uint8_t buf[128];
@@ -1062,7 +1062,7 @@ void ElementScrollTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id
     }
 }
 
-void ElementKeyTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+static void ElementKeyTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
     char message[65];
     int16_t key = (game.board.tiles.get(x, y).color) & 0x07; 
     uint8_t value = key == 0 ? (game.world.info.gems >> 8) : (game.world.info.keys[key - 1] ? 1 : 0);
@@ -1089,19 +1089,19 @@ void ElementKeyTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, i
     }
 }
 
-void ElementAmmoTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+static void ElementAmmoTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
     game.world.info.ammo += 5;
 
     game.board.tiles.set_element(x, y, EEmpty);
     game.GameUpdateSidebar();
 	game.driver->sound_queue(2, "\x30\x01\x31\x01\x32\x01");
 
-    if (game.msgFlags.first(MESSAGE_AMMO)) {
+    if (game.msgFlags.first<MESSAGE_AMMO>()) {
         game.DisplayMessage(200, "Ammunition - 5 shots per container.");
     }
 }
 
-void ElementGemTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+static void ElementGemTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
     game.world.info.gems += 1;
     game.world.info.health += 1;
     game.world.info.score += 10;
@@ -1110,22 +1110,22 @@ void ElementGemTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, i
     game.GameUpdateSidebar();
 	game.driver->sound_queue(2, "\x40\x01\x37\x01\x34\x01\x30\x01");
 
-    if (game.msgFlags.first(MESSAGE_GEM)) {
+    if (game.msgFlags.first<MESSAGE_GEM>()) {
         game.DisplayMessage(200, "Gems give you Health!");
     }
 }
 
-void ElementPassageTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+static void ElementPassageTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
     game.BoardPassageTeleport(x, y);
     delta_x = 0;
     delta_y = 0;
 
-    if (game.engineDefinition.is(QUIRK_BOARD_CHANGE_SENDS_ENTER)) {
+    if (game.engineDefinition.is<QUIRK_BOARD_CHANGE_SENDS_ENTER>()) {
         game.OopSend(0, "ALL:ENTER", false);
     }
 }
 
-void ElementDoorTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+static void ElementDoorTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
     char message[65];
     int16_t key = (game.board.tiles.get(x, y).color >> 4) & 0x07; 
     uint8_t value = key == 0 ? (game.world.info.gems >> 8) : (game.world.info.keys[key - 1] ? 1 : 0);
@@ -1153,12 +1153,12 @@ void ElementDoorTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, 
     }
 }
 
-void ElementPushableTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+static void ElementPushableTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
     ElementPushablePush(game, x, y, delta_x, delta_y);
 	game.driver->sound_queue(2, "\x15\x01");
 }
 
-void ElementPusherDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
+static void ElementPusherDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
     Stat& stat = game.board.stats.at(x, y);
     if (stat.step_x == 1) {
         chr = 16;
@@ -1171,7 +1171,7 @@ void ElementPusherDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
     }
 }
 
-void ElementPusherTick(Game &game, int16_t stat_id) {
+static void ElementPusherTick(Game &game, int16_t stat_id) {
     int16_t start_x, start_y;
 
     {
@@ -1202,21 +1202,21 @@ void ElementPusherTick(Game &game, int16_t stat_id) {
     }
 }
 
-void ElementTorchTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+static void ElementTorchTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
     game.world.info.torches++;
     game.board.tiles.set_element(x, y, EEmpty);
 
     game.BoardDrawTile(x, y);
     game.GameUpdateSidebar();
 
-    if (game.msgFlags.first(MESSAGE_TORCH)) {
+    if (game.msgFlags.first<MESSAGE_TORCH>()) {
         game.DisplayMessage(200, "Torch - used for lighting in the underground.");
     }
 
 	game.driver->sound_queue(3, "\x30\x01\x39\x01\x34\x02");
 }
 
-void ElementInvisibleTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+static void ElementInvisibleTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
     game.board.tiles.set_element(x, y, ENormal);
     game.BoardDrawTile(x, y);
 
@@ -1224,24 +1224,24 @@ void ElementInvisibleTouch(Game &game, int16_t x, int16_t y, int16_t source_stat
     game.DisplayMessage(100, "You are blocked by an invisible wall.");
 }
 
-void ElementForestTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+static void ElementForestTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
     game.board.tiles.set_element(x, y, EEmpty);
     game.BoardDrawTile(x, y);
 
 	game.driver->sound_queue(3, "\x39\x01");
 
-    if (game.msgFlags.first(MESSAGE_FOREST)) {
+    if (game.msgFlags.first<MESSAGE_FOREST>()) {
         game.DisplayMessage(200, "A path is cleared through the forest.");
     }
 }
 
-void ElementFakeTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
-    if (game.msgFlags.first(MESSAGE_FAKE)) {
+static void ElementFakeTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+    if (game.msgFlags.first<MESSAGE_FAKE>()) {
         game.DisplayMessage(150, "A fake wall - secret passage!");
     }
 }
 
-void ElementBoardEdgeTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+static void ElementBoardEdgeTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
     Stat& player = game.board.stats[0];
     int16_t entry_x = player.x;
     int16_t entry_y = player.y;
@@ -1264,7 +1264,7 @@ void ElementBoardEdgeTouch(Game &game, int16_t x, int16_t y, int16_t source_stat
         int16_t board_id = game.world.info.current_board;
         game.BoardChange(game.board.info.neighbor_boards[neighbor_board_id]);
         if (game.board.tiles.get(entry_x, entry_y).element != EPlayer) {
-            if (game.engineDefinition.is(QUIRK_BOARD_EDGE_TOUCH_DESINATION_FIX)) {
+            if (game.engineDefinition.is<QUIRK_BOARD_EDGE_TOUCH_DESINATION_FIX>()) {
                 game.elementDefAt(entry_x, entry_y).touch(game, entry_x, entry_y, source_stat_id,
                     delta_x, delta_y);
             } else {
@@ -1284,7 +1284,7 @@ void ElementBoardEdgeTouch(Game &game, int16_t x, int16_t y, int16_t source_stat
             delta_y = 0;
             game.BoardEnter();
         
-            if (game.engineDefinition.is(QUIRK_BOARD_CHANGE_SENDS_ENTER)) {
+            if (game.engineDefinition.is<QUIRK_BOARD_CHANGE_SENDS_ENTER>()) {
                 game.OopSend(0, "ALL:ENTER", false);
             }
         } else {
@@ -1293,7 +1293,7 @@ void ElementBoardEdgeTouch(Game &game, int16_t x, int16_t y, int16_t source_stat
     }
 }
 
-void ElementWaterTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+static void ElementWaterTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
 	game.driver->sound_queue(3, "\x40\x01\x50\x01");
     game.DisplayMessage(100, "Your way is blocked by water.");
 }
@@ -1348,11 +1348,11 @@ void Game::GamePromptEndPlay(void) {
     driver->keyPressed = 0;
 }
 
-void ElementPlayerTick(Game &game, int16_t stat_id) {
+static void ElementPlayerTick(Game &game, int16_t stat_id) {
     Stat &stat = game.board.stats[stat_id];
     uint8_t playerColor = game.elementDef(EPlayer).color;
 
-    if (game.engineDefinition.is(QUIRK_PLAYER_BGCOLOR_FROM_FLOOR)) {
+    if (game.engineDefinition.is<QUIRK_PLAYER_BGCOLOR_FROM_FLOOR>()) {
         playerColor &= 0x0F;
         if (stat.under.element != EEmpty) {
             playerColor |= (stat.under.color & 0x70);
@@ -1396,11 +1396,11 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
 
         if (game.playerDirX != 0 || game.playerDirY != 0) {
             if (game.board.info.max_shots == 0) {
-                if (game.msgFlags.first(MESSAGE_NO_SHOOTING)) {
+                if (game.msgFlags.first<MESSAGE_NO_SHOOTING>()) {
                     game.DisplayMessage(200, "Can't shoot in this place!");
                 }
             } else if (game.world.info.ammo == 0) {
-                if (game.msgFlags.first(MESSAGE_OUT_OF_AMMO)) {
+                if (game.msgFlags.first<MESSAGE_OUT_OF_AMMO>()) {
                     game.DisplayMessage(200, "You don't have any ammo!");
                 }
             } else {
@@ -1453,12 +1453,12 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
                         game.DrawPlayerSurroundings(stat.x, stat.y, 0);
                         game.GameUpdateSidebar();
                     } else {
-                        if (game.msgFlags.first(MESSAGE_ROOM_NOT_DARK)) {
+                        if (game.msgFlags.first<MESSAGE_ROOM_NOT_DARK>()) {
                             game.DisplayMessage(200, "Don't need torch - room is not dark!");
                         }
                     }
                 } else {
-                    if (game.msgFlags.first(MESSAGE_OUT_OF_TORCHES)) {
+                    if (game.msgFlags.first<MESSAGE_OUT_OF_TORCHES>()) {
                         game.DisplayMessage(200, "You don't have any torches!");
                     }
                 }
@@ -1528,7 +1528,7 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
     }
 }
 
-void ElementMonitorTick(Game &game, int16_t stat_id) {
+static void ElementMonitorTick(Game &game, int16_t stat_id) {
     if (game.interface->HandleMenu(game, TitleMenu, true) > 0) {
         game.gamePlayExitRequested = true;
     }
