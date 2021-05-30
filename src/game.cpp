@@ -149,16 +149,25 @@ static void convert_board(const uint8_t *data, size_t data_len, WorldFormat from
     out_data_len = stream.tell();
 }
 
-World::World(WorldFormat board_format_storage, WorldFormat board_format_target) {
+World::World(WorldFormat board_format_storage, WorldFormat board_format_target, int16_t _max_board) {
+    this->max_board = _max_board;
     this->board_format_storage = board_format_storage;
     this->board_format_target = board_format_target;
-    memset(board_len, 0, sizeof(board_len));
+
+    this->board_data = (uint8_t**) malloc(sizeof(uint8_t*) * (_max_board + 1));
+    this->board_format = (uint8_t*) malloc(sizeof(uint8_t) * (_max_board + 1));
+    this->board_len = (uint16_t*) malloc(sizeof(uint16_t) * (_max_board + 1));
+    memset(board_len, 0, sizeof(uint16_t) * (_max_board + 1));
 }
 
 World::~World() {
     for (int i = 0; i <= board_count; i++) {
         free_board(i);
     }
+
+    free(this->board_len);
+    free(this->board_format);
+    free(this->board_data);
 }
 
 bool World::read_board(uint8_t id, Board &board) {
@@ -254,9 +263,9 @@ void World::free_board(uint8_t bid) {
 Game::Game(void):
     board(60, 25, 150),
 #ifdef ROM_POINTERS
-    world(WorldFormatInternal, WorldFormatInternal),
+    world(WorldFormatInternal, WorldFormatInternal, 100),
 #else
-    world(WorldFormatAny, WorldFormatInternal),
+    world(WorldFormatAny, WorldFormatInternal, 100),
 #endif
     highScoreList(this)
 {
@@ -331,7 +340,7 @@ void Game::BoardOpen(int16_t board_id) {
 void Game::BoardChange(int16_t board_id) {
     board.tiles.set(board.stats[0].x, board.stats[0].y, {
         .element = EPlayer,
-        .color = elementDefs[EPlayer].color
+        .color = elementDef(EPlayer).color
     });
     BoardClose();
     BoardOpen(board_id);
@@ -375,7 +384,7 @@ void Game::BoardCreate(void) {
     int16_t playerX = board.width() / 2;
     int16_t playerY = board.height() / 2;
 
-    board.tiles.set(playerX, playerY, {.element = EPlayer, .color = elementDefs[EPlayer].color});
+    board.tiles.set(playerX, playerY, {.element = EPlayer, .color = elementDef(EPlayer).color});
 
     board.stats.count = 0;
     board.stats[0] = Stat();
@@ -424,7 +433,7 @@ void Game::TransitionDrawToFill(uint8_t chr, uint8_t color) {
 void Game::BoardDrawTile(int16_t x, int16_t y) {
     Tile tile = board.tiles.get(x, y);
     if (!board.info.is_dark
-        || elementDefs[tile.element].visible_in_dark
+        || elementDef(tile.element).visible_in_dark
         || (
             (world.info.torch_ticks > 0)
             && ((Sqr(board.stats[0].x - x) + Sqr(board.stats[0].y - y) * 2) < TORCH_DIST_SQR)
@@ -432,13 +441,13 @@ void Game::BoardDrawTile(int16_t x, int16_t y) {
     ) {
         if (tile.element == EEmpty) {
             driver->draw_char(x - 1, y - 1, 0x0F, ' ');
-        } else if (elementDefs[tile.element].has_draw_proc) {
+        } else if (elementDef(tile.element).has_draw_proc) {
             uint8_t ch;
-            elementDefs[tile.element].draw(*this, x, y, ch);
+            elementDef(tile.element).draw(*this, x, y, ch);
             driver->draw_char(x - 1, y - 1, tile.color, ch);
         } else if (tile.element < ETextBlue) {
             uint8_t ch = elementCharOverrides[tile.element];
-            if (ch == 0) ch = elementDefs[tile.element].character;
+            if (ch == 0) ch = elementDef(tile.element).character;
             driver->draw_char(x - 1, y - 1, tile.color, ch);
         } else {
             if (tile.element == ETextWhite) {
@@ -728,7 +737,6 @@ bool Game::GameWorldLoad(const char *extension) {
 
 void ZZT::CopyStatDataToTextWindow(const Stat &stat, TextWindow &window) {
     DynString s = "";
-    int data_str_pos = 0;
     
     window.Clear();
 
@@ -748,7 +756,7 @@ void ZZT::CopyStatDataToTextWindow(const Stat &stat, TextWindow &window) {
 }
 
 void Game::AddStat(int16_t x, int16_t y, uint8_t element, uint8_t color, int16_t cycle, Stat tpl) {
-    if (board.stats.count < MAX_STAT) {
+    if (board.stats.count < board.stats.stat_size()) {
         board.stats.count++;
 
         Stat& stat = board.stats[board.stats.count];
@@ -920,7 +928,7 @@ void Game::DamageStat(int16_t attacker_stat_id) {
             DisplayMessage(100, "Ouch!");
 
             board.tiles.set_color(attacker_stat.x, attacker_stat.y, 
-                0x70 + (elementDefs[EPlayer].color & 0x0F));
+                0x70 + (elementDef(EPlayer).color & 0x0F));
 
             if (world.info.health > 0) {
                 world.info.board_time_sec = 0;
@@ -999,8 +1007,8 @@ void Game::BoardAttack(int16_t attacker_stat_id, int16_t x, int16_t y) {
 
 bool Game::BoardShoot(uint8_t element, int16_t x, int16_t y, int16_t dx, int16_t dy, int16_t source) {
     Tile destTile = board.tiles.get(x + dx, y + dy);
-    if (elementDefs[destTile.element].walkable || destTile.element == EWater) {
-        AddStat(x + dx, y + dy, element, elementDefs[element].color, 1, Stat());
+    if (elementDef(destTile.element).walkable || destTile.element == EWater) {
+        AddStat(x + dx, y + dy, element, elementDef(element).color, 1, Stat());
         Stat& shotStat = board.stats[board.stats.count];
         shotStat.p1 = source;
         shotStat.step_x = dx;
@@ -1009,7 +1017,7 @@ bool Game::BoardShoot(uint8_t element, int16_t x, int16_t y, int16_t dx, int16_t
         return true;
     } else if (destTile.element == EBreakable
         || (
-            elementDefs[destTile.element].destructible
+            elementDef(destTile.element).destructible
             && ((destTile.element == EPlayer) == (source != 0))
             && (world.info.energizer_ticks <= 0)
         ))
@@ -1177,7 +1185,7 @@ void Game::GamePlayLoop(bool boardChanged) {
 
     board.tiles.set(player.x, player.y, {
         .element = gameStateElement,
-        .color = elementDefs[gameStateElement].color
+        .color = elementDef(gameStateElement).color
     });
 
     if (gameStateElement == EMonitor) {
@@ -1204,7 +1212,7 @@ void Game::GamePlayLoop(bool boardChanged) {
             }
 
             if (pauseBlink) {
-                driver->draw_char(player.x - 1, player.y - 1, elementDefs[EPlayer].color, elementDefs[EPlayer].character);
+                driver->draw_char(player.x - 1, player.y - 1, elementDef(EPlayer).color, elementDef(EPlayer).character);
             } else {
                 if (board.tiles.get(player.x, player.y).element == EPlayer) {
                     driver->draw_char(player.x - 1, player.y - 1, 0x0F, ' ');
@@ -1232,7 +1240,7 @@ void Game::GamePlayLoop(bool boardChanged) {
                 int16_t dest_x = player.x + driver->deltaX;
                 int16_t dest_y = player.y + driver->deltaY;
                 const Tile &dest_tile = board.tiles.get(dest_x, dest_y);
-                if (elementDefs[dest_tile.element].walkable) {
+                if (elementDef(dest_tile.element).walkable) {
                     const Tile &src_tile = board.tiles.get(player.x, player.y);
 
                     // Move player
@@ -1244,7 +1252,7 @@ void Game::GamePlayLoop(bool boardChanged) {
                         player.y = dest_y;
                         board.tiles.set(player.x, player.y, {
                             .element = EPlayer,
-                            .color = elementDefs[EPlayer].color
+                            .color = elementDef(EPlayer).color
                         });
                         BoardDrawTile(player.x, player.y);
                         DrawPlayerSurroundings(player.x, player.y, 0);
@@ -1313,7 +1321,7 @@ void Game::GamePlayLoop(bool boardChanged) {
 
     board.tiles.set(player.x, player.y, {
         .element = EPlayer,
-        .color = elementDefs[EPlayer].color
+        .color = elementDef(EPlayer).color
     });
 
     driver->sound_set_block_queueing(false);

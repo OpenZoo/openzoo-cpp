@@ -51,7 +51,7 @@ void ElementLionTick(Game &game, int16_t stat_id) {
     }
 
     Tile destTile = game.board.tiles.get(stat.x + dx, stat.y + dy);
-    if (game.elementDefs[destTile.element].walkable) {
+    if (game.elementDef(destTile.element).walkable) {
         game.MoveStat(stat_id, stat.x + dx, stat.y + dy);
     } else if (destTile.element == EPlayer) {
         game.BoardAttack(stat_id, stat.x + dx, stat.y + dy);
@@ -98,7 +98,7 @@ void ElementRuffianTick(Game &game, int16_t stat_id) {
         Tile destTile = game.board.tiles.get(stat.x + stat.step_x, stat.y + stat.step_y);
         if (destTile.element == EPlayer) {
             game.BoardAttack(stat_id, stat.x + stat.step_x, stat.y + stat.step_y);
-        } else if (game.elementDefs[destTile.element].walkable) {
+        } else if (game.elementDef(destTile.element).walkable) {
             game.MoveStat(stat_id, stat.x + stat.step_x, stat.y + stat.step_y);
             if ((stat.p2 + 8) <= game.random.Next(17)) {
                 stat.step_x = 0;
@@ -134,7 +134,7 @@ void ElementBearTick(Game &game, int16_t stat_id) {
 
 Movement:
     Tile destTile = game.board.tiles.get(stat.x + deltaX, stat.y + deltaY);
-    if (game.elementDefs[destTile.element].walkable) {
+    if (game.elementDef(destTile.element).walkable) {
         game.MoveStat(stat_id, stat.x + deltaX, stat.y + deltaY);
     } else if (destTile.element == EPlayer || destTile.element == EBreakable) {
         game.BoardAttack(stat_id, stat.x + deltaX, stat.y + deltaY);        
@@ -171,7 +171,7 @@ void ElementCentipedeHeadTick(Game &game, int16_t stat_id) {
 
     {
         Tile destTile = game.board.tiles.get(stat.x + stat.step_x, stat.y + stat.step_y);
-        if (!game.elementDefs[destTile.element].walkable && destTile.element != EPlayer) {
+        if (!game.elementDef(destTile.element).walkable && destTile.element != EPlayer) {
             ix = stat.step_x;
             iy = stat.step_y;
 
@@ -180,14 +180,14 @@ void ElementCentipedeHeadTick(Game &game, int16_t stat_id) {
             stat.step_x = tmp;
 
             destTile = game.board.tiles.get(stat.x + stat.step_x, stat.y + stat.step_y);
-            if (!game.elementDefs[destTile.element].walkable && destTile.element != EPlayer) {
+            if (!game.elementDef(destTile.element).walkable && destTile.element != EPlayer) {
                 stat.step_x = -stat.step_x;
                 stat.step_y = -stat.step_y;
 
                 destTile = game.board.tiles.get(stat.x + stat.step_x, stat.y + stat.step_y);
-                if (!game.elementDefs[destTile.element].walkable && destTile.element != EPlayer) {
+                if (!game.elementDef(destTile.element).walkable && destTile.element != EPlayer) {
                     destTile = game.board.tiles.get(stat.x - ix, stat.y - iy);
-                    if (!game.elementDefs[destTile.element].walkable && destTile.element != EPlayer) {
+                    if (!game.elementDef(destTile.element).walkable && destTile.element != EPlayer) {
                         stat.step_x = 0;
                         stat.step_y = 0;
                     } else {
@@ -273,7 +273,7 @@ TryMove:
     int16_t ix = stat.x + stat.step_x;
     int16_t iy = stat.y + stat.step_y;
     const Tile &tile = game.board.tiles.get(ix, iy);
-    const ElementDef &tileDef = game.elementDefs[tile.element];
+    const ElementDef &tileDef = game.elementDef(tile.element);
 
     if (tileDef.walkable || (tile.element == EWater)) {
         game.MoveStat(stat_id, ix, iy);
@@ -385,12 +385,12 @@ void ElementConveyorTick(Game &game, int16_t x, int16_t y, int16_t direction) {
         tiles[i] = game.board.tiles.get(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
         if (tiles[i].element == EEmpty) {
             canMove = true;
-        } else if (!game.elementDefs[tiles[i].element].pushable) {
+        } else if (!game.elementDef(tiles[i].element).pushable) {
             canMove = false;
         }
         // OpenZoo: In some cases, a movement could cause two stats to briefly overlap each other.
         // Pre-copy stat IDs to prevent "stat swapping" from occuring, potentially involving the player.
-        if (game.elementDefs[tiles[i].element].cycle > -1) {
+        if (game.elementDef(tiles[i].element).cycle > -1) {
             stat_ids[i] = game.board.stats.id_at(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
         }
     }
@@ -399,10 +399,10 @@ void ElementConveyorTick(Game &game, int16_t x, int16_t y, int16_t direction) {
         Tile& tile = tiles[i];
 
         if (canMove) {
-            if (game.elementDefs[tile.element].pushable) {
+            if (game.elementDef(tile.element).pushable) {
                 int16_t ix = x + DiagonalDeltaX[(i - direction) & 7];
                 int16_t iy = y + DiagonalDeltaY[(i - direction) & 7];
-                if (game.elementDefs[tile.element].cycle > -1) {
+                if (game.elementDef(tile.element).cycle > -1) {
                     Tile tmpTile = game.board.tiles.get(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
                     // OpenZoo: "stat swapping" fix, part 2.
                     int16_t iStat = stat_ids[i];
@@ -416,7 +416,7 @@ void ElementConveyorTick(Game &game, int16_t x, int16_t y, int16_t direction) {
                     game.board.tiles.set(ix, iy, tile);
                     game.BoardDrawTile(ix, iy);
                 }
-                if (!game.elementDefs[tiles[(i + direction) & 7].element].pushable) {
+                if (!game.elementDef(tiles[(i + direction) & 7].element).pushable) {
                     game.board.tiles.set_element(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i], EEmpty);
                     game.BoardDrawTile(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
                 }
@@ -425,14 +425,14 @@ void ElementConveyorTick(Game &game, int16_t x, int16_t y, int16_t direction) {
             }
         } else if (tile.element == EEmpty) {
             canMove = true;
-        } else if (!game.elementDefs[tile.element].pushable) {
+        } else if (!game.elementDef(tile.element).pushable) {
             canMove = false;
         }
     }
 }
 
 void ElementConveyorCWDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
-    switch ((game.currentTick / game.elementDefs[EConveyorCW].cycle) % 4) {
+    switch ((game.currentTick / game.elementDef(EConveyorCW).cycle) % 4) {
         case 0: chr = 179; return;
         case 1: chr = 47; return;
         case 2: chr = 196; return;
@@ -447,7 +447,7 @@ void ElementConveyorCWTick(Game &game, int16_t stat_id) {
 }
 
 void ElementConveyorCCWDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
-    switch ((game.currentTick / game.elementDefs[EConveyorCCW].cycle) % 4) {
+    switch ((game.currentTick / game.elementDef(EConveyorCCW).cycle) % 4) {
         case 3: chr = 179; return;
         case 2: chr = 47; return;
         case 1: chr = 196; return;
@@ -516,11 +516,11 @@ void ElementTransporterMove(Game &game, int16_t x, int16_t y, int16_t dx, int16_
             } else if (is_valid_dest) {
                 is_valid_dest = false;
 
-                if (!game.elementDefs[tile.element].walkable) {
+                if (!game.elementDef(tile.element).walkable) {
                     ElementPushablePush(game, ix, iy, dx, dy);
                 }
 
-                if (game.elementDefs[tile.element].walkable) {
+                if (game.elementDef(tile.element).walkable) {
                     finish_search = true;
                     new_x = ix;
                     new_y = iy;
@@ -581,11 +581,11 @@ void ElementStarTick(Game &game, int16_t stat_id) {
         if (target.element == EPlayer || target.element == EBreakable) {
             game.BoardAttack(stat_id, stat.x + stat.step_x, stat.y + stat.step_y);
         } else {
-            if (!game.elementDefs[target.element].walkable) {
+            if (!game.elementDef(target.element).walkable) {
                 ElementPushablePush(game, stat.x + stat.step_x, stat.y + stat.step_y, stat.step_x, stat.step_y);
             }
 
-            if (game.elementDefs[target.element].walkable || target.element == EWater) {
+            if (game.elementDef(target.element).walkable || target.element == EWater) {
                 game.MoveStat(stat_id, stat.x + stat.step_x, stat.y + stat.step_y);
             }
         }
@@ -640,7 +640,7 @@ void ElementSlimeTick(Game &game, int16_t stat_id) {
                     game.BoardDrawTile(start_x, start_y);
                 } else {
                     game.AddStat(start_x + NeighborDeltaX[dir], start_y + NeighborDeltaY[dir],
-                        ESlime, color, game.elementDefs[ESlime].cycle, Stat());
+                        ESlime, color, game.elementDef(ESlime).cycle, Stat());
                     game.board.stats[game.board.stats.count].p2 = stat.p2;
                 }
                 changed_tiles++;
@@ -719,7 +719,7 @@ void ElementBlinkWallTick(Game &game, int16_t stat_id) {
             do {
                 const Tile &target = game.board.tiles.get(ix, iy);
 
-                if (target.element != EEmpty && game.elementDefs[target.element].destructible) {
+                if (target.element != EEmpty && game.elementDef(target.element).destructible) {
                     game.BoardDamageTile(ix, iy);
                 }
 
@@ -785,7 +785,7 @@ void ZZT::ElementPushablePush(Game &game, int16_t x, int16_t y, int16_t delta_x,
     const Tile &from = game.board.tiles.get(x, y);
     if ((from.element == ESliderNS && delta_x == 0)
         || (from.element == ESliderEW && delta_y == 0)
-        || game.elementDefs[from.element].pushable)
+        || game.elementDef(from.element).pushable)
     {
         const Tile &to = game.board.tiles.get(x + delta_x, y + delta_y);
         if (to.element == ETransporter) {
@@ -797,14 +797,14 @@ void ZZT::ElementPushablePush(Game &game, int16_t x, int16_t y, int16_t delta_x,
             }
         }
 
-        if (!game.elementDefs[to.element].walkable
-            && game.elementDefs[to.element].destructible
+        if (!game.elementDef(to.element).walkable
+            && game.elementDef(to.element).destructible
             && to.element != EPlayer)
         {
             game.BoardDamageTile(x + delta_x, y + delta_y);
         }
 
-        if (game.elementDefs[to.element].walkable) {
+        if (game.elementDef(to.element).walkable) {
             ElementMove(game, x, y, x + delta_x, y + delta_y);
         }
     }
@@ -864,7 +864,7 @@ void ElementDuplicatorTick(Game &game, int16_t stat_id) {
         const Tile &dest = game.board.tiles.get(dest_x, dest_y);
 
         if (dest.element == EPlayer) {
-            game.elementDefs[src.element]
+            game.elementDef(src.element)
                 .touch(game, src_x, src_y, 0, game.driver->deltaX, game.driver->deltaY);
         } else {
             if (dest.element != EEmpty) {
@@ -874,7 +874,7 @@ void ElementDuplicatorTick(Game &game, int16_t stat_id) {
             if (dest.element == EEmpty) {
                 int16_t source_stat_id = game.board.stats.id_at(src_x, src_y);
                 if (source_stat_id > 0) {
-                    if (game.board.stats.count < (MAX_STAT + 24)) {
+                    if (game.board.stats.count < (game.board.stats.stat_size() + 24)) {
                         Stat &source_stat = game.board.stats[source_stat_id];
                         game.AddStat(dest_x, dest_y, src.element, src.color, source_stat.cycle, source_stat);
                         game.BoardDrawTile(dest_x, dest_y);
@@ -1051,7 +1051,7 @@ void ElementPusherTick(Game &game, int16_t stat_id) {
             int16_t behind_id = game.board.stats.id_at(behind_x, behind_y);
             Stat& behind_stat = game.board.stats[stat_id];
             if (behind_stat.step_x == stat.step_x && behind_stat.step_y == stat.step_y) {
-                game.elementDefs[EPusher].tick(game, behind_id);
+                game.elementDef(EPusher).tick(game, behind_id);
             }
         }
     }
@@ -1126,7 +1126,7 @@ void ElementBoardEdgeTouch(Game &game, int16_t x, int16_t y, int16_t source_stat
         }
 
         const Tile &entryTile = game.board.tiles.get(entry_x, entry_y);
-        if (game.elementDefs[entryTile.element].walkable || entryTile.element == EPlayer) {
+        if (game.elementDef(entryTile.element).walkable || entryTile.element == EPlayer) {
             if (entryTile.element != EPlayer) {
                 game.MoveStat(0, entry_x, entry_y);
             }
@@ -1154,14 +1154,14 @@ void Game::DrawPlayerSurroundings(int16_t x, int16_t y, int16_t bomb_phase) {
             if (bomb_phase > 0 && (Sqr(ix - x) + Sqr(iy - y)*2) < TORCH_DIST_SQR) {
                 const Tile &tile = board.tiles.get(ix, iy);
                 if (bomb_phase == 1) {
-                    if (!StrEmpty(elementDefs[tile.element].param_text_name)) {
+                    if (!StrEmpty(elementDef(tile.element).param_text_name)) {
                         int16_t i_stat = board.stats.id_at(ix, iy);
                         if (i_stat > 0) {
                             OopSend(i_stat, "BOMBED", false);
                         }
                     }
 
-                    if (elementDefs[tile.element].destructible || tile.element == EStar) {
+                    if (elementDef(tile.element).destructible || tile.element == EStar) {
                         BoardDamageTile(ix, iy);
                     }
 
@@ -1205,8 +1205,8 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
         game.board.tiles.set_color(stat.x, stat.y,
             (game.currentTick & 2) != 0 ? 0x0F : ((((game.currentTick % 7) + 1) << 4) | 0x0F));
         game.BoardDrawTile(stat.x, stat.y);
-    } else if (game.board.tiles.get(stat.x, stat.y).color != game.elementDefs[EPlayer].color || game.elementCharOverrides[EPlayer] != 0) {
-        game.board.tiles.set_color(stat.x, stat.y, game.elementDefs[EPlayer].color);
+    } else if (game.board.tiles.get(stat.x, stat.y).color != game.elementDef(EPlayer).color || game.elementCharOverrides[EPlayer] != 0) {
+        game.board.tiles.set_color(stat.x, stat.y, game.elementDef(EPlayer).color);
         game.elementCharOverrides[EPlayer] = 0;
         game.BoardDrawTile(stat.x, stat.y);
     }
@@ -1351,7 +1351,7 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
         if (game.world.info.energizer_ticks == 10) {
 			game.driver->sound_queue(9, "\x20\x03\x1A\x03\x17\x03\x16\x03\x15\x03\x13\x03\x10\x03");
         } else if (game.world.info.energizer_ticks <= 0) {
-            game.board.tiles.set_color(stat.x, stat.y, game.elementDefs[EPlayer].color);
+            game.board.tiles.set_color(stat.x, stat.y, game.elementDef(EPlayer).color);
             game.BoardDrawTile(stat.x, stat.y);
         }
     }
@@ -1385,7 +1385,7 @@ void Game::ResetMessageNotShownFlags(void) {
 }
 
 void Game::InitElementDefs(void) {
-    this->elementDefs = defaultElementDefs;
+    this->engineDefinition.elementDefs = defaultElementDefs;
     memset(elementCharOverrides, 0, sizeof(elementCharOverrides));
 }
 

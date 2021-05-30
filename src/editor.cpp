@@ -67,7 +67,7 @@ Editor::~Editor() {
 }
 
 uint8_t Editor::GetDrawingColor(uint8_t element) {
-    const ElementDef &def = game->elementDefs[element];
+    const ElementDef &def = game->elementDef(element);
 
     if (element == EPlayer) {
         return def.color;
@@ -78,13 +78,13 @@ uint8_t Editor::GetDrawingColor(uint8_t element) {
     } else if (def.color == ColorChoiceOnChoice) {
         return ((cursor_color & 0x07) * 0x11) | 0x08;
     } else {
-        return game->elementDefs[element].color;
+        return game->elementDef(element).color;
     }
 }
 
 void Editor::AppendBoard(void) {
     // TODO: add bool - to fix P3 values if too many boards
-    if (game->world.board_count < MAX_BOARD) {
+    if (game->world.can_append_board()) {
         game->BoardClose();
 
         game->world.board_count++;
@@ -171,7 +171,7 @@ void Editor::CopyPattern(int16_t x, int16_t y, EditorCopiedTile &copied) {
     
     // generate preview
     // TODO: unify with BoardDrawTile
-    const ElementDef &def = game->elementDefs[tile.element];
+    const ElementDef &def = game->elementDef(tile.element);
     if (def.has_draw_proc) {
         def.draw(*game, x, y, copied.preview_char);
     } else if (tile.element < ETextBlue) {
@@ -246,7 +246,7 @@ void Editor::DrawSidebar(void) {
 
     // patterns
     for (int i = 0; i < EditorPatternCount; i++) {
-        game->driver->draw_char(61 + i, 21, 0x0F, game->elementDefs[EditorPatterns[i]].character);
+        game->driver->draw_char(61 + i, 21, 0x0F, game->elementDef(EditorPatterns[i]).character);
     }
     UpdateCopiedPatterns();
     UpdateCursorPattern();
@@ -312,7 +312,7 @@ bool Editor::PrepareModifyTile(int16_t x, int16_t y) {
 }
 
 bool Editor::PrepareModifyStatAtCursor(void) {
-    if (game->board.stats.count >= MAX_STAT) {
+    if (game->board.stats.count >= game->board.stats.stat_size()) {
         return false;
     }
     return PrepareModifyTile(cursor_x, cursor_y);
@@ -461,13 +461,15 @@ void Editor::DrawTextEditSidebar(void) {
 }
 
 void Editor::EditStatText(int16_t stat_id, const char *prompt) {
-    bool affected_stats[MAX_STAT + 2];
+    bool *affected_stats;
     Stat &stat = game->board.stats[stat_id];
     TextWindow window = TextWindow(game->driver, game->filesystem);
     StrCopy(window.title, prompt);
     window.DrawOpen();
     window.selectable = false;
     CopyStatDataToTextWindow(stat, window);
+
+    affected_stats = (bool*) malloc(sizeof(bool) * (game->board.stats.count + 1));
 
     if (stat.data.len > 0) {
         for (int i = 0; i <= game->board.stats.count; i++) {
@@ -504,19 +506,21 @@ void Editor::EditStatText(int16_t stat_id, const char *prompt) {
 
     window.DrawClose();
     game->driver->keyPressed = 0;
+
+    free(affected_stats);
 }
 
 void Editor::EditStat(int16_t stat_id) {
     Stat &stat = game->board.stats[stat_id];
     const Tile &tile = game->board.tiles.get(stat.x, stat.y);
-    const ElementDef &def = game->elementDefs[tile.element];
+    const ElementDef &def = game->elementDef(tile.element);
     
     game->SidebarClear();
     was_modified = true;
     
     const char *category_name = "";
     for (int i = 0; i <= tile.element; i++) {
-        const ElementDef &i_def = game->elementDefs[i];
+        const ElementDef &i_def = game->elementDef(i);
         if (i_def.editor_category == def.editor_category && !StrEmpty(i_def.category_name)) {
             category_name = i_def.category_name;
         }
@@ -862,7 +866,7 @@ void Editor::Loop(void) {
             game->driver->shiftAccepted = true;
 
             can_modify = cursor_tile.element == 0 || game->driver->deltaX != 0 || game->driver->deltaY != 0;
-            if (!can_modify && game->elementDefs[cursor_tile.element].placeable_on_top && cursor_pattern >= EditorPatternCount) {
+            if (!can_modify && game->elementDef(cursor_tile.element).placeable_on_top && cursor_pattern >= EditorPatternCount) {
                 // Place stat "under"
                 can_modify = copied_tiles[cursor_pattern - EditorPatternCount].has_stat;
             }
@@ -1059,7 +1063,7 @@ void Editor::Loop(void) {
                 hotkey[3] = 0;
 
                 for (i_elem = 0; i_elem <= ElementCount; i_elem++) {
-                    const ElementDef &def = game->elementDefs[i_elem];
+                    const ElementDef &def = game->elementDef(i_elem);
                     if (def.editor_category == selected_category) {
                         if (!StrEmpty(def.category_name)) {
                             i++;
@@ -1082,7 +1086,7 @@ void Editor::Loop(void) {
                 game->driver->read_wait_key();
 
                 for (i_elem = 1; i_elem <= ElementCount; i_elem++) {
-                    const ElementDef &def = game->elementDefs[i_elem];
+                    const ElementDef &def = game->elementDef(i_elem);
                     if (def.editor_category == selected_category
                         && def.editor_shortcut == UpCase(game->driver->keyPressed)
                     ) {

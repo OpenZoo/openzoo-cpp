@@ -344,7 +344,7 @@ bool Game::OopParseTile(Stat &stat, int16_t &position, Tile &tile) {
 	}
 
 	for (int i = 0; i < ElementCount; i++) {
-		OopStringToWord(elementDefs[i].name, compared, sizeof(compared));
+		OopStringToWord(elementDef(i).name, compared, sizeof(compared));
 		if (StrEquals(oopWord, compared)) {
 			tile.element = i;
 			return true;
@@ -355,7 +355,7 @@ bool Game::OopParseTile(Stat &stat, int16_t &position, Tile &tile) {
 }
 
 uint8_t Game::GetColorForTileMatch(const Tile &tile) {
-	uint8_t def_color = elementDefs[tile.element].color;
+	uint8_t def_color = elementDef(tile.element).color;
 	if (def_color < ColorSpecialMin) {
 		return def_color & 0x07;
 	} else if (def_color == ColorWhiteOnChoice) {
@@ -390,12 +390,12 @@ void Game::OopPlaceTile(int16_t x, int16_t y, Tile tile) {
 	Tile curTile = board.tiles.get(x, y);
 	if (curTile.element != EPlayer) {
 		uint8_t color = tile.color;
-		if (elementDefs[tile.element].color < ColorSpecialMin) {
-			color = elementDefs[tile.element].color;
+		if (elementDef(tile.element).color < ColorSpecialMin) {
+			color = elementDef(tile.element).color;
 		} else {
 			if (color == 0) color = curTile.color;
 			if (color == 0) color = 0x0F;
-			if (elementDefs[tile.element].color == ColorWhiteOnChoice)
+			if (elementDef(tile.element).color == ColorWhiteOnChoice)
 				color = ((color - 8) << 4) + 0x0F;
 		}
 
@@ -403,8 +403,8 @@ void Game::OopPlaceTile(int16_t x, int16_t y, Tile tile) {
 			board.tiles.set_color(x, y, color);
 		} else {
 			BoardDamageTile(x, y);
-			if (elementDefs[tile.element].cycle >= 0) {
-				AddStat(x, y, tile.element, color, elementDefs[tile.element].cycle, Stat());
+			if (elementDef(tile.element).cycle >= 0) {
+				AddStat(x, y, tile.element, color, elementDef(tile.element).cycle, Stat());
 			} else {
 				board.tiles.set(x, y, {
 					.element = tile.element,
@@ -758,8 +758,8 @@ ReadCommand:
 
 						int16_t ix = 0;
 						int16_t iy = 1;
-						if (toTile.color == 0 && elementDefs[toTile.element].color < ColorSpecialMin) {
-							toTile.color = elementDefs[toTile.element].color;
+						if (toTile.color == 0 && elementDef(toTile.element).color < ColorSpecialMin) {
+							toTile.color = elementDef(toTile.element).color;
 						}
 
 						while (FindTileOnBoard(ix, iy, fromTile)) {

@@ -180,11 +180,11 @@ void UserInterface::SidebarGameDraw(Game &game, uint32_t flags) {
             driver->draw_string(64, 10, 0x1E, "   Gems:");
             driver->draw_string(64, 11, 0x1E, "  Score:");
             driver->draw_string(64, 12, 0x1E, "   Keys:");
-            driver->draw_char(62, 7, 0x1F, game.elementDefs[EPlayer].character);
-            driver->draw_char(62, 8, 0x1B, game.elementDefs[EAmmo].character);
-            driver->draw_char(62, 9, 0x16, game.elementDefs[ETorch].character);
-            driver->draw_char(62, 10, 0x1B, game.elementDefs[EGem].character);
-            driver->draw_char(62, 12, 0x1F, game.elementDefs[EKey].character);
+            driver->draw_char(62, 7, 0x1F, game.elementDef(EPlayer).character);
+            driver->draw_char(62, 8, 0x1B, game.elementDef(EAmmo).character);
+            driver->draw_char(62, 9, 0x16, game.elementDef(ETorch).character);
+            driver->draw_char(62, 10, 0x1B, game.elementDef(EGem).character);
+            driver->draw_char(62, 12, 0x1F, game.elementDef(EKey).character);
             driver->draw_string(62, 14, 0x70, " T ");
             driver->draw_string(65, 14, 0x1F, " Torch");
             driver->draw_string(62, 15, 0x30, " B ");
@@ -273,7 +273,7 @@ void UserInterface::SidebarGameDraw(Game &game, uint32_t flags) {
 
             for (int i = 0; i < 7; i++) {
                 if (game.world.info.keys[i]) {
-                    driver->draw_char(72 + i, 12, 0x19 + i, game.elementDefs[EKey].character);
+                    driver->draw_char(72 + i, 12, 0x19 + i, game.elementDef(EKey).character);
                 } else {
                     driver->draw_char(72 + i, 12, 0x1F, ' ');
                 }

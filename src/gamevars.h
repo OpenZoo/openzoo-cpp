@@ -13,8 +13,6 @@
 #include "user_interface.h"
 #include "world_serializer.h"
 
-#define MAX_BOARD 100
-#define MAX_STAT 150
 #define MAX_FLAG 10
 #define TORCH_DURATION 200
 #define TORCH_DX 8
@@ -249,6 +247,10 @@ namespace ZZT {
 
         int16_t count;
 
+        inline int16_t stat_size() const {
+            return size;
+        }
+
         Stat& operator[](int16_t idx) {
             return stats[idx + 1];
         }
@@ -327,32 +329,40 @@ namespace ZZT {
         StatList stats;
         BoardInfo info;
 
-        int width(void) { return tiles.width; }
-        int height(void) { return tiles.height; }
+        inline int width(void) const { return tiles.width; }
+        inline int height(void) const { return tiles.height; }
     };
 
     class World {
     private:
-        uint16_t board_len[MAX_BOARD + 1];
-        uint8_t board_format[MAX_BOARD + 1];
+        uint16_t *board_len;
+        uint8_t *board_format;
         WorldFormat board_format_storage;
         WorldFormat board_format_target;
+        int16_t max_board;
 
     public:
         // TODO: move to private (Editor::GetBoardName)
-        uint8_t *board_data[MAX_BOARD + 1];
+        uint8_t **board_data;
+        int16_t board_count;
+        WorldInfo info;
 
-        World(WorldFormat board_format_storage, WorldFormat board_format_target);
+        World(WorldFormat board_format_storage, WorldFormat board_format_target, int16_t max_board);
         ~World();
+
+        inline int16_t max_board_count() const {
+            return max_board;
+        }
+
+        inline bool can_append_board() const {
+            return board_count < max_board;
+        }
 
         bool read_board(uint8_t id, Board &board);
         bool write_board(uint8_t id, Board &board);
         void get_board(uint8_t id, uint8_t *&data, uint16_t &len, bool &temporary, WorldFormat format);
         void set_board(uint8_t id, uint8_t *data, uint16_t len, bool costlessly_loaded, WorldFormat format);
         void free_board(uint8_t id);
-
-        int16_t board_count;
-        WorldInfo info;
     };
 
     class Game;
@@ -400,6 +410,12 @@ namespace ZZT {
     void ElementMove(Game &game, int16_t old_x, int16_t old_y, int16_t new_x, int16_t new_y);
     void ElementPushablePush(Game &game, int16_t x, int16_t y, int16_t delta_x, int16_t delta_y);
 
+    // TODO
+    class EngineDefinition {
+    public:
+        const ElementDef* elementDefs;
+    };
+
     class Game {
     private:
         bool initialized;
@@ -431,8 +447,10 @@ namespace ZZT {
         int16_t transitionTableSize;
         uint8_t tickSpeed;
 
-        const ElementDef *elementDefs;
-        uint8_t elementCharOverrides[ElementCount];
+        EngineDefinition engineDefinition;
+
+        // TODO: move to EngineDefinition
+        uint8_t elementCharOverrides[256];
 
         int16_t editorPatternCount;
         uint8_t editorPatterns[10];
@@ -471,9 +489,13 @@ namespace ZZT {
         UserInterface *interface;
         WorldFormat world_storage_format;
 
+        inline const ElementDef& elementDef(uint8_t element) const {
+            return engineDefinition.elementDefs[element >= ElementCount ? EEmpty : element];
+        }
+
         inline const ElementDef& elementDefAt(int16_t x, int16_t y) const {
             uint8_t element = board.tiles.get(x, y).element;
-            return elementDefs[element >= ElementCount ? EEmpty : element];
+            return elementDef(element);
         }
 
         Game(void);
