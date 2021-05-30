@@ -6,7 +6,6 @@
 #include "txtwind.h"
 
 using namespace ZZT;
-using namespace ZZT::Utils;
 
 static const uint8_t ProgressAnimColors[8] = {0x07, 0x0C, 0x09, 0x0D, 0x0A, 0x0E, 0x0B, 0x0F};
 static const char *ProgressAnimStrings[8] = {

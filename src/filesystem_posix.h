@@ -2,10 +2,9 @@
 #define __FILESYSTEM_POSIX_H__
 
 #include "filesystem.h"
-#include "utils.h"
 
 namespace ZZT {
-    class PosixIOStream : public Utils::IOStream {
+    class PosixIOStream : public IOStream {
     protected:
         FILE *file;
         bool is_write;
@@ -25,7 +24,7 @@ namespace ZZT {
     public:
         PosixFilesystemDriver();
 
-        virtual Utils::IOStream *open_file_absolute(const char *filename, bool write) override;
+        virtual IOStream *open_file_absolute(const char *filename, bool write) override;
         virtual bool list_files(std::function<bool(FileEntry&)> callback) override;
         virtual bool has_parent(void) override;
    };

@@ -4,7 +4,7 @@
 #include <cstdint>
 #include "filesystem.h"
 #include "driver.h"
-#include "utils.h"
+#include "utils/strings.h"
 
 #define MAX_TEXT_WINDOW_LINES 1024
 #define TEXT_WINDOW_LINE_LENGTH 50
@@ -35,7 +35,7 @@ namespace ZZT {
         uint8_t color;
         int16_t line_count;
         int16_t line_pos;
-        Utils::DynString **lines;
+        DynString **lines;
         sstring<20> hyperlink;
         sstring<50> title;
         sstring<50> loaded_filename;
@@ -50,7 +50,7 @@ namespace ZZT {
         void DrawClose(void);
         void Draw(bool withoutFormatting, bool viewingFile);
         void Append(const char *line);
-        void Append(const Utils::DynString line);
+        void Append(const DynString line);
         void Select(bool hyperlinkAsSelect, bool viewingFile);
         void Edit(void);
         void OpenFile(const char *filename, bool errorIfMissing);

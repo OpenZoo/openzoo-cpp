@@ -4,7 +4,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib> // TODO
-#include "utils.h"
+#include "utils/iostream.h"
+#include "utils/math.h"
+#include "utils/strings.h"
 #include "filesystem.h"
 #include "driver.h"
 #include "sounds.h"
@@ -424,7 +426,7 @@ namespace ZZT {
         void InitElementDefs(void);
 
     public:
-        Utils::Random random;
+        Random random;
 
         int16_t playerDirX;
         int16_t playerDirY;
@@ -527,7 +529,7 @@ namespace ZZT {
         void SidebarPromptChoice(bool editable, int16_t y, const char *prompt, const char *choiceStr, uint8_t &result);
         void SidebarPromptDirection(bool editable, int16_t y, const char *prompt, int16_t &dx, int16_t &dy);
         void PauseOnError(void);
-        void DisplayIOError(Utils::IOStream &stream);
+        void DisplayIOError(IOStream &stream);
         void WorldUnload(void);
         bool WorldLoad(const char *filename, const char *extension, bool titleOnly);
         bool WorldSave(const char *filename, const char *extension);

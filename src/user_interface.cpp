@@ -3,7 +3,6 @@
 #include "gamevars.h"
 
 using namespace ZZT;
-using namespace ZZT::Utils;
 
 UserInterface::UserInterface(Driver *driver) {
     this->driver = driver;

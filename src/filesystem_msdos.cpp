@@ -5,7 +5,6 @@
 #include "filesystem_msdos.h"
 
 using namespace ZZT;
-using namespace ZZT::Utils;
 
 #define HAS_PARENT_LENGTH 3
 #define PATH_SEPARATOR '/'
@@ -21,7 +20,7 @@ MsdosFilesystemDriver::MsdosFilesystemDriver()
     free(cwd_path);
 }
 
-Utils::IOStream *MsdosFilesystemDriver::open_file_absolute(const char *filename, bool write) {
+IOStream *MsdosFilesystemDriver::open_file_absolute(const char *filename, bool write) {
     return new PosixIOStream(filename, write);
 }
 

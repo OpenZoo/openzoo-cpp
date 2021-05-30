@@ -3,10 +3,10 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "utils/strings.h"
 #include "filesystem_posix.h"
 
 using namespace ZZT;
-using namespace ZZT::Utils;
 
 #if defined(WIN32)
 #include <windows.h>
@@ -86,8 +86,8 @@ PosixFilesystemDriver::PosixFilesystemDriver()
     free(cwd_path);
 }
 
-Utils::IOStream *PosixFilesystemDriver::open_file_absolute(const char *filename, bool write) {
-    Utils::IOStream *stream = new PosixIOStream(filename, write);
+IOStream *PosixFilesystemDriver::open_file_absolute(const char *filename, bool write) {
+    IOStream *stream = new PosixIOStream(filename, write);
 #ifdef CASE_SENSITIVE
     // emulate case-insensitiveness
     if (stream->errored()) {

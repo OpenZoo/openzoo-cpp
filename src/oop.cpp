@@ -6,7 +6,6 @@
 #include "platform_hacks.h"
 
 using namespace ZZT;
-using namespace ZZT::Utils;
 
 void Game::OopError(Stat& stat, const char *message) {
 	char text[256];

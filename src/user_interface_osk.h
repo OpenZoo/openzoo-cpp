@@ -2,7 +2,6 @@
 #define __USER_INTERFACE_OSK_H__
 
 #include <cstdint>
-#include "utils.h"
 #include "driver.h"
 #include "user_interface.h"
 

@@ -2,10 +2,9 @@
 #include <cstdlib>
 #include <cstring>
 #include "driver.h"
-#include "utils.h"
+#include "utils/math.h"
 
 using namespace ZZT;
-using namespace ZZT::Utils;
 
 Driver::Driver(void) {
     /* INPUT */

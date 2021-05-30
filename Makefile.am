@@ -15,7 +15,9 @@ openzoo_SOURCES = \
 	src/txtwind.cpp \
 	src/user_interface.cpp \
 	src/user_interface_slim.cpp \
-	src/utils.cpp \
+	src/utils/iostream.cpp \
+	src/utils/math.cpp \
+	src/utils/strings.cpp \
 	src/world_serializer.cpp
 
 if DRIVER_SDL2

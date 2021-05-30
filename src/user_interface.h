@@ -2,7 +2,6 @@
 #define __USER_INTERFACE_H__
 
 #include <cstdint>
-#include "utils.h"
 #include "driver.h"
 
 #define SIDEBAR_FLAG_UPDATE 1

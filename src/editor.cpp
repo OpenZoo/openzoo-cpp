@@ -4,10 +4,8 @@
 #include "editor.h"
 #include "file_selector.h"
 #include "txtwind.h"
-#include "utils.h"
 
 using namespace ZZT;
-using namespace ZZT::Utils;
 
 static const char EditorColorNames[16][4] = {
     "Blk", "DBl", "DGn", "DCy", "DRe", "DMa", "Bro", "LGr",

@@ -4,7 +4,6 @@
 #include "gamevars.h"
 
 using namespace ZZT;
-using namespace ZZT::Utils;
 
 HighScoreList::HighScoreList(Game *game) {
     this->game = game;

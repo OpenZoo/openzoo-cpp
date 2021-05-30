@@ -1,11 +1,9 @@
 #include <cstddef>
 #include <cstdint>
-#include "utils.h"
 #include "world_serializer.h"
 #include "gamevars.h"
 
 using namespace ZZT;
-using namespace ZZT::Utils;
 
 // utility functions
 

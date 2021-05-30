@@ -2,8 +2,9 @@
 #define __FILESYSTEM_H__
 
 #include <cstdint>
+#include <cstring>
 #include <functional>
-#include "utils.h"
+#include "utils/iostream.h"
 
 namespace ZZT {
     struct FileEntry {
@@ -21,7 +22,7 @@ namespace ZZT {
         virtual ~FilesystemDriver() { }
 
         // required
-        virtual Utils::IOStream *open_file(const char *filename, bool write) = 0;
+        virtual IOStream *open_file(const char *filename, bool write) = 0;
         virtual bool list_files(std::function<bool(FileEntry&)> callback) = 0;
 
         virtual bool is_path_driver(void);
@@ -35,7 +36,7 @@ namespace ZZT {
     public:
         NullFilesystemDriver();
 
-        virtual Utils::IOStream *open_file(const char *filename, bool write) override;
+        virtual IOStream *open_file(const char *filename, bool write) override;
         virtual bool list_files(std::function<bool(FileEntry&)> callback) override;
     };
 
@@ -49,7 +50,7 @@ namespace ZZT {
         ~PathFilesystemDriver();
 
     public:
-        Utils::IOStream *open_file(const char *filename, bool write) override;
+        IOStream *open_file(const char *filename, bool write) override;
         bool is_path_driver(void) override;
 
         virtual bool open_dir(const char *name);
@@ -66,7 +67,7 @@ namespace ZZT {
         }
 
         // required
-        virtual Utils::IOStream *open_file_absolute(const char *filename, bool write) = 0;
+        virtual IOStream *open_file_absolute(const char *filename, bool write) = 0;
         virtual bool has_parent(void) = 0;
    };
 }

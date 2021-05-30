@@ -1,8 +1,7 @@
-#include "utils.h"
 #include "user_interface_osk.h"
+#include "utils/math.h"
 
 using namespace ZZT;
-using namespace ZZT::Utils;
 
 #define OSK_SPECIAL_SHIFT 0xE000
 

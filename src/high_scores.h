@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include "txtwind.h"
-#include "utils.h"
 
 #define HIGH_SCORE_COUNT 30
 

@@ -39,11 +39,13 @@ SOURCES		:= \
 	src/user_interface.cpp \
 	src/user_interface_osk.cpp \
 	src/user_interface_slim.cpp \
-	src/utils.cpp \
+	src/utils/iostream.cpp \
+	src/utils/math.cpp \
+	src/utils/strings.cpp \
 	src/world_serializer.cpp \
 	src/gba/driver_gba.cpp
 
-INCLUDES	:= src src/gba
+INCLUDES	:= src src/gba src/utils
 DATA		:=
 
 #---------------------------------------------------------------------------------
@@ -87,7 +89,7 @@ ifneq ($(BUILD),$(notdir $(CURDIR)))
 export OUTPUT	:=	$(CURDIR)/$(TARGET)
 
 export VPATH	:=	$(CURDIR)/src $(CURDIR)/src/gba $(CURDIR)/fonts \
-			$(CURDIR)/tools \
+			$(CURDIR)/tools $(CURDIR)/src/utils \
 			$(foreach dir,$(DATA),$(CURDIR)/$(dir)) \
 			$(foreach dir,$(GRAPHICS),$(CURDIR)/$(dir))
 

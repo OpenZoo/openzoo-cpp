@@ -2,10 +2,8 @@
 #include <cstring>
 #include "gamevars.h"
 #include "sounds.h"
-#include "utils.h"
 
 using namespace ZZT;
-using namespace ZZT::Utils;
 
 static const uint8_t letter_to_tone[7] = {9, 11, 0, 2, 4, 5, 7};
 

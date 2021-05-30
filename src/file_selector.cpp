@@ -2,11 +2,10 @@
 #include <sys/stat.h>
 #include <dirent.h>
 
-#include "utils.h"
+#include "utils/strings.h"
 #include "file_selector.h"
 
 using namespace ZZT;
-using namespace ZZT::Utils;
 
 FileSelector::FileSelector(Driver *driver, FilesystemDriver *filesystem, const char *title, const char *extension)
     : window(TextWindow(driver, filesystem)) {

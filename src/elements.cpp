@@ -2,7 +2,6 @@
 #include "txtwind.h"
 
 using namespace ZZT;
-using namespace ZZT::Utils;
 
 static const uint8_t TransporterNSChars[8] = {'^', '~', '^', '-', 'v', '_', 'v', '-'};
 static const uint8_t TransporterEWChars[8] = {'(', '<', '(', 179, ')', '>', ')', 179};

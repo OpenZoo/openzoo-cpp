@@ -4,7 +4,6 @@
 #include "txtwind.h"
 
 using namespace ZZT;
-using namespace ZZT::Utils;
 
 static int16_t window_x = 5, window_y = 3, window_width = 50, window_height = 18;
 

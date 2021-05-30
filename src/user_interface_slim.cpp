@@ -3,7 +3,6 @@
 #include "gamevars.h"
 
 using namespace ZZT;
-using namespace ZZT::Utils;
 
 UserInterfaceSlim::UserInterfaceSlim(Driver *driver)
 : UserInterface(driver) {

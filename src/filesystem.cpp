@@ -1,8 +1,8 @@
 #include <cstdlib>
+#include "utils/strings.h"
 #include "filesystem.h"
 
 using namespace ZZT;
-using namespace ZZT::Utils;
 
 FilesystemDriver::FilesystemDriver(bool read_only) {
     this->read_only = read_only;
@@ -17,7 +17,7 @@ NullFilesystemDriver::NullFilesystemDriver()
     
 }
 
-Utils::IOStream *NullFilesystemDriver::open_file(const char *filename, bool write) {
+IOStream *NullFilesystemDriver::open_file(const char *filename, bool write) {
     return new ErroredIOStream();
 }
 
@@ -54,7 +54,7 @@ bool PathFilesystemDriver::is_path_driver() {
     return true;
 }
 
-Utils::IOStream *PathFilesystemDriver::open_file(const char *filename, bool write) {
+IOStream *PathFilesystemDriver::open_file(const char *filename, bool write) {
     char *path = (char*) malloc(max_path_length + 1);
     join_path(path, max_path_length, current_path, filename);
     auto stream = open_file_absolute(path, write);

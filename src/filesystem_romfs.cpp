@@ -3,7 +3,6 @@
 #include "filesystem_romfs.h"
 
 using namespace ZZT;
-using namespace ZZT::Utils;
 
 // TODO: Add directory support.
 
@@ -32,7 +31,7 @@ RomfsFilesystemDriver::RomfsFilesystemDriver(const void *ptr)
 	}
 }
 
-Utils::IOStream *RomfsFilesystemDriver::open_file_absolute(const char *name, bool write) {
+IOStream *RomfsFilesystemDriver::open_file_absolute(const char *name, bool write) {
 	const uint8_t *curr_entry = this->root_ptr;
 	const uint8_t *file_ptr;
 	const uint8_t *base = this->ptr;

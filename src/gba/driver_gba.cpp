@@ -14,7 +14,6 @@ extern "C" {
 #include "sounds.h"
 
 using namespace ZZT;
-using namespace ZZT::Utils;
 
 static Game game = Game();
 static GBADriver driver;
