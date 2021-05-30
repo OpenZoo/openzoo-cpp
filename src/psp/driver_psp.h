@@ -23,13 +23,14 @@ namespace ZZT {
         uint8_t screen_chars[80*25];
         uint8_t screen_colors[80*25];
         
-        AudioSimulator soundSimulator;
+        AudioSimulator *soundSimulator;
         OnScreenKeyboard keyboard;
 
     public:
         bool running;
 
         PSPDriver();
+        ~PSPDriver();
 
         void draw_frame(void);
         void update_joy(SceCtrlData &pad);

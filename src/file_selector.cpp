@@ -43,7 +43,7 @@ bool FileSelector::select() {
         int listed_start = window.line_count;
         filesystem->list_files([this, ext_len](FileEntry &entry) -> bool {
             sstring<20> wname;
-            int name_len = strlen(entry.filename);
+            size_t name_len = strlen(entry.filename);
             if (name_len > StrSize(wname)) return true;
 
             if (entry.is_dir) {

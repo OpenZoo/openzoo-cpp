@@ -43,7 +43,8 @@ namespace ZZT {
         int16_t cursor_x, cursor_y;
         uint8_t cursor_pattern, cursor_color;
         bool color_ignore_defaults;
-        int16_t i, i_elem;
+        int16_t i;
+        uint8_t i_elem;
         bool can_modify;
         EditorCopiedTile copied_tiles[COPIED_TILES_COUNT];
         EditorStatSetting stat_settings[MAX_ELEMENT];

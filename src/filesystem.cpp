@@ -68,7 +68,7 @@ bool PathFilesystemDriver::open_dir(const char *name) {
 
 bool PathFilesystemDriver::join_path(char *dest, size_t len, const char *curr, const char *next) {
     const char *pathsep_pos;
-    int pathsep_len;
+    size_t pathsep_len;
 
     if (curr == nullptr) {
         return false;

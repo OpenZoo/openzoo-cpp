@@ -161,7 +161,7 @@ int16_t Game::OopFindString(Stat& stat, int16_t start_pos, char *str) {
 	size_t str_len = strlen(str);
 	int16_t max_pos = stat.data.len - str_len;
 
-	for (int i = 0; i < str_len; i++) {
+	for (size_t i = 0; i < str_len; i++) {
 		str[i] = UpCase(str[i]);
 	}
 

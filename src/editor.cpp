@@ -243,7 +243,7 @@ void Editor::DrawSidebar(void) {
     UpdateColorIgnoreDefaults();
 
     // patterns
-    for (int i = 0; i < EditorPatternCount; i++) {
+    for (size_t i = 0; i < EditorPatternCount; i++) {
         game->driver->draw_char(61 + i, 21, 0x0F, game->elementDef(EditorPatterns[i]).character);
     }
     UpdateCopiedPatterns();
@@ -317,8 +317,6 @@ bool Editor::PrepareModifyStatAtCursor(void) {
 }
 
 void Editor::PlaceTile(int16_t x, int16_t y) {
-    const Tile &tile = game->board.tiles.get(x, y);
-
     if (cursor_pattern < EditorPatternCount) {
         if (PrepareModifyTile(x, y)) {
             game->board.tiles.set(x, y, {
@@ -837,11 +835,11 @@ void Editor::Loop(void) {
             auto &ch = game->driver->keyPressed;
             if (ch >= 32 && ch < 128) {
                 if (PrepareModifyTile(cursor_x, cursor_y)) {
-                    i = (cursor_color & 0x07) + ETextBlue - 1;
-                    if (i < ETextBlue) i = ETextWhite;
+                    i_elem = (cursor_color & 0x07) + ETextBlue - 1;
+                    if (i_elem < ETextBlue) i_elem = ETextWhite;
 
                     game->board.tiles.set(cursor_x, cursor_y, {
-                        .element = i,
+                        .element = i_elem,
                         .color = (uint8_t) ch
                     });
                     DrawTileAndNeighhborsAt(cursor_x, cursor_y);

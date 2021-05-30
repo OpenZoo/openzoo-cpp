@@ -67,7 +67,6 @@ StatList::StatList(int16_t _size)
     } else
 #endif
     this->stats = (Stat*) malloc((size + 3) * sizeof(Stat));
-    memset(this->stats + 1, 0, (size + 2) * sizeof(Stat));
 
     // set stat -1 to out of bounds values
     this->stats[0] = {
@@ -90,6 +89,9 @@ StatList::StatList(int16_t _size)
         },
         .data_pos = 1
     };
+    for (int i = 1; i < (size + 3); i++) {
+        this->stats[i] = {.follower = -1, .leader = -1};
+    }
 }
 
 StatList::~StatList() {
@@ -1141,7 +1143,7 @@ void Game::GameDebugPrompt(void) {
     StrClear(input);
 
     interface->SidebarPromptString(nullptr, nullptr, input, StrSize(input), InputPMAnyText);
-    for (int i = 0; i < strlen(input); i++) {
+    for (size_t i = 0; i < strlen(input); i++) {
         input[i] = UpCase(input[i]);
     }
 

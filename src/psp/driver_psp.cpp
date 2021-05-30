@@ -121,7 +121,7 @@ void ZZT::psp_audio_callback(void *stream, unsigned int len, void *userdata) {
 	s16 *stream_s16 = ((s16*) stream);
 
     driver.sound_lock();
-    driver.soundSimulator.simulate(stream_u8, len);
+    driver.soundSimulator->simulate(stream_u8, len);
     driver.sound_unlock();
 
 	for (int i = 0; i < len; i++, stream_u8++, stream_s16+=2) {
@@ -149,7 +149,7 @@ void PSPDriver::update_input(void) {
 
 SceUInt ZZT::psp_timer_callback(SceUID uid, SceInt64 requested, SceInt64 actual, void *args) {
 	driver.hsecs += 11;
-    driver.soundSimulator.allowed = driver._queue.is_playing;
+    driver.soundSimulator->allowed = driver._queue.is_playing;
 
 	return !driver.running ? 0 : sceKernelUSec2SysClockWide(driver.pit_clock);
 }
@@ -172,7 +172,7 @@ void PSPDriver::idle(IdleMode mode) {
 
 void PSPDriver::sound_stop(void) {
     sound_lock();
-    soundSimulator.clear();
+    soundSimulator->clear();
     sound_unlock();
 }
 
@@ -282,8 +282,12 @@ void PSPDriver::get_video_size(int16_t &width, int16_t &height) {
 	height = 25;
 }
 
-PSPDriver::PSPDriver(void): soundSimulator(&_queue, 44100, false) {
+PSPDriver::PSPDriver(void) {
+	this->soundSimulator = new AudioSimulator(&_queue, 44100, false);
+}
 
+PSPDriver::~PSPDriver() {
+	delete this->soundSimulator;
 }
 
 void PSPDriver::install(void) {

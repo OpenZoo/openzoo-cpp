@@ -29,8 +29,11 @@ namespace ZZT {
     }
 
     template<size_t i> inline void StrCopy(char (&dst)[i], const char *src) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-truncation"
         strncpy(dst, src, i - 1);
         dst[i - 1] = '\0';
+#pragma GCC diagnostic pop
     }
 
     template<size_t len> void StrUpCase(char (&dst)[len], const char *src) {

@@ -87,8 +87,8 @@ int16_t ZZT::SoundParse(const char *input, uint8_t *output, int16_t outlen) {
     uint8_t note_octave = 3;
     uint8_t note_duration = 1;
     uint8_t note_tone;
-    int16_t inpos;
-    int16_t outpos = 0;
+    size_t inpos;
+    size_t outpos = 0;
 
     for (inpos = 0; inpos < strlen(input); inpos++) {
         // check for overflow
