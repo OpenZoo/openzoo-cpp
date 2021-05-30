@@ -31,6 +31,7 @@ namespace ZZT {
         bool allowed;
 
         AudioSimulator(SoundQueue *queue, int audio_frequency, bool audio_signed);
+        virtual ~AudioSimulator() { }
         int volume() const;
         void set_volume(int volume); /* 0 .. 127 */
         void set_frequency(int frequency);

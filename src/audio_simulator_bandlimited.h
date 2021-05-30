@@ -14,7 +14,7 @@ namespace ZZT {
 
     public:
         AudioSimulatorBandlimited(SoundQueue *queue, int audio_frequency, bool audio_signed);
-        ~AudioSimulatorBandlimited();
+        virtual ~AudioSimulatorBandlimited();
     };
 };
 
