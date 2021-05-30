@@ -1061,9 +1061,8 @@ void Game::BoardEnter(void) {
     board.info.start_player_x = board.stats[0].x;
     board.info.start_player_y = board.stats[0].y;
 
-    if (board.info.is_dark && msgFlags.HintTorchNotShown) {
+    if (board.info.is_dark && msgFlags.first(MESSAGE_HINT_TORCH)) {
         DisplayMessage(200, "Room is dark - you need to light a torch!");
-        msgFlags.HintTorchNotShown = false;
     }
 
     world.info.board_time_sec = 0;

@@ -342,7 +342,7 @@ bool Game::OopParseTile(Stat &stat, int16_t &position, Tile &tile) {
 		}
 	}
 
-	for (int i = 0; i < ElementCount; i++) {
+	for (int i = 0; i < engineDefinition.elementCount; i++) {
 		OopStringToWord(elementDef(i).name, compared, sizeof(compared));
 		if (StrEquals(oopWord, compared)) {
 			tile.element = i;

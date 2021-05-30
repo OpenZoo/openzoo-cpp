@@ -609,9 +609,8 @@ void ElementEnergizerTouch(Game &game, int16_t x, int16_t y, int16_t source_stat
     game.world.info.energizer_ticks = 75;
     game.GameUpdateSidebar();
 
-    if (game.msgFlags.EnergizerNotShown) {
+    if (game.msgFlags.first(MESSAGE_ENERGIZER)) {
         game.DisplayMessage(200, "Energizer - You are invincible");
-        game.msgFlags.EnergizerNotShown = false;
     }
 
     game.OopSend(0, "ALL:ENERGIZE", false);
@@ -952,9 +951,8 @@ void ElementAmmoTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, 
     game.GameUpdateSidebar();
 	game.driver->sound_queue(2, "\x30\x01\x31\x01\x32\x01");
 
-    if (game.msgFlags.AmmoNotShown) {
+    if (game.msgFlags.first(MESSAGE_AMMO)) {
         game.DisplayMessage(200, "Ammunition - 5 shots per container.");
-        game.msgFlags.AmmoNotShown = false;
     }
 }
 
@@ -967,9 +965,8 @@ void ElementGemTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, i
     game.GameUpdateSidebar();
 	game.driver->sound_queue(2, "\x40\x01\x37\x01\x34\x01\x30\x01");
 
-    if (game.msgFlags.GemNotShown) {
+    if (game.msgFlags.first(MESSAGE_GEM)) {
         game.DisplayMessage(200, "Gems give you Health!");
-        game.msgFlags.GemNotShown = false;
     }
 }
 
@@ -977,6 +974,10 @@ void ElementPassageTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_i
     game.BoardPassageTeleport(x, y);
     delta_x = 0;
     delta_y = 0;
+
+    if (game.engineDefinition.is(PASSAGE_SENDS_ENTER)) {
+        game.OopSend(0, "ALL:ENTER", false);
+    }
 }
 
 void ElementDoorTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
@@ -1063,9 +1064,8 @@ void ElementTorchTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id,
     game.BoardDrawTile(x, y);
     game.GameUpdateSidebar();
 
-    if (game.msgFlags.TorchNotShown) {
+    if (game.msgFlags.first(MESSAGE_TORCH)) {
         game.DisplayMessage(200, "Torch - used for lighting in the underground.");
-        game.msgFlags.TorchNotShown = false;
     }
 
 	game.driver->sound_queue(3, "\x30\x01\x39\x01\x34\x02");
@@ -1085,16 +1085,14 @@ void ElementForestTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id
 
 	game.driver->sound_queue(3, "\x39\x01");
 
-    if (game.msgFlags.ForestNotShown) {
+    if (game.msgFlags.first(MESSAGE_FOREST)) {
         game.DisplayMessage(200, "A path is cleared through the forest.");
-        game.msgFlags.ForestNotShown = false;
     }
 }
 
 void ElementFakeTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
-    if (game.msgFlags.FakeNotShown) {
+    if (game.msgFlags.first(MESSAGE_FAKE)) {
         game.DisplayMessage(150, "A fake wall - secret passage!");
-        game.msgFlags.FakeNotShown = false;
     }
 }
 
@@ -1235,14 +1233,12 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
 
         if (game.playerDirX != 0 || game.playerDirY != 0) {
             if (game.board.info.max_shots == 0) {
-                if (game.msgFlags.NoShootingNotShown) {
+                if (game.msgFlags.first(MESSAGE_NO_SHOOTING)) {
                     game.DisplayMessage(200, "Can't shoot in this place!");
-                    game.msgFlags.NoShootingNotShown = false;
                 }
             } else if (game.world.info.ammo == 0) {
-                if (game.msgFlags.OutOfAmmoNotShown) {
+                if (game.msgFlags.first(MESSAGE_OUT_OF_AMMO)) {
                     game.DisplayMessage(200, "You don't have any ammo!");
-                    game.msgFlags.OutOfAmmoNotShown = false;
                 }
             } else {
                 int16_t bulletCount = 0;
@@ -1294,15 +1290,13 @@ void ElementPlayerTick(Game &game, int16_t stat_id) {
                         game.DrawPlayerSurroundings(stat.x, stat.y, 0);
                         game.GameUpdateSidebar();
                     } else {
-                        if (game.msgFlags.RoomNotDarkNotShown) {
+                        if (game.msgFlags.first(MESSAGE_ROOM_NOT_DARK)) {
                             game.DisplayMessage(200, "Don't need torch - room is not dark!");
-                            game.msgFlags.RoomNotDarkNotShown = false;
                         }
                     }
                 } else {
-                    if (game.msgFlags.OutOfTorchesNotShown) {
+                    if (game.msgFlags.first(MESSAGE_OUT_OF_TORCHES)) {
                         game.DisplayMessage(200, "You don't have any torches!");
-                        game.msgFlags.OutOfTorchesNotShown = false;
                     }
                 }
             }
@@ -1380,11 +1374,13 @@ void ElementMonitorTick(Game &game, int16_t stat_id) {
 #include "element_defs.inc"
 
 void Game::ResetMessageNotShownFlags(void) {
-    memset(&msgFlags, true, sizeof(MessageFlags));
+    msgFlags.clear();
 }
 
 void Game::InitElementDefs(void) {
-    this->engineDefinition.elementDefs = defaultElementDefs;
+    this->engineDefinition.quirks.clear();
+    memcpy(this->engineDefinition.elementDefs, defaultElementDefs, sizeof(defaultElementDefs));
+    this->engineDefinition.elementCount = ElementCount;
     memset(elementCharOverrides, 0, sizeof(elementCharOverrides));
 }
 

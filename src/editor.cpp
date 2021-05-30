@@ -46,7 +46,7 @@ Editor::Editor(Game *game) {
     this->game = game;
 
     // InitEditorStatSettings
-    for (int i = 0; i < ElementCount; i++) {
+    for (int i = 0; i < game->engineDefinition.elementCount; i++) {
         this->stat_settings[i] = {
             .p1 = 4,
             .p2 = 4,
@@ -1060,7 +1060,7 @@ void Editor::Loop(void) {
                 hotkey[0] = hotkey[2] = ' ';
                 hotkey[3] = 0;
 
-                for (i_elem = 0; i_elem <= ElementCount; i_elem++) {
+                for (i_elem = 0; i_elem < game->engineDefinition.elementCount; i_elem++) {
                     const ElementDef &def = game->elementDef(i_elem);
                     if (def.editor_category == selected_category) {
                         if (!StrEmpty(def.category_name)) {
@@ -1083,7 +1083,7 @@ void Editor::Loop(void) {
 
                 game->driver->read_wait_key();
 
-                for (i_elem = 1; i_elem <= ElementCount; i_elem++) {
+                for (i_elem = 0; i_elem < game->engineDefinition.elementCount; i_elem++) {
                     const ElementDef &def = game->elementDef(i_elem);
                     if (def.editor_category == selected_category
                         && def.editor_shortcut == UpCase(game->driver->keyPressed)

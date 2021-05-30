@@ -46,7 +46,7 @@ namespace ZZT {
         int16_t i, i_elem;
         bool can_modify;
         EditorCopiedTile copied_tiles[COPIED_TILES_COUNT];
-        EditorStatSetting stat_settings[ElementCount];
+        EditorStatSetting stat_settings[MAX_ELEMENT];
         int16_t cursor_blinker;
 
         void AppendBoard(void);

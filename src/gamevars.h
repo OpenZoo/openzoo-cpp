@@ -6,6 +6,7 @@
 #include <cstdlib> // TODO
 #include "utils/iostream.h"
 #include "utils/math.h"
+#include "utils/quirkset.h"
 #include "utils/strings.h"
 #include "filesystem.h"
 #include "driver.h"
@@ -15,6 +16,7 @@
 #include "user_interface.h"
 #include "world_serializer.h"
 
+#define MAX_ELEMENT 80
 #define MAX_FLAG 10
 #define TORCH_DURATION 200
 #define TORCH_DX 8
@@ -395,27 +397,43 @@ namespace ZZT {
         int16_t score_value = 0;
     };
     
-    struct MessageFlags {
-        bool AmmoNotShown;
-		bool OutOfAmmoNotShown;
-		bool NoShootingNotShown;
-		bool TorchNotShown;
-		bool OutOfTorchesNotShown;
-		bool RoomNotDarkNotShown;
-		bool HintTorchNotShown;
-		bool ForestNotShown;
-		bool FakeNotShown;
-		bool GemNotShown;
-		bool EnergizerNotShown;
+    enum MessageFlag {
+        MESSAGE_AMMO,
+        MESSAGE_OUT_OF_AMMO,
+        MESSAGE_NO_SHOOTING,
+        MESSAGE_TORCH,
+        MESSAGE_OUT_OF_TORCHES,
+        MESSAGE_ROOM_NOT_DARK,
+        MESSAGE_HINT_TORCH,
+        MESSAGE_FOREST,
+        MESSAGE_FAKE,
+        MESSAGE_GEM,
+        MESSAGE_ENERGIZER,
+        MessageFlagCount
     };
 
     void ElementMove(Game &game, int16_t old_x, int16_t old_y, int16_t new_x, int16_t new_y);
     void ElementPushablePush(Game &game, int16_t x, int16_t y, int16_t delta_x, int16_t delta_y);
 
+    enum EngineQuirk {
+        PASSAGE_SENDS_ENTER,
+        EngineQuirkCount
+    };
+
     // TODO
     class EngineDefinition {
     public:
-        const ElementDef* elementDefs;
+        QuirkSet<EngineQuirk, EngineQuirkCount> quirks;
+        ElementDef elementDefs[MAX_ELEMENT];
+        uint8_t elementCount;
+
+        inline const bool is(EngineQuirk quirk) const {
+            return quirks.is(quirk);
+        }
+
+        inline const ElementDef& elementDef(uint8_t element) const {
+            return elementDefs[element >= elementCount ? EEmpty : element];
+        }
     };
 
     class Game {
@@ -439,7 +457,7 @@ namespace ZZT {
 
         Board board;
         World world;
-        MessageFlags msgFlags;
+        QuirkSet<MessageFlag, MessageFlagCount> msgFlags;
 
         bool gameTitleExitRequested;
         bool gamePlayExitRequested;
@@ -452,7 +470,7 @@ namespace ZZT {
         EngineDefinition engineDefinition;
 
         // TODO: move to EngineDefinition
-        uint8_t elementCharOverrides[256];
+        uint8_t elementCharOverrides[MAX_ELEMENT];
 
         int16_t editorPatternCount;
         uint8_t editorPatterns[10];
@@ -492,7 +510,7 @@ namespace ZZT {
         WorldFormat world_storage_format;
 
         inline const ElementDef& elementDef(uint8_t element) const {
-            return engineDefinition.elementDefs[element >= ElementCount ? EEmpty : element];
+            return engineDefinition.elementDef(element);
         }
 
         inline const ElementDef& elementDefAt(int16_t x, int16_t y) const {
