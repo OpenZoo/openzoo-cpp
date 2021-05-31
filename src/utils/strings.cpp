@@ -99,7 +99,7 @@ namespace ZZT {
 
         if (from < 0) from = 0;
         if (length > (len - from)) length = len - from;
-        DynString result = DynString(*this);
+        DynString result = DynString(length);
         memcpy(result.data, data + from, result.len);
         return result;
     }

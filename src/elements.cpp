@@ -1883,7 +1883,7 @@ void Game::InitEngine(EngineType engineType, bool is_editor) {
     }
 
     this->engineDefinition.register_element(39, ElementDef(ESpinningGun, "Spinning gun")
-        .with_visual(24, ColorWhiteOnChoice)
+        .with_visual(24, ColorChoiceOnBlack)
         .with_tickable_stat(2, ElementSpinningGunTick)
         .with_drawable(ElementSpinningGunDraw)
         .with_editor_category(EditorCategoryCreature, 'G')
@@ -1907,7 +1907,7 @@ void Game::InitEngine(EngineType engineType, bool is_editor) {
         .with_pushable()
         .with_tickable_stat(3, ElementBearTick)
         .with_touchable(ElementDamagingTouch)
-        .with_editor_category(EditorCategoryCreature, 'B')
+        .with_editor_category(EditorCategoryCreature, 'B', "Creatures:")
         .with_p1_slider("Sensitivity?"));
 
     this->engineDefinition.register_element(37, ElementDef(ESlime, "Slime")
