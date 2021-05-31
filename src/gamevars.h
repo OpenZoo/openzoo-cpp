@@ -171,6 +171,7 @@ namespace ZZT {
     };
 
     struct Stat {
+        StatData data = StatData();
         uint8_t x = 0, y = 0;
         int16_t step_x = 0, step_y = 0;
         int16_t cycle = 0;
@@ -180,7 +181,6 @@ namespace ZZT {
             .element = 0,
             .color = 0x00
         };
-        StatData data = StatData();
         int16_t data_pos = 0;
     };
 
@@ -701,7 +701,6 @@ namespace ZZT {
         int16_t playerDirX;
         int16_t playerDirY;
 
-        Coord transitionTable[60 * 25];
         sstring<50> loadedGameFileName;
         sstring<50> savedGameFileName;
         sstring<50> savedBoardFileName;
@@ -716,7 +715,6 @@ namespace ZZT {
         uint8_t gameStateElement;
         int16_t returnBoardId;
 
-        int16_t transitionTableSize;
         uint8_t tickSpeed;
 
         EngineDefinition engineDefinition;
@@ -788,7 +786,6 @@ namespace ZZT {
         void Initialize(void);
         void SidebarClearLine(int y);
         void SidebarClear();
-        void GenerateTransitionTable(void);
         void BoardClose();
         void BoardOpen(int16_t board_id);
         void BoardChange(int16_t board_id);

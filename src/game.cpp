@@ -37,6 +37,17 @@ extern uint8_t ext_tile_memory[];
 extern uint8_t ext_stat_memory[];
 #endif
 
+// LFSR11 for transition table
+
+static uint16_t transition_table_start = 42;
+
+bool transition_table_next(uint16_t &seed, uint8_t &tx, uint8_t &ty) {
+	seed = (seed >> 1) ^ ((-(seed & 1)) & 0x740);
+	tx = (seed - 1) & 0x3F;
+	ty = ((seed - 1) >> 6) & 0x3F;
+	return (seed == transition_table_start);
+}
+
 // TileMap
 
 TileMap::TileMap(uint8_t _width, uint8_t _height)
@@ -76,6 +87,9 @@ StatList::StatList(int16_t _size)
 
     // set stat -1 to out of bounds values
     this->stats[0] = {
+        .data = {
+            .len = 1
+        },
         .x = 0,
         .y = 1,
         .step_x = 256,
@@ -89,9 +103,6 @@ StatList::StatList(int16_t _size)
         .under = {
             .element = 1,
             .color = 0x00
-        },
-        .data = {
-            .len = 1
         },
         .data_pos = 1
     };
@@ -329,29 +340,8 @@ Game::~Game() {
 
 void Game::Initialize() {
     if (!initialized) {
-        GenerateTransitionTable();
         WorldCreate(ENGINE_TYPE_ZZT);
         initialized = true;
-    }
-}
-
-void Game::GenerateTransitionTable(void) {
-    transitionTableSize = 0;
-    for (uint8_t iy = 1; iy <= board.height(); iy++) {
-        for (uint8_t ix = 1; ix <= board.width(); ix++) {
-            transitionTable[transitionTableSize] = {
-                .x = ix,
-                .y = iy
-            };
-            transitionTableSize++;
-        }
-    }
-
-    for (int i = 0; i < transitionTableSize; i++) {
-        int j = random.Next(transitionTableSize);
-        Coord tmp = transitionTable[j];
-        transitionTable[j] = transitionTable[i];
-        transitionTable[i] = tmp;
     }
 }
 
@@ -470,9 +460,18 @@ void Game::WorldCreate(EngineType type) {
 }
 
 void Game::TransitionDrawToFill(uint8_t chr, uint8_t color) {
-    for (int i = 0; i < transitionTableSize; i++) {
-        driver->draw_char(transitionTable[i].x - 1, transitionTable[i].y - 1, color, chr);
-    }
+	uint16_t seed = transition_table_start;
+	uint8_t tx = transition_table_start - 1, ty = 0;
+
+	do {
+		if (tx < viewport.width && ty < viewport.height) {
+			BoardDrawChar(
+				viewport.cx_offset + 1 + tx,
+				viewport.cy_offset + 1 + ty,
+				color, chr);
+		}
+	} while (!transition_table_next(seed, tx, ty));
+
 }
 
 GBA_CODE_IWRAM
@@ -567,19 +566,16 @@ void Game::BoardDrawBorder(void) {
 }
 
 void Game::TransitionDrawToBoard(void) {
-    // TODO: Remove workaround
-    if (board.tiles.width != 60 || board.tiles.height != 25) {
-        for (int iy = 0; iy < viewport.height; iy++) {
-            for (int ix = 0; ix < viewport.width; ix++) {
-            }
-        }
-    }
+	uint16_t seed = transition_table_start;
+	uint8_t tx = transition_table_start - 1, ty = 0;
 
-    for (int i = 0; i < transitionTableSize; i++) {
-        BoardDrawTile(
-            viewport.cx_offset + transitionTable[i].x,
-            viewport.cy_offset + transitionTable[i].y);
-    }
+	do {
+		if (tx < viewport.width && ty < viewport.height) {
+			BoardDrawTile(
+				viewport.cx_offset + 1 + tx,
+				viewport.cy_offset + 1 + ty);
+		}
+	} while (!transition_table_next(seed, tx, ty));
 }
 
 void Game::SidebarPromptCharacter(bool editable, int16_t x, int16_t y, const char *prompt, uint8_t &value) {
