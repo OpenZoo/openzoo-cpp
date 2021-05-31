@@ -84,12 +84,11 @@ StatList::StatList(int16_t _size)
     } else
 #endif
     this->stats = (Stat*) malloc((size + 3) * sizeof(Stat));
+	this->count = 0;
 
     // set stat -1 to out of bounds values
     this->stats[0] = {
-        .data = {
-            .len = 1
-        },
+        .data = StatData(),
         .x = 0,
         .y = 1,
         .step_x = 256,
@@ -106,8 +105,15 @@ StatList::StatList(int16_t _size)
         },
         .data_pos = 1
     };
-    for (int i = 1; i < (size + 3); i++) {
-        this->stats[i] = {.follower = -1, .leader = -1};
+	this->stats[0].data.len = 1;
+	this->stats[1] = {
+		.data = StatData(),
+		.follower = -1,
+		.leader = -1
+	};
+	this->stats[1].data.len = 0;
+    for (int i = 2; i < (size + 3); i++) {
+		this->stats[i] = this->stats[1];
     }
 }
 
@@ -293,6 +299,14 @@ void World::free_board(uint8_t bid) {
 }
 
 // Viewport
+
+Viewport::Viewport(int16_t _x, int16_t _y, int16_t _width, int16_t _height)
+	: x(_x), y(_y), width(_width), height(_height) {
+	cx_offset = 0;
+	cy_offset = 0;
+}
+
+
 
 bool Viewport::set(int16_t nx, int16_t ny) {
     if (cx_offset != nx || cy_offset != ny) {

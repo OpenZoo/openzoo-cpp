@@ -26,8 +26,8 @@ namespace ZZT {
             if (size > 0) {
                 memcpy(new_tokens, tokens, sizeof(const char*) * size);
                 memcpy(new_values, values, sizeof(E) * size);
-                delete tokens;
-                delete values;
+                delete[] tokens;
+                delete[] values;
             }
             tokens = new_tokens;
             values = new_values;

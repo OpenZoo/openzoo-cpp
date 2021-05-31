@@ -161,12 +161,10 @@ namespace ZZT {
         }
 
         inline void alloc_data(int16_t length) {
-            if (len != length) {
-                len = length;
-                if (len > 0) {
-                    data = (char*) malloc(len);
-                }
-            }
+			len = length;
+			if (len > 0) {
+				data = (char*) malloc(len);
+			}
         }
     };
 
@@ -301,8 +299,12 @@ namespace ZZT {
             return value >= -1 && value <= (size + 1);
         }
 
+        bool valid_input(int16_t value) {
+            return value >= 0 && value <= (size + 1);
+        }
+
         void free_data_if_unused(int16_t stat_id) {
-            if (!valid(stat_id)) return;
+            if (!valid_input(stat_id)) return;
             Stat &stat = stats[stat_id + 1];
             if (stat.data.len != 0) {
                 bool found = false;
@@ -607,8 +609,7 @@ namespace ZZT {
     public:
         int16_t cx_offset, cy_offset, x, y, width, height;
 
-        Viewport(int16_t _x, int16_t _y, int16_t _width, int16_t _height)
-            : x(_x), y(_y), width(_width), height(_height) { }
+        Viewport(int16_t _x, int16_t _y, int16_t _width, int16_t _height);
 
         bool set(int16_t nx, int16_t ny);
         bool point_at(Board& board, int16_t sx, int16_t sy);
@@ -629,6 +630,10 @@ namespace ZZT {
         int16_t torchDuration, torchDistSqr;
         int16_t torchDx, torchDy;
         int16_t boardWidth, boardHeight, statCount;
+
+		EngineDefinition() {
+			engineType = ENGINE_TYPE_INVALID;
+		}
 
         // Caches
         TokenMap<int16_t, -1, true> elementNameMap;
