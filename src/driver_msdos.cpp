@@ -170,26 +170,31 @@ void MSDOSDriver::get_video_size(int16_t &width, int16_t &height) {
 
 #include "gamevars.h"
 
+static Game *game;
+
 int main(int argc, char** argv) {
 	MSDOSDriver driver = MSDOSDriver();
-	Game game = Game();
+	game = new Game();
 	
-	game.driver = &driver;
-    game.filesystem = new MsdosFilesystemDriver();
+	game->driver = &driver;
+    game->filesystem = new MsdosFilesystemDriver();
+    game->interface = new UserInterface(&driver);
 
 	driver.install();
 
 	driver.set_cursor(false);
 	driver.clrscr();
 
-	game.GameTitleLoop();
+	game->GameTitleLoop();
 
 	driver.clrscr();
 	driver.set_cursor(true);
 
 	driver.uninstall();
 	
-    delete game.filesystem;
+	delete game->interface;
+    delete game->filesystem;
+	delete game;
 
 	return 0;
 }
