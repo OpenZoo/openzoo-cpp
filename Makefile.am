@@ -39,6 +39,10 @@ openzoo_SOURCES += \
 	src/filesystem_posix.cpp
 endif
 
+if USE_CXX_SHIM
+openzoo_SOURCES += src/cxx_shim.cpp
+endif
+
 openzoo_CFLAGS = $(DRIVER_CFLAGS)
 openzoo_CXXFLAGS = $(DRIVER_CFLAGS)
 openzoo_LDADD = $(DRIVER_LDFLAGS)
