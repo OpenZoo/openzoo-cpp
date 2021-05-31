@@ -956,7 +956,7 @@ bool Game::BoardPrepareTileForPlacement(int16_t x, int16_t y) {
     return result;
 }
 
-void Game::MoveStat(int16_t stat_id, int16_t newX, int16_t newY) {
+void Game::MoveStat(int16_t stat_id, int16_t newX, int16_t newY, bool scrollOffset) {
     Stat& stat = board.stats[stat_id];
     
     Tile oldUnder = stat.under;
@@ -982,7 +982,7 @@ void Game::MoveStat(int16_t stat_id, int16_t newX, int16_t newY) {
     stat.x = newX;
     stat.y = newY;
 
-    if (stat_id == 0) {
+    if (stat_id == 0 && scrollOffset) {
         // TODO: More accurate Super ZZT behaviour
         int16_t old_cx_offset = viewport.cx_offset;
         int16_t old_cy_offset = viewport.cy_offset;

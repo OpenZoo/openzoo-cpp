@@ -600,6 +600,7 @@ namespace ZZT {
         QUIRK_BOARD_CHANGE_SENDS_ENTER, // Super ZZT
         QUIRK_PLAYER_BGCOLOR_FROM_FLOOR, // Super ZZT
         QUIRK_PLAYER_AFFECTED_BY_WATER, // Super ZZT
+        QUIRK_SUPER_ZZT_FOREST_SOUND, // Super ZZT
         QUIRK_SUPER_ZZT_STONES_OF_POWER, // Super ZZT - affects OOP #GIVE/#TAKE
         QUIRK_SUPER_ZZT_COMPAT_MISC, // Super ZZT - assorted
         EngineQuirkCount  
@@ -817,7 +818,7 @@ namespace ZZT {
         void AddStat(int16_t x, int16_t y, uint8_t element, uint8_t color, int16_t cycle, Stat tpl);
         void RemoveStat(int16_t stat_id);
         bool BoardPrepareTileForPlacement(int16_t x, int16_t y);
-        void MoveStat(int16_t stat_id, int16_t newX, int16_t newY);
+        void MoveStat(int16_t stat_id, int16_t newX, int16_t newY, bool scrollOffset = true);
         void GameDrawSidebar(void);
         void GameUpdateSidebar(void);
         void DisplayMessage(int16_t time, const char *message);

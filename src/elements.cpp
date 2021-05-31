@@ -900,16 +900,30 @@ void ZZT::ElementPushablePush(Game &game, int16_t x, int16_t y, int16_t delta_x,
             }
         }
 
-        if (!game.elementDef(to.element).walkable
-            && game.elementDef(to.element).destructible
-            && to.element != EPlayer)
-        {
-            game.BoardDamageTile(x + delta_x, y + delta_y);
-        }
+		if (game.engineDefinition.is<QUIRK_SUPER_ZZT_COMPAT_MISC>()) {
+			// TODO: What? Why?
+			if (to.element != EEmpty
+				&& game.elementDef(to.element).destructible
+				&& to.element != EPlayer)
+			{
+				game.BoardDamageTile(x + delta_x, y + delta_y);
+			}
 
-        if (game.elementDef(to.element).walkable) {
-            ElementMove(game, x, y, x + delta_x, y + delta_y);
-        }
+			if (to.element == EEmpty || ((from.element == EPlayer) && game.elementDef(to.element).walkable)) {
+				ElementMove(game, x, y, x + delta_x, y + delta_y);
+			}
+		} else {
+			if (!game.elementDef(to.element).walkable
+				&& game.elementDef(to.element).destructible
+				&& to.element != EPlayer)
+			{
+				game.BoardDamageTile(x + delta_x, y + delta_y);
+			}
+
+			if (game.elementDef(to.element).walkable) {
+				ElementMove(game, x, y, x + delta_x, y + delta_y);
+			}
+		}
     }
 }
 
@@ -1250,7 +1264,15 @@ static void ElementForestTouch(Game &game, int16_t x, int16_t y, int16_t source_
     game.board.tiles.set_element(x, y, EEmpty);
     game.BoardDrawTile(x, y);
 
-	game.driver->sound_queue(3, "\x39\x01");
+	uint8_t forestSound[2];
+	forestSound[1] = 1; // duration
+	forestSound[0] = 0x39; // note
+	if (game.engineDefinition.is<QUIRK_SUPER_ZZT_FOREST_SOUND>()) {
+		forestSound[0] = ForestSoundTable[ForestSoundTableIdx];
+		ForestSoundTableIdx = (ForestSoundTableIdx + 1) % sizeof(ForestSoundTable);
+	}
+
+	game.driver->sound_queue(3, forestSound, 2);
 
     if (game.msgFlags.first<MESSAGE_FOREST>()) {
         game.DisplayMessage(200, "A path is cleared through the forest.");
@@ -1298,7 +1320,7 @@ static void ElementBoardEdgeTouch(Game &game, int16_t x, int16_t y, int16_t sour
         const Tile &entryTile = game.board.tiles.get(entry_x, entry_y);
         if (game.elementDef(entryTile.element).walkable || entryTile.element == EPlayer) {
             if (entryTile.element != EPlayer) {
-                game.MoveStat(0, entry_x, entry_y);
+                game.MoveStat(0, entry_x, entry_y, false);
             }
 
             game.BoardUpdateDrawOffset();
@@ -1645,6 +1667,7 @@ void Game::InitEngine(EngineType engineType, bool is_editor) {
         this->engineDefinition.quirks.set<QUIRK_BOARD_CHANGE_SENDS_ENTER>(); // Super ZZT
         this->engineDefinition.quirks.set<QUIRK_PLAYER_BGCOLOR_FROM_FLOOR>(); // Super ZZT
         this->engineDefinition.quirks.set<QUIRK_PLAYER_AFFECTED_BY_WATER>(); // Super ZZT
+        this->engineDefinition.quirks.set<QUIRK_SUPER_ZZT_FOREST_SOUND>(); // Super ZZT
         this->engineDefinition.quirks.set<QUIRK_SUPER_ZZT_STONES_OF_POWER>(); // Super ZZT - affects OOP #GIVE/#TAKE
         this->engineDefinition.quirks.set<QUIRK_SUPER_ZZT_COMPAT_MISC>(); // Super ZZT - assorted
     } else {
@@ -1653,6 +1676,9 @@ void Game::InitEngine(EngineType engineType, bool is_editor) {
         this->engineDefinition.torchDy = 5;
         this->engineDefinition.torchDistSqr = 50;
         this->engineDefinition.textCutoff = 47;
+
+		// TODO: Should this be a SZZT-specific quirk or a visual bugfix?
+        this->engineDefinition.quirks.set<QUIRK_BULLET_DRAWTILE_FIX>(); // Super ZZT
     }
 
     // Initialize elements
