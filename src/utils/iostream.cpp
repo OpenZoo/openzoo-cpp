@@ -189,7 +189,7 @@ namespace ZZT {
     }
 
     bool MemoryIOStream::eof(void) {
-        return mem_pos < mem_len;
+        return mem_pos >= mem_len;
     }
 
     uint8_t *MemoryIOStream::ptr(void) {
