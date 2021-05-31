@@ -1,6 +1,7 @@
 #ifndef __FILESYSTEM_POSIX_H__
 #define __FILESYSTEM_POSIX_H__
 
+#include <cstdio>
 #include "filesystem.h"
 
 namespace ZZT {
