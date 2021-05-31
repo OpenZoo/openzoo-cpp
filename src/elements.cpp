@@ -2072,6 +2072,7 @@ void Game::InitEngine(EngineType engineType, bool is_editor) {
     if (is_editor) {
         this->engineDefinition.elementDefs[EBoardEdge].character = 'E';
         this->engineDefinition.elementDefs[EInvisible].character = 176;
+        forceDarknessOff = true;
     } else {
         forceDarknessOff = false;
     }

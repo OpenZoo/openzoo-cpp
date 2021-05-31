@@ -9,7 +9,7 @@ namespace ZZT {
 
     int16_t Random::Next(int16_t max) {
         seed = (seed * 134775813) + 1;
-        return seed % max;
+        return (seed >> 16) % max;
     }
 
 }
