@@ -264,7 +264,7 @@ void UserInterface::SidebarGameDraw(Game &game, uint32_t flags) {
             if (game.world.info.torch_ticks == 0) {
                 driver->draw_string(75, 9, 0x16, "    ");
             } else {
-                int iLimit = ((game.world.info.torch_ticks * 5) / TORCH_DURATION);
+                int iLimit = ((game.world.info.torch_ticks * 5) / game.engineDefinition.torchDuration);
                 for (int i = 2; i <= 5; i++) {
                     driver->draw_char(73 + i, 9, 0x16, (i <= iLimit) ? 177 : 176);
                 }

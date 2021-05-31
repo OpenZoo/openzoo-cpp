@@ -50,12 +50,18 @@ TileMap::TileMap(uint8_t _width, uint8_t _height)
     memset(this->tiles, 0, (width + 2) * (height + 2) * sizeof(Tile));
 }
 
+TileMap::TileMap(const TileMap&& other)
+    : width(other.width), height(other.height) {
+    tiles = other.tiles;
+}
+
 TileMap::~TileMap() {
 #if defined(__GBA__) || defined(__NDS__)
     if (width <= 60 && height <= 25) {} else
 #endif
     free(this->tiles);
 }
+
 
 // StatList
 
@@ -110,7 +116,7 @@ Board::Board(uint8_t width, uint8_t height, int16_t stat_size)
 }
 
 Board::~Board() {
-    
+
 }
 
 // World
@@ -118,7 +124,7 @@ Board::~Board() {
 #define SERIALIZERS_COUNT 2
 static Serializer *serializers[SERIALIZERS_COUNT] = {
     new SerializerFormatZZT(WorldFormatZZT),
-    new SerializerFormatZZT(WorldFormatInternal)
+    new SerializerFormatZZT(WorldFormatSuperZZT)
 };
 
 static Serializer *get_serializer(WorldFormat format) {
@@ -130,13 +136,13 @@ static Serializer *get_serializer(WorldFormat format) {
     return nullptr;
 }
 
-static void convert_board(const uint8_t *data, size_t data_len, WorldFormat from, WorldFormat to, bool destroyDataUponCompletion, uint8_t *&out_data, size_t &out_data_len) {
-    Board *board = new Board(60, 25, 150);
-    Serializer *fromS = get_serializer(from);
-    Serializer *toS = get_serializer(to);
+static void convert_board(const uint8_t *data, size_t data_len, uint8_t from, uint8_t to, bool destroyDataUponCompletion, uint8_t *&out_data, size_t &out_data_len) {
+    Board *board = new Board(96, 80, 128); // TODO
+    Serializer *fromS = get_serializer((WorldFormat) (from & 0x7F));
+    Serializer *toS = get_serializer((WorldFormat) (to & 0x7F));
 
     MemoryIOStream inputStream(data, data_len);
-    fromS->deserialize_board(*board, inputStream);
+    fromS->deserialize_board(*board, inputStream, (from & 0x80) != 0);
 
     if (destroyDataUponCompletion) {
         free((void*) data);
@@ -146,7 +152,7 @@ static void convert_board(const uint8_t *data, size_t data_len, WorldFormat from
     uint8_t *buffer = (uint8_t*) malloc(buflen);
     MemoryIOStream stream(buffer, buflen, true);
 
-    toS->serialize_board(*board, stream);
+    toS->serialize_board(*board, stream, (to & 0x80) != 0);
     delete board;
 
     uint8_t *buffer_ra = (uint8_t*) realloc(buffer, stream.tell());
@@ -154,10 +160,10 @@ static void convert_board(const uint8_t *data, size_t data_len, WorldFormat from
     out_data_len = stream.tell();
 }
 
-World::World(WorldFormat board_format_storage, WorldFormat board_format_target, int16_t _max_board) {
+World::World(WorldFormat _format, int16_t _max_board, bool compress_eagerly) {
+    this->format = _format;
     this->max_board = _max_board;
-    this->board_format_storage = board_format_storage;
-    this->board_format_target = board_format_target;
+    this->compress_eagerly = compress_eagerly;
 
     this->board_data = (uint8_t**) malloc(sizeof(uint8_t*) * (_max_board + 1));
     this->board_format = (uint8_t*) malloc(sizeof(uint8_t) * (_max_board + 1));
@@ -175,18 +181,23 @@ World::~World() {
     free(this->board_data);
 }
 
+void World::set_format(WorldFormat format) {
+    this->format = format;
+}
+
 bool World::read_board(uint8_t id, Board &board) {
-    Serializer *fromS = get_serializer((WorldFormat) this->board_format[id]);
+    uint8_t format = this->board_format[id];
+    Serializer *fromS = get_serializer((WorldFormat) (format & 0x7F));
     MemoryIOStream inputStream(this->board_data[id], this->board_len[id]);
-    return fromS->deserialize_board(board, inputStream);
+    return fromS->deserialize_board(board, inputStream, (format & 0x80) != 0);
 }
 
 bool World::write_board(uint8_t id, Board &board) {
-    Serializer *toS = get_serializer(board_format_target);
+    Serializer *toS = get_serializer(format);
     size_t buflen = toS->estimate_board_size(board);
     uint8_t *buffer = (uint8_t*) malloc(buflen);
     MemoryIOStream stream(buffer, buflen, true);
-    if (!toS->serialize_board(board, stream)) {
+    if (!toS->serialize_board(board, stream, true)) {
         free(buffer);
         return false;
     }
@@ -198,7 +209,7 @@ bool World::write_board(uint8_t id, Board &board) {
     if (board_data[id] == nullptr) {
         board_data[id] = buffer;
     }
-    board_format[id] = (uint8_t) board_format_target;
+    board_format[id] = (uint8_t) format | 0x80;
 
     return true;
 }
@@ -213,7 +224,7 @@ void World::get_board(uint8_t id, uint8_t *&data, uint16_t &len, bool &temporary
         size_t out_len;
 
         convert_board(this->board_data[id], this->board_len[id],
-            (WorldFormat) this->board_format[id], format,
+            this->board_format[id], format,
             false, out_data, out_len);
 
         data = out_data;
@@ -229,7 +240,7 @@ void World::set_board(uint8_t id, uint8_t *data, uint16_t len, bool costlessly_l
         this->board_data[id] = data;
         this->board_len[id] = len;
         this->board_format[id] = format;
-    } else if (board_format_storage == WorldFormatAny || format == board_format_storage) {
+    } else if (!compress_eagerly) {
         this->board_data[id] = (uint8_t *) malloc(len);
         memcpy(this->board_data[id], data, len);
         this->board_len[id] = len;
@@ -239,12 +250,12 @@ void World::set_board(uint8_t id, uint8_t *data, uint16_t len, bool costlessly_l
         size_t out_len;
 
         convert_board(data, len,
-            format, board_format_storage,
+            format, (uint8_t) format | 0x80,
             false, out_data, out_len);
 
         this->board_data[id] = out_data;
         this->board_len[id] = out_len;
-        this->board_format[id] = (uint8_t) board_format_storage;
+        this->board_format[id] = (uint8_t) format | 0x80;
     }
 }
 
@@ -292,14 +303,9 @@ bool Viewport::point_at(Board &board, int16_t sx, int16_t sy) {
 Game::Game(void):
     board(60, 25, 150),
     viewport(0, 0, 60, 25),
-#ifdef ROM_POINTERS
-    world(WorldFormatInternal, WorldFormatInternal, 100),
-#else
-    world(WorldFormatAny, WorldFormatInternal, 100),
-#endif
+    world(WorldFormatZZT, 100, true),
     highScoreList(this)
 {
-    world_storage_format = WorldFormatZZT;
     tickSpeed = 4;
     debugEnabled = false;
 #ifndef DISABLE_EDITOR
@@ -317,7 +323,7 @@ Game::~Game() {
 void Game::Initialize() {
     if (!initialized) {
         GenerateTransitionTable();
-        WorldCreate();
+        WorldCreate(ENGINE_TYPE_SUPER_ZZT);
         initialized = true;
     }
 }
@@ -425,8 +431,8 @@ void Game::BoardCreate(void) {
     BoardUpdateDrawOffset();
 }
 
-void Game::WorldCreate(void) {
-    InitElementsGame();
+void Game::WorldCreate(EngineType type) {
+    InitEngine(type, false);
     world.board_count = 0;
     world.free_board(0);
     playerDirX = 0; // from ELEMENTS -> InitEditorStatSettings
@@ -462,6 +468,7 @@ void Game::TransitionDrawToFill(uint8_t chr, uint8_t color) {
     }
 }
 
+GBA_CODE_IWRAM
 void Game::BoardDrawTile(int16_t x, int16_t y) {
     Tile tile = board.tiles.get(x, y);
     uint8_t drawn_char, drawn_color;
@@ -470,7 +477,8 @@ void Game::BoardDrawTile(int16_t x, int16_t y) {
         || elementDef(tile.element).visible_in_dark
         || (
             (world.info.torch_ticks > 0)
-            && ((Sqr(board.stats[0].x - x) + Sqr(board.stats[0].y - y) * 2) < TORCH_DIST_SQR)
+            // TODO: torchYMul not implemented here as codepath not used in SZZT
+            && ((Sqr(board.stats[0].x - x) + Sqr(board.stats[0].y - y) * 2) < engineDefinition.torchDistSqr)
         ) || forceDarknessOff
     ) {
         if (tile.element == EEmpty) {
@@ -479,18 +487,17 @@ void Game::BoardDrawTile(int16_t x, int16_t y) {
         } else if (elementDef(tile.element).has_draw_proc) {
             drawn_color = tile.color;
             elementDef(tile.element).draw(*this, x, y, drawn_char);
-        } else if (tile.element < ETextBlue) {
+        } else if (tile.element < engineDefinition.textCutoff) {
             drawn_color = tile.color;
-            drawn_char = elementCharOverrides[tile.element];
-            if (drawn_char == 0) drawn_char = elementDef(tile.element).character;
+            drawn_char = elementDef(tile.element).character;
         } else {
             drawn_char = tile.color;
-            if (tile.element == ETextWhite) {
+            if (tile.element == (engineDefinition.textCutoff + 6)) {
                 drawn_color = 0x0F;
             } else if (driver->is_monochrome()) {
-                drawn_color = ((tile.element - ETextBlue + 1) << 4);
+                drawn_color = ((tile.element - engineDefinition.textCutoff + 1) << 4);
             } else {
-                drawn_color = ((tile.element - ETextBlue + 1) << 4) | 0x0F;
+                drawn_color = ((tile.element - engineDefinition.textCutoff + 1) << 4) | 0x0F;
             }
         }
     } else {
@@ -502,6 +509,7 @@ void Game::BoardDrawTile(int16_t x, int16_t y) {
     BoardDrawChar(x, y, drawn_color, drawn_char);
 }
 
+GBA_CODE_IWRAM
 void Game::BoardDrawChar(int16_t x, int16_t y, uint8_t drawn_color, uint8_t drawn_char) {
     int16_t x_pos = x - 1 - viewport.cx_offset;
     int16_t y_pos = y - 1 - viewport.cy_offset;
@@ -512,6 +520,31 @@ void Game::BoardDrawChar(int16_t x, int16_t y, uint8_t drawn_color, uint8_t draw
 
 bool Game::BoardUpdateDrawOffset(void) {
     return viewport.point_at(board, board.stats[0]);
+}
+
+void Game::BoardPointCameraAt(int16_t sx, int16_t sy) {
+    int16_t old_cx_offset = viewport.cx_offset;
+    int16_t old_cy_offset = viewport.cy_offset;
+    if (viewport.point_at(board, sx, sy)) {
+        int deltaX = old_cx_offset - viewport.cx_offset;
+        int deltaY = old_cy_offset - viewport.cy_offset;
+        if ((Abs(deltaX) + Abs(deltaY)) == 1) {
+            driver->scroll_chars(viewport.x, viewport.y, viewport.width, viewport.height, deltaX, deltaY);
+            if (deltaX == 0) {
+                int y_pos = ((deltaY > 0) ? viewport.cy_offset : (viewport.cy_offset + viewport.height - 1)) + 1;
+                for (int i = 0; i < viewport.width; i++) {
+                    BoardDrawTile(viewport.cx_offset + i + 1, y_pos);
+                }
+            } else {
+                int x_pos = ((deltaX > 0) ? viewport.cx_offset : (viewport.cx_offset + viewport.width - 1)) + 1;
+                for (int i = 0; i < viewport.height; i++) {
+                    BoardDrawTile(x_pos, viewport.cy_offset + i + 1);
+                }
+            }
+        } else {
+            TransitionDrawToBoard();
+        }
+    }
 }
 
 void Game::BoardDrawBorder(void) {
@@ -527,8 +560,18 @@ void Game::BoardDrawBorder(void) {
 }
 
 void Game::TransitionDrawToBoard(void) {
+    // TODO: Remove workaround
+    if (board.tiles.width != 60 || board.tiles.height != 25) {
+        for (int iy = 0; iy < viewport.height; iy++) {
+            for (int ix = 0; ix < viewport.width; ix++) {
+            }
+        }
+    }
+
     for (int i = 0; i < transitionTableSize; i++) {
-        BoardDrawTile(transitionTable[i].x, transitionTable[i].y);
+        BoardDrawTile(
+            viewport.cx_offset + transitionTable[i].x,
+            viewport.cy_offset + transitionTable[i].y);
     }
 }
 
@@ -696,7 +739,7 @@ bool Game::WorldLoad(const char *filename, const char *extension, bool titleOnly
     if (!stream->errored()) {
         WorldUnload();
         
-        bool result = get_serializer(world_storage_format)->deserialize_world(world, *stream, titleOnly, [this](auto bid) {
+        bool result = get_serializer(world.get_format())->deserialize_world(world, *stream, titleOnly, [this](auto bid) {
             interface->SidebarShowMessage(ProgressAnimColors[bid & 7], ProgressAnimStrings[bid & 7], true);
         });
 
@@ -728,7 +771,7 @@ bool Game::WorldSave(const char *filename, const char *extension) {
     IOStream *stream = filesystem->open_file(joinedName, true);
 
     if (!stream->errored()) {
-        bool result = get_serializer(world_storage_format)->serialize_world(world, *stream, [](auto i){});
+        bool result = get_serializer(world.get_format())->serialize_world(world, *stream, [](auto i){});
 
         if (result) {
             BoardOpen(world.info.current_board);
@@ -938,12 +981,17 @@ void Game::MoveStat(int16_t stat_id, int16_t newX, int16_t newY) {
 
     if (stat_id == 0 && board.info.is_dark && world.info.torch_ticks > 0) {
         if ((Sqr(oldX - stat.x) + Sqr(oldY - stat.y)) == 1) {
-            for (int ix = (stat.x - TORCH_DX - 3); ix <= (stat.x + TORCH_DX + 3); ix++) {
+            int16_t torchDx = engineDefinition.torchDx;
+            int16_t torchDy = engineDefinition.torchDy;
+            int16_t torchDistSqr = engineDefinition.torchDistSqr;
+            int16_t torchYMul = engineDefinition.is<QUIRK_SUPER_ZZT_COMPAT_MISC>() ? 1 : 2;
+
+            for (int ix = (stat.x - torchDx - 3); ix <= (stat.x + torchDx + 3); ix++) {
                 if (ix < 1 || ix > board.width()) continue;
-                for (int iy = (stat.y - TORCH_DY - 3); iy <= (stat.y + TORCH_DY + 3); iy++) {
+                for (int iy = (stat.y - torchDy - 3); iy <= (stat.y + torchDy + 3); iy++) {
                     if (iy < 1 || iy > board.height()) continue;
-                    if ((((Sqr(ix-oldX))+(Sqr(iy-oldY)*2)) < TORCH_DIST_SQR) !=
-                        (((Sqr(ix-newX))+(Sqr(iy-newY)*2)) < TORCH_DIST_SQR))
+                    if ((((Sqr(ix-oldX))+(Sqr(iy-oldY)*torchYMul)) < torchDistSqr) !=
+                        (((Sqr(ix-newX))+(Sqr(iy-newY)*torchYMul)) < torchDistSqr))
                     {
                         BoardDrawTile(ix, iy);
                     }
@@ -1248,7 +1296,7 @@ void Game::GamePlayLoop(bool boardChanged) {
         GameAboutScreen();
         if (StrLength(startupWorldFileName) != 0) {
             if (!WorldLoad(startupWorldFileName, ".ZZT", true)) {
-                WorldCreate();
+                WorldCreate(ENGINE_TYPE_SUPER_ZZT);
             }
             interface->SidebarGameDraw(*this, SIDEBAR_FLAG_SET_WORLD_NAME);
         }

@@ -78,7 +78,7 @@ static void write_number(Driver *driver, int16_t x, int16_t y, uint8_t col, int 
 	}
 }
 
-static void write_number_torch_bg(int16_t torch_ticks, Driver *driver, int16_t x, int16_t y, uint8_t col, int val, int len) {
+static void write_number_torch_bg(int16_t torch_ticks, int16_t torch_duration, Driver *driver, int16_t x, int16_t y, uint8_t col, int val, int len) {
 	char s[8];
 	int16_t pos = sizeof(s);
 	int16_t i = val < 0 ? -val : val;
@@ -94,9 +94,11 @@ static void write_number_torch_bg(int16_t torch_ticks, Driver *driver, int16_t x
 		s[--pos] = '-';
 	}
 
+    torch_duration /= 5;
+
 	torch_col = (col & 0x0F) | 0x60;
 	torch_pos = torch_ticks > 0
-		? (torch_ticks + 39) / 40
+		? (torch_ticks + torch_duration - 1) / torch_duration
 		: 0;
 	if (torch_pos > 5) torch_pos = 5;
 
@@ -175,7 +177,8 @@ void UserInterfaceSlim::SidebarGameDraw(Game &game, uint32_t flags) {
             {
                 driver->draw_char(x, 25, 0x1E, '\x9D');
                 driver->draw_char(x + 1, 25, 0x1E, ' ');
-                write_number_torch_bg(game.world.info.torch_ticks, driver, x + 2, 25, 0x1F, game.world.info.torches, 6);
+                write_number_torch_bg(game.world.info.torch_ticks, game.engineDefinition.torchDuration,
+                    driver, x + 2, 25, 0x1F, game.world.info.torches, 6);
             }
             x += 8;
 

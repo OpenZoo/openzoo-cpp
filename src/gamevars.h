@@ -8,6 +8,7 @@
 #include "utils/math.h"
 #include "utils/quirkset.h"
 #include "utils/strings.h"
+#include "utils/tokenmap.h"
 #include "filesystem.h"
 #include "driver.h"
 #include "sounds.h"
@@ -17,26 +18,24 @@
 #include "world_serializer.h"
 
 #define MAX_ELEMENT 80
-#define MAX_FLAG 10
-#define TORCH_DURATION 200
-#define TORCH_DX 8
-#define TORCH_DY 5
-#define TORCH_DIST_SQR 50
+#define MAX_FLAG 16
 
 namespace ZZT {
-    typedef enum {
-        EditorCategoryNone = 0,
-        EditorCategoryItem = 1,
-        EditorCategoryCreature = 2,
-        EditorCategoryTerrain = 3
+    typedef enum : uint8_t {
+        EditorCategoryNone,
+        EditorCategoryItem,
+        EditorCategoryCreature,
+        EditorCategoryTerrain,
+        EditorCategoryUglies, // Super ZZT
+        EditorCategoryTerrain2 // Super ZZT
     } EditorCategory;
 
-    typedef enum {
+    typedef enum : uint8_t {
         ShotSourcePlayer = 0,
         ShotSourceEnemy = 1
     } ShotSource;
 
-    typedef enum {
+    typedef enum : uint8_t {
         EEmpty = 0,
         EBoardEdge = 1,
         EMessageTimer = 2,
@@ -56,7 +55,7 @@ namespace ZZT {
         EConveyorCW = 16,
         EConveyorCCW = 17,
         EBullet = 18,
-        EWater = 19,
+        EWater = 19, // lava in Super ZZT
         EForest = 20,
         ESolid = 21,
         ENormal = 22,
@@ -83,18 +82,26 @@ namespace ZZT {
         EBlinkRayNs = 43,
         ECentipedeHead = 44,
         ECentipedeSegment = 45,
-        ETextBlue = 47,
-        ETextGreen = 48,
-        ETextCyan = 49,
-        ETextRed = 50,
-        ETextPurple = 51,
-        ETextYellow = 52,
-        ETextWhite = 53,
-        ElementCount
-    } ElementType;
 
-// TODO: SZZT placeholders
-#define EWeb ElementCount
+        EFloor = 47,
+        EWaterN = 48,
+        EWaterS = 49,
+        EWaterW = 50,
+        EWaterE = 51,
+        ERoton = 59,
+        EDragonPup = 60,
+        EPairer = 61,
+        ESpider = 62,
+        EWeb = 63,
+        EStone = 64,
+
+        EBullet_SZZT = 69,
+        EBlinkRayEw_SZZT = 70,
+        EBlinkRayNs_SZZT = 71,
+        EStar_SZZT = 72,
+
+        ElementTypeCount
+    } ElementType;
 
     static constexpr const uint8_t ColorSpecialMin = 0xF0;
     static constexpr const uint8_t ColorChoiceOnBlack = 0xFF;
@@ -213,10 +220,11 @@ namespace ZZT {
         Tile empty = {.element = EBoardEdge, .color = 0x00};
 
     public:
-        const uint8_t width;
-        const uint8_t height;
+        uint8_t width;
+        uint8_t height;
         
         TileMap(uint8_t width, uint8_t height);
+        TileMap(const TileMap&&);
         ~TileMap();
 
         bool valid(int16_t x, int16_t y) const {
@@ -347,9 +355,9 @@ namespace ZZT {
     private:
         uint16_t *board_len;
         uint8_t *board_format;
-        WorldFormat board_format_storage;
-        WorldFormat board_format_target;
         int16_t max_board;
+        WorldFormat format;
+        bool compress_eagerly;
 
     public:
         // TODO: move to private (Editor::GetBoardName)
@@ -357,7 +365,7 @@ namespace ZZT {
         int16_t board_count;
         WorldInfo info;
 
-        World(WorldFormat board_format_storage, WorldFormat board_format_target, int16_t max_board);
+        World(WorldFormat format, int16_t max_board, bool compress_eagerly);
         ~World();
 
         inline int16_t max_board_count() const {
@@ -373,11 +381,23 @@ namespace ZZT {
         void get_board(uint8_t id, uint8_t *&data, uint16_t &len, bool &temporary, WorldFormat format);
         void set_board(uint8_t id, uint8_t *data, uint16_t len, bool costlessly_loaded, WorldFormat format);
         void free_board(uint8_t id);
+
+        inline WorldFormat get_format(void) const { return format; }
+        void set_format(WorldFormat format);
     };
 
     class Game;
 
+    void ElementDefaultDraw(Game &game, int16_t x, int16_t y, uint8_t &chr);
+    void ElementDefaultTick(Game &game, int16_t stat_id);
+    void ElementDefaultTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y);
+
+    typedef void (*ElementDrawProc)(Game &game, int16_t x, int16_t y, uint8_t &chr);
+    typedef void (*ElementTickProc)(Game &game, int16_t stat_id);
+    typedef void (*ElementTouchProc)(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y);
+
     struct ElementDef {
+        ElementType type;
         uint8_t character = ' ';
         uint8_t color = ColorChoiceOnBlack;
         bool destructible = false;
@@ -386,12 +406,9 @@ namespace ZZT {
         bool placeable_on_top = false;
         bool walkable = false;
         bool has_draw_proc = false;
-        void (*draw)(Game &game, int16_t x, int16_t y, uint8_t &chr);
-        int16_t cycle = -1;
-        void (*tick)(Game &game, int16_t stat_id);
-        void (*touch)(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y);
-        int16_t editor_category = 0;
-        char editor_shortcut = '\0';
+        ElementDrawProc draw = ElementDefaultDraw;
+        ElementTickProc tick = ElementDefaultTick;
+        ElementTouchProc touch = ElementDefaultTouch;
         sstring<20> name = "";
         const char *category_name = "";
         const char *p1_name = "";
@@ -401,6 +418,117 @@ namespace ZZT {
         const char *param_direction_name = "";
         const char *param_text_name = "";
         int16_t score_value = 0;
+        int16_t cycle = -1;
+        int16_t editor_category = 0;
+        char editor_shortcut = '\0';
+
+        ElementDef() : ElementDef(EEmpty, "") { }
+        ElementDef(ElementType _type, const char *_name) {
+            type = _type;
+            StrCopy(name, _name);
+        }
+
+        ElementDef& with_visual(uint8_t _character, uint8_t _color) {
+            character = _character;
+            color = _color;
+            return *this;
+        }
+
+        ElementDef& with_destructible(void) {
+            destructible = true;
+            return *this;
+        }
+
+        ElementDef& with_destructible(int16_t _score_value) {
+            destructible = true;
+            score_value = _score_value;
+            return *this;
+        }
+
+        ElementDef& with_pushable(void) {
+            pushable = true;
+            return *this;
+        }
+
+        ElementDef& with_visible_in_dark(void) {
+            visible_in_dark = true;
+            return *this;
+        }
+
+        ElementDef& with_placeable_on_top(void) {
+            placeable_on_top = true;
+            return *this;
+        }
+
+        ElementDef& with_walkable(void) {
+            walkable = true;
+            return *this;
+        }
+
+        ElementDef& with_drawable(ElementDrawProc _draw) {
+            has_draw_proc = true;
+            draw = _draw;
+            return *this;
+        }
+
+        ElementDef& with_tickless_stat() {
+            cycle = 0;
+            return *this;
+        }
+
+        ElementDef& with_tickable_stat(int16_t _cycle, ElementTickProc _tick) {
+            cycle = _cycle;
+            tick = _tick;
+            return *this;
+        }
+
+        ElementDef& with_touchable(ElementTouchProc _touch) {
+            touch = _touch;
+            return *this;
+        }
+
+        ElementDef& with_editor_category(int16_t _editor_category, char _editor_shortcut) {
+            editor_category = _editor_category;
+            editor_shortcut = _editor_shortcut;
+            return *this;
+        }
+
+        ElementDef& with_editor_category(int16_t _editor_category, char _editor_shortcut, const char *_category_name) {
+            editor_category = _editor_category;
+            editor_shortcut = _editor_shortcut;
+            category_name = _category_name;
+            return *this;
+        }
+
+        ElementDef& with_p1_slider(const char *name) {
+            p1_name = name;
+            return *this;
+        }
+
+        ElementDef& with_p2_slider(const char *name) {
+            p2_name = name;
+            return *this;
+        }
+
+        ElementDef& with_p2_bullet_type(const char *name) {
+            param_bullet_type_name = name;
+            return *this;
+        }
+
+        ElementDef& with_p3_board(const char *name) {
+            param_board_name = name;
+            return *this;
+        }
+
+        ElementDef& with_step_direction(const char *name) {
+            param_direction_name = name;
+            return *this;
+        }
+
+        ElementDef& with_stat_text(const char *name) {
+            param_text_name = name;
+            return *this;
+        }
     };
     
     enum MessageFlag {
@@ -421,6 +549,12 @@ namespace ZZT {
     void ElementMove(Game &game, int16_t old_x, int16_t old_y, int16_t new_x, int16_t new_y);
     void ElementPushablePush(Game &game, int16_t x, int16_t y, int16_t delta_x, int16_t delta_y);
 
+    enum EngineType {
+        ENGINE_TYPE_INVALID,
+        ENGINE_TYPE_ZZT,
+        ENGINE_TYPE_SUPER_ZZT
+    };
+
     enum EngineQuirk {
         QUIRK_BULLET_DRAWTILE_FIX, // Super ZZT
         QUIRK_BOARD_EDGE_TOUCH_DESINATION_FIX, // Super ZZT
@@ -430,6 +564,7 @@ namespace ZZT {
         QUIRK_OOP_SUPER_ZZT_MOVEMENT, // Super ZZT - also moves locking to P3
         QUIRK_BOARD_CHANGE_SENDS_ENTER, // Super ZZT
         QUIRK_PLAYER_BGCOLOR_FROM_FLOOR, // Super ZZT
+        QUIRK_PLAYER_AFFECTED_BY_WATER, // Super ZZT
         QUIRK_SUPER_ZZT_STONES_OF_POWER, // Super ZZT - affects OOP #GIVE/#TAKE
         QUIRK_SUPER_ZZT_COMPAT_MISC, // Super ZZT - assorted
         EngineQuirkCount  
@@ -450,10 +585,39 @@ namespace ZZT {
     };
 
     class EngineDefinition {
+        uint8_t elementTypeToId[ElementTypeCount];
+
     public:
+        EngineType engineType;
         QuirkSet<EngineQuirk, EngineQuirkCount> quirks;
         ElementDef elementDefs[MAX_ELEMENT];
         uint8_t elementCount;
+        uint8_t textCutoff;
+        int16_t torchDuration, torchDistSqr;
+        int16_t torchDx, torchDy;
+
+        // Caches
+        TokenMap<int16_t, -1, true> elementNameMap;
+
+        uint8_t get_element_id(ElementType type) {
+            return elementTypeToId[type];
+        }
+
+        void clear_elements(void) {
+            for (int i = 0; i < MAX_ELEMENT; i++) {
+                elementDefs[i] = ElementDef();
+            }
+            memset(elementTypeToId, 0, sizeof(elementTypeToId));
+            elementCount = 1;
+        }
+
+        void register_element(uint8_t id, ElementDef def) {
+            elementTypeToId[def.type] = id;
+            elementDefs[id] = def;
+            if (elementCount <= id) {
+                elementCount = id + 1;
+            }
+        }
 
         template<EngineQuirk quirk>
         inline const bool is() const {
@@ -490,9 +654,6 @@ namespace ZZT {
     private:
         bool initialized;
 
-        // elements.cpp
-        void InitElementDefs(void);
-
         // oop.cpp
         uint8_t GetColorForTileMatch(const Tile &tile);
 
@@ -522,9 +683,6 @@ namespace ZZT {
 
         EngineDefinition engineDefinition;
         Viewport viewport;
-
-        // TODO: move to EngineDefinition
-        uint8_t elementCharOverrides[MAX_ELEMENT];
 
         int16_t editorPatternCount;
         uint8_t editorPatterns[10];
@@ -561,7 +719,6 @@ namespace ZZT {
         FilesystemDriver *filesystem;
 
         UserInterface *interface;
-        WorldFormat world_storage_format;
 
         inline const ElementDef& elementDef(uint8_t element) const {
             return engineDefinition.elementDef(element);
@@ -579,8 +736,7 @@ namespace ZZT {
         void DrawPlayerSurroundings(int16_t x, int16_t y, int16_t bomb_phase);
         void GamePromptEndPlay(void);
         void ResetMessageNotShownFlags(void);
-        void InitElementsGame(void);
-        void InitElementsEditor(void);
+        void InitEngine(EngineType type, bool is_editor);
 
         // game.cpp
         void Initialize(void);
@@ -591,11 +747,12 @@ namespace ZZT {
         void BoardOpen(int16_t board_id);
         void BoardChange(int16_t board_id);
         void BoardCreate(void);
-        void WorldCreate(void);
+        void WorldCreate(EngineType type);
         void TransitionDrawToFill(uint8_t chr, uint8_t color);
         void BoardDrawTile(int16_t x, int16_t y);
         void BoardDrawChar(int16_t x, int16_t y, uint8_t drawn_color, uint8_t drawn_char);
         bool BoardUpdateDrawOffset(void);
+        void BoardPointCameraAt(int16_t sx, int16_t sy);
         void BoardDrawBorder(void);
         void TransitionDrawToBoard(void);
         void SidebarPromptCharacter(bool editable, int16_t x, int16_t y, const char *prompt, uint8_t &value);

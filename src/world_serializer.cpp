@@ -47,10 +47,10 @@ size_t SerializerFormatZZT::estimate_board_size(Board &board) {
     return len;
 }
 
-bool SerializerFormatZZT::serialize_board(Board &board, IOStream &stream) {
-    bool packed = format == WorldFormatInternal;
+bool SerializerFormatZZT::serialize_board(Board &board, IOStream &stream, bool packed) {
+    bool szzt = (format == WorldFormatSuperZZT);
 
-    stream.write_pstring(board.name, 50, packed);
+    stream.write_pstring(board.name, szzt ? 60 : 50, packed);
 
     int16_t ix = 1;
     int16_t iy = 1;
@@ -76,15 +76,16 @@ bool SerializerFormatZZT::serialize_board(Board &board, IOStream &stream) {
     } while (iy <= board.height());
 
     stream.write8(board.info.max_shots);
-    stream.write_bool(board.info.is_dark);
+    if (!szzt) stream.write_bool(board.info.is_dark);
     for (int i = 0; i < 4; i++)
         stream.write8(board.info.neighbor_boards[i]);
     stream.write_bool(board.info.reenter_when_zapped);
-    stream.write_pstring(board.info.message, 58, packed);
+    if (!szzt) stream.write_pstring(board.info.message, 58, packed);
     stream.write8(board.info.start_player_x);
     stream.write8(board.info.start_player_y);
+    if (szzt && !packed) stream.skip(4); // DrawXOffset/DrawYOffset
     stream.write16(board.info.time_limit_seconds);
-    if (!packed) stream.skip(16);
+    if (!packed) stream.skip(szzt ? 14 : 16);
 
     stream.write16(board.stats.count);
     for (int i = 0; i <= board.stats.count; i++) {
@@ -127,14 +128,14 @@ bool SerializerFormatZZT::serialize_board(Board &board, IOStream &stream) {
         stream.write16(stat.data_pos);
         stream.write16(len);
 
-        if (format == WorldFormatZZT) {
+        if (format == WorldFormatZZT && !packed) {
             // ZZT contains eight unused bytes at the end.
             stream.skip(8);
         }
 
         if (len > 0) {
 #ifdef ROM_POINTERS
-            if (format == WorldFormatInternal) {
+            if (packed) {
                 // RAM (ROM + difference)
                 stream.write32((uint32_t) stat.data.data_rom);
                 uint16_t diffs = 0;
@@ -167,10 +168,10 @@ bool SerializerFormatZZT::serialize_board(Board &board, IOStream &stream) {
     return !stream.errored(); // TODO
 }
 
-bool SerializerFormatZZT::deserialize_board(Board &board, IOStream &stream) {
-    bool packed = format == WorldFormatInternal;
+bool SerializerFormatZZT::deserialize_board(Board &board, IOStream &stream, bool packed) {
+    bool szzt = (format == WorldFormatSuperZZT);
 
-    stream.read_pstring(board.name, StrSize(board.name), 50, packed);
+    stream.read_pstring(board.name, StrSize(board.name), szzt ? 60 : 50, packed);
 
     int16_t ix = 1;
     int16_t iy = 1;
@@ -192,15 +193,17 @@ bool SerializerFormatZZT::deserialize_board(Board &board, IOStream &stream) {
     } while (iy <= board.height());
 
     board.info.max_shots = stream.read8();
-    board.info.is_dark = stream.read_bool();
+    board.info.is_dark = !szzt ? stream.read_bool() : false;
     for (int i = 0; i < 4; i++)
         board.info.neighbor_boards[i] = stream.read8();
     board.info.reenter_when_zapped = stream.read_bool();
-    stream.read_pstring(board.info.message, StrSize(board.info.message), 58, packed);
+    if (!szzt) stream.read_pstring(board.info.message, StrSize(board.info.message), 58, packed);
+    else board.info.message[0] = 0;
     board.info.start_player_x = stream.read8();
     board.info.start_player_y = stream.read8();
+    if (szzt && !packed) stream.skip(4); // DrawXOffset/DrawYOffset
     board.info.time_limit_seconds = stream.read16();
-    if (!packed) stream.skip(16);
+    if (!packed) stream.skip(szzt ? 14 : 16);
 
     board.stats.count = stream.read16();
 
@@ -226,7 +229,7 @@ bool SerializerFormatZZT::deserialize_board(Board &board, IOStream &stream) {
         stat.data_pos = stream.read16();
         int16_t len = stream.read16();
 
-        if (format == WorldFormatZZT) {
+        if (format == WorldFormatZZT && !packed) {
             // ZZT contains eight unused bytes at the end.
             stream.skip(8);
         }
@@ -237,7 +240,7 @@ bool SerializerFormatZZT::deserialize_board(Board &board, IOStream &stream) {
             stat.data.alloc_data(len);
             if (len > 0) {
 #ifdef ROM_POINTERS
-                if (format == WorldFormatInternal) {
+                if (packed) {
                     // RAM (ROM + difference)
                     stat.data.data_rom = (const char*) stream.read32();
                     memcpy(stat.data.data, stat.data.data_rom, len);
@@ -263,11 +266,11 @@ bool SerializerFormatZZT::deserialize_board(Board &board, IOStream &stream) {
 }
 
 bool SerializerFormatZZT::serialize_world(World &world, IOStream &stream, std::function<void(int)> ticker) {
-    if (format == WorldFormatInternal) {
-        return false; // we do not serialize/deserialize to internal
-    }
+    bool szzt = (format == WorldFormatSuperZZT);
+    int16_t version = szzt ? -2 : -1;
+    int16_t headerSize = szzt ? 1024 : 512;
 
-    stream.write16(-1); /* version */
+    stream.write16(version); /* version */
     stream.write16(world.board_count);
 
     stream.write16(world.info.ammo);
@@ -277,7 +280,7 @@ bool SerializerFormatZZT::serialize_world(World &world, IOStream &stream, std::f
     }
     stream.write16(world.info.health);
     stream.write16(world.info.current_board);
-    stream.write16(world.info.torches);
+    if (!szzt) stream.write16(world.info.torches);
     stream.write16(world.info.torch_ticks);
     stream.write16(world.info.energizer_ticks);
     stream.write16(0);
@@ -289,8 +292,9 @@ bool SerializerFormatZZT::serialize_world(World &world, IOStream &stream, std::f
     stream.write16(world.info.board_time_sec);
     stream.write16(world.info.board_time_hsec);
     stream.write_bool(world.info.is_save);
+    if (szzt) stream.write16(world.info.stones_of_power);
 
-    stream.skip(512 - stream.tell());
+    stream.skip(headerSize - stream.tell());
 
     if (stream.errored()) return false;
 
@@ -311,13 +315,13 @@ bool SerializerFormatZZT::serialize_world(World &world, IOStream &stream, std::f
 }
 
 bool SerializerFormatZZT::deserialize_world(World &world, IOStream &stream, bool titleOnly, std::function<void(int)> ticker) {
-    if (format == WorldFormatInternal) {
-        return false; // we do not serialize/deserialize to internal
-    }
+    bool szzt = (format == WorldFormatSuperZZT);
+    int16_t version = szzt ? -2 : -1;
+    int16_t headerSize = szzt ? 1024 : 512;
 
     world.board_count = stream.read16();
     if (world.board_count < 0) {
-        if (world.board_count != -1) {
+        if (world.board_count != version) {
             // TODO UserInterface
             // video->draw_string(63, 5, 0x1E, "You need a newer");
             // video->draw_string(63, 6, 0x1E, " version of ZZT!");
@@ -334,7 +338,7 @@ bool SerializerFormatZZT::deserialize_world(World &world, IOStream &stream, bool
     }
     world.info.health = stream.read16();
     world.info.current_board = stream.read16();
-    world.info.torches = stream.read16();
+    if (!szzt) world.info.torches = stream.read16();
     world.info.torch_ticks = stream.read16();
     world.info.energizer_ticks = stream.read16();
     stream.read16();
@@ -346,8 +350,9 @@ bool SerializerFormatZZT::deserialize_world(World &world, IOStream &stream, bool
     world.info.board_time_sec = stream.read16();
     world.info.board_time_hsec = stream.read16();
     world.info.is_save = stream.read_bool();
+    if (szzt) world.info.stones_of_power = stream.read16();
 
-    stream.skip(512 - stream.tell());
+    stream.skip(headerSize - stream.tell());
 
     if (titleOnly) {
         world.board_count = 0;

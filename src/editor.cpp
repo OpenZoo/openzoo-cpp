@@ -172,21 +172,18 @@ void Editor::CopyPattern(int16_t x, int16_t y, EditorCopiedTile &copied) {
     const ElementDef &def = game->elementDef(tile.element);
     if (def.has_draw_proc) {
         def.draw(*game, x, y, copied.preview_char);
-    } else if (tile.element < ETextBlue) {
-        uint8_t elem_ch = game->elementCharOverrides[tile.element];
-        if (elem_ch == 0) elem_ch = def.character;
-
-        copied.preview_char = elem_ch;
+    } else if (tile.element < game->engineDefinition.textCutoff) {
+        copied.preview_char = def.character;
     } else {
         copied.preview_char = def.color;
     }
 
-    if (tile.element < ETextBlue) {
+    if (tile.element < game->engineDefinition.textCutoff) {
         copied.preview_color = tile.color;
-    } else if (tile.element == ETextWhite) {
+    } else if (tile.element == (game->engineDefinition.textCutoff + 6)) {
         copied.preview_color = 0x0F;
     } else {
-        copied.preview_color = ((tile.element - ETextBlue + 1) << 4) | 0x0F;
+        copied.preview_color = ((tile.element - game->engineDefinition.textCutoff + 1) << 4) | 0x0F;
     }
 }
 
@@ -265,6 +262,8 @@ void Editor::DrawTileAndNeighhborsAt(int16_t x, int16_t y) {
 
 void Editor::DrawRefresh(void) {
     sstring<128> name;
+
+    game->BoardPointCameraAt(cursor_x, cursor_y);
 
     game->BoardDrawBorder();
     DrawSidebar();
@@ -778,16 +777,18 @@ int Editor::SelectBoard(const char *title, int16_t current_board, bool title_scr
 }
 
 void Editor::Loop(void) {
+    EngineType current_type = game->engineDefinition.engineType;
+
     if (game->world.info.is_save || (game->WorldGetFlagPosition("SECRET") >= 0)) {
         game->WorldUnload();
-        game->WorldCreate();
+        game->WorldCreate(current_type);
     }
 
-    game->InitElementsEditor();
+    game->InitEngine(current_type, true);
     game->currentTick = 0;
     was_modified = false;
-    cursor_x = 30;
-    cursor_y = 12;
+    cursor_x = game->board.width() >> 1;
+    cursor_y = game->board.height() >> 1;
     draw_mode = EDMDrawingOff;
     cursor_pattern = 0;
     cursor_color = 0x0E;
@@ -825,18 +826,20 @@ void Editor::Loop(void) {
             if (cursor_blinker == 0) {
                 game->BoardDrawTile(cursor_x, cursor_y);
             } else {
-                game->driver->draw_char(cursor_x - 1, cursor_y - 1, 0x0F, 197);
+                game->BoardDrawChar(cursor_x, cursor_y, 0x0F, 197);
             }
         } else {
             game->BoardDrawTile(cursor_x, cursor_y);
         }
 
+        game->BoardPointCameraAt(cursor_x, cursor_y);
+
         if (draw_mode == EDMTextEntry) {
             auto &ch = game->driver->keyPressed;
             if (ch >= 32 && ch < 128) {
                 if (PrepareModifyTile(cursor_x, cursor_y)) {
-                    i_elem = (cursor_color & 0x07) + ETextBlue - 1;
-                    if (i_elem < ETextBlue) i_elem = ETextWhite;
+                    i_elem = (cursor_color & 0x07) + game->engineDefinition.textCutoff - 1;
+                    if (i_elem < game->engineDefinition.textCutoff) i_elem = game->engineDefinition.textCutoff + 6;
 
                     game->board.tiles.set(cursor_x, cursor_y, {
                         .element = i_elem,
@@ -888,7 +891,7 @@ void Editor::Loop(void) {
             if (cursor_y < 1) cursor_y = 1;
             if (cursor_y > game->board.height()) cursor_y = game->board.height();
 
-            game->driver->draw_char(cursor_x - 1, cursor_y - 1, 0x0F, 197);
+            game->BoardDrawChar(cursor_x, cursor_y, 0x0F, 197);
 
             if (game->driver->keyPressed == 0 && game->driver->joystickEnabled) {
                 game->driver->delay(70);
@@ -955,7 +958,7 @@ void Editor::Loop(void) {
 
                             game->PauseOnError();
                             game->WorldUnload();
-                            game->WorldCreate();
+                            game->WorldCreate(current_type);
                         }
                     }
                     was_modified = false;
@@ -986,7 +989,7 @@ void Editor::Loop(void) {
                     AskSaveChanged();
                     if (game->driver->keyPressed != KeyEscape) {
                         game->WorldUnload();
-                        game->WorldCreate();
+                        game->WorldCreate(current_type);
                         DrawRefresh();
                         was_modified = false;
                     }
@@ -1019,7 +1022,7 @@ void Editor::Loop(void) {
                 UpdateDrawMode();
             } break;
             case KeyF5: {
-                game->driver->draw_char(cursor_x - 1, cursor_y - 1, 0x0F, 197);
+                game->BoardDrawChar(cursor_x, cursor_y, 0x0F, 197);
                 for (i = 3; i <= 20; i++) {
                     game->SidebarClearLine(i);
                 }
@@ -1043,7 +1046,7 @@ void Editor::Loop(void) {
             case KeyF1:
             case KeyF2:
             case KeyF3: {
-                game->driver->draw_char(cursor_x - 1, cursor_y - 1, 0x0F, 197);
+                game->BoardDrawChar(cursor_x, cursor_y, 0x0F, 197);
                 for (i = 3; i <= 20; i++) {
                     game->SidebarClearLine(i);
                 }
@@ -1067,8 +1070,7 @@ void Editor::Loop(void) {
                             i++;
                         }
 
-                        uint8_t elem_ch = game->elementCharOverrides[i_elem];
-                        if (elem_ch == 0) elem_ch = def.character;
+                        uint8_t elem_ch = def.character;
 
                         hotkey[1] = def.editor_shortcut;
                         game->driver->draw_string(61, i, ((i & 1) << 6) + 0x30, hotkey);
@@ -1170,5 +1172,5 @@ void Editor::Loop(void) {
     }
 
     game->driver->keyPressed = 0;
-    game->InitElementsGame();
+    game->InitEngine(current_type, false);
 }

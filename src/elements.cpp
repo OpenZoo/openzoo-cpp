@@ -10,15 +10,15 @@ static const uint8_t StarAnimChars[4] = {179, '/', 196, '\\'};
 static const uint8_t ForestSoundTable[8] = {0x45, 0x40, 0x47, 0x50, 0x46, 0x41, 0x48, 0x51};
 static uint8_t ForestSoundTableIdx; // TODO: Move to Game structure
 
-static void ElementDefaultDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
+void ZZT::ElementDefaultDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
     chr = '?';
 }
 
-static void ElementDefaultTick(Game &game, int16_t stat_id) {
+void ZZT::ElementDefaultTick(Game &game, int16_t stat_id) {
 
 }
 
-static void ElementDefaultTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+void ZZT::ElementDefaultTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
 
 }
 
@@ -448,7 +448,7 @@ static void ElementLineDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
     ElementConnectedDraw(game, x, y, chr, ELine, LineChars);
 }
 
-static void ElementWebDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
+static void ElementSZZTWebDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
     ElementConnectedDraw(game, x, y, chr, EWeb, WebChars);
 }
 
@@ -1101,6 +1101,28 @@ static void ElementAmmoTouch(Game &game, int16_t x, int16_t y, int16_t source_st
     }
 }
 
+static void ElementSZZTStoneTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+    if (game.world.info.stones_of_power <= 0)
+        game.world.info.stones_of_power = 1;
+    else
+        game.world.info.stones_of_power++;
+
+    game.BoardDamageTile(x, y);
+    game.GameUpdateSidebar();
+    game.DisplayMessage(200, "You have found a Stone of Power!");
+}
+
+static void ElementSZZTStoneDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
+    chr = 0x41 + game.random.Next(26);
+}
+
+static void ElementSZZTStoneTick(Game &game, int16_t stat_id) {
+    Stat& stat = game.board.stats[stat_id];
+    Tile tile = game.board.tiles.get(stat.x, stat.y);
+    game.board.tiles.set_color(stat.x, stat.y, (tile.color & 0x70) + 9 + game.random.Next(7));
+    game.BoardDrawTile(stat.x, stat.y);
+}
+
 static void ElementGemTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
     game.world.info.gems += 1;
     game.world.info.health += 1;
@@ -1300,11 +1322,16 @@ static void ElementWaterTouch(Game &game, int16_t x, int16_t y, int16_t source_s
 }
 
 void Game::DrawPlayerSurroundings(int16_t x, int16_t y, int16_t bomb_phase) {
-    for (int ix = (x - TORCH_DX - 1); ix <= (x + TORCH_DX + 1); ix++) {
+    int16_t torchDx = engineDefinition.torchDx;
+    int16_t torchDy = engineDefinition.torchDy;
+    int16_t torchDistSqr = engineDefinition.torchDistSqr;
+    int16_t torchYMul = engineDefinition.is<QUIRK_SUPER_ZZT_COMPAT_MISC>() ? 1 : 2;
+
+    for (int ix = (x - torchDx - 1); ix <= (x + torchDx + 1); ix++) {
         if (ix < 1 || ix > board.width()) continue;
-        for (int iy = (y - TORCH_DY - 1); iy <= (y + TORCH_DY + 1); iy++) {
+        for (int iy = (y - torchDy - 1); iy <= (y + torchDy + 1); iy++) {
             if (iy < 1 || iy > board.height()) continue;
-            if (bomb_phase > 0 && (Sqr(ix - x) + Sqr(iy - y)*2) < TORCH_DIST_SQR) {
+            if (bomb_phase > 0 && (Sqr(ix - x) + Sqr(iy - y)*torchYMul) < torchDistSqr) {
                 const Tile &tile = board.tiles.get(ix, iy);
                 if (bomb_phase == 1) {
                     if (!StrEmpty(elementDef(tile.element).param_text_name)) {
@@ -1349,6 +1376,39 @@ void Game::GamePromptEndPlay(void) {
     driver->keyPressed = 0;
 }
 
+static void ElementApplyWaterMovement(Game &game, int16_t stat_id) {
+    Stat &stat = game.board.stats[stat_id];
+    int16_t deltaX = 0, deltaY = 0;
+
+    switch (stat.under.element) {
+        case EWaterN:
+            deltaY = -1;
+            break;
+        case EWaterS:
+            deltaY = 1;
+            break;
+        case EWaterW:
+            deltaX = -1;
+            break;
+        case EWaterE:
+            deltaX = 1;
+            break;
+    }
+
+    if (deltaX != 0 || deltaY != 0) {
+        if (stat_id == 0) {
+            game.elementDefAt(stat.x + deltaX, stat.y + deltaY)
+                .touch(game, stat.x + deltaX, stat.y + deltaY, 0, deltaX, deltaY);
+        }
+
+        if (deltaX != 0 || deltaY != 0) {
+            if (game.elementDefAt(stat.x + deltaX, stat.y + deltaY).walkable) {
+                game.MoveStat(stat_id, stat.x + deltaX, stat.y + deltaY);
+            }
+        }
+    }
+}
+
 static void ElementPlayerTick(Game &game, int16_t stat_id) {
     Stat &stat = game.board.stats[stat_id];
     uint8_t playerColor = game.elementDef(EPlayer).color;
@@ -1361,14 +1421,14 @@ static void ElementPlayerTick(Game &game, int16_t stat_id) {
     }
 
     if (game.world.info.energizer_ticks > 0) {
-        game.elementCharOverrides[EPlayer] = game.elementCharOverrides[EPlayer] == 0 ? 1 : 0;
-
+        game.engineDefinition.elementDefs[EPlayer].character =
+            (game.elementDef(EPlayer).character == 1) ? 2 : 1;
         game.board.tiles.set_color(stat.x, stat.y,
             (game.currentTick & 2) != 0 ? 0x0F : ((((game.currentTick % 7) + 1) << 4) | 0x0F));
         game.BoardDrawTile(stat.x, stat.y);
-    } else if (game.board.tiles.get(stat.x, stat.y).color != playerColor || game.elementCharOverrides[EPlayer] != 0) {
+    } else if (game.board.tiles.get(stat.x, stat.y).color != playerColor || game.elementDef(EPlayer).character != 2) {
         game.board.tiles.set_color(stat.x, stat.y, playerColor);
-        game.elementCharOverrides[EPlayer] = 0;
+        game.engineDefinition.elementDefs[EPlayer].character = 2;
         game.BoardDrawTile(stat.x, stat.y);
     }
 
@@ -1449,7 +1509,7 @@ static void ElementPlayerTick(Game &game, int16_t stat_id) {
                 if (game.world.info.torches > 0) {
                     if (game.board.info.is_dark) {
                         game.world.info.torches--;
-                        game.world.info.torch_ticks = TORCH_DURATION;
+                        game.world.info.torch_ticks = game.engineDefinition.torchDuration;
 
                         game.DrawPlayerSurroundings(stat.x, stat.y, 0);
                         game.GameUpdateSidebar();
@@ -1527,36 +1587,484 @@ static void ElementPlayerTick(Game &game, int16_t stat_id) {
             game.GameUpdateSidebar();
         }
     }
+
+    if (game.engineDefinition.is<QUIRK_PLAYER_AFFECTED_BY_WATER>()) {
+        ElementApplyWaterMovement(game, stat_id);
+    }
 }
 
 static void ElementMonitorTick(Game &game, int16_t stat_id) {
     if (game.interface->HandleMenu(game, TitleMenu, true) > 0) {
         game.gamePlayExitRequested = true;
     }
-}
 
-#include "element_defs.inc"
+    if (game.engineDefinition.is<QUIRK_PLAYER_AFFECTED_BY_WATER>()) {
+        ElementApplyWaterMovement(game, stat_id);
+    }
+}
 
 void Game::ResetMessageNotShownFlags(void) {
     msgFlags.clear();
 }
 
-void Game::InitElementDefs(void) {
+void Game::InitEngine(EngineType engineType, bool is_editor) {
+    if (engineType != this->engineDefinition.engineType) {
+        this->engineDefinition.engineType = engineType;
+
+        this->board.~Board();
+      
+        if (engineType == ENGINE_TYPE_SUPER_ZZT) {
+            new (&this->board) Board(96, 80, 128);
+            this->world.set_format(WorldFormatSuperZZT);
+        } else {
+            new (&this->board) Board(60, 25, 150);
+            this->world.set_format(WorldFormatZZT);
+        }
+    }
+
     this->engineDefinition.quirks.clear();
-    memcpy(this->engineDefinition.elementDefs, defaultElementDefs, sizeof(defaultElementDefs));
-    this->engineDefinition.elementCount = ElementCount;
-    memset(elementCharOverrides, 0, sizeof(elementCharOverrides));
-}
 
-void Game::InitElementsEditor(void) {
-    InitElementDefs();
+    if (engineType == ENGINE_TYPE_SUPER_ZZT) {
+        this->engineDefinition.torchDx = 8;
+        this->engineDefinition.torchDy = 8;
+        this->engineDefinition.torchDistSqr = 64;
+        this->engineDefinition.textCutoff = 73;
 
-    elementCharOverrides[EBoardEdge] = 'E';
-    elementCharOverrides[EInvisible] = 176;
-    forceDarknessOff = true;   
-}
+        this->engineDefinition.quirks.set<QUIRK_BULLET_DRAWTILE_FIX>(); // Super ZZT
+        this->engineDefinition.quirks.set<QUIRK_BOARD_EDGE_TOUCH_DESINATION_FIX>(); // Super ZZT
+        this->engineDefinition.quirks.set<QUIRK_CENTIPEDE_EXTRA_CHECKS>(); // Super ZZT
+        this->engineDefinition.quirks.set<QUIRK_CONNECTION_DRAWING_CHECKS_UNDER_STAT>(); // Super ZZT
+        this->engineDefinition.quirks.set<QUIRK_OOP_LENIENT_COLOR_MATCHES>(); // Super ZZT
+        this->engineDefinition.quirks.set<QUIRK_OOP_SUPER_ZZT_MOVEMENT>(); // Super ZZT - also moves locking to P3
+        this->engineDefinition.quirks.set<QUIRK_BOARD_CHANGE_SENDS_ENTER>(); // Super ZZT
+        this->engineDefinition.quirks.set<QUIRK_PLAYER_BGCOLOR_FROM_FLOOR>(); // Super ZZT
+        this->engineDefinition.quirks.set<QUIRK_PLAYER_AFFECTED_BY_WATER>(); // Super ZZT
+        this->engineDefinition.quirks.set<QUIRK_SUPER_ZZT_STONES_OF_POWER>(); // Super ZZT - affects OOP #GIVE/#TAKE
+        this->engineDefinition.quirks.set<QUIRK_SUPER_ZZT_COMPAT_MISC>(); // Super ZZT - assorted
+    } else {
+        this->engineDefinition.torchDuration = 200;
+        this->engineDefinition.torchDx = 8;
+        this->engineDefinition.torchDy = 5;
+        this->engineDefinition.torchDistSqr = 50;
+        this->engineDefinition.textCutoff = 47;
+    }
 
-void Game::InitElementsGame(void) {
-    InitElementDefs();
-    forceDarknessOff = false;
+    // Initialize elements
+    this->engineDefinition.clear_elements();
+
+    bool szzt_based = (engineType == ENGINE_TYPE_SUPER_ZZT);
+
+    this->engineDefinition.register_element(0, ElementDef(EEmpty, "Empty")
+        .with_visual(' ', 0x70)
+        .with_pushable()
+        .with_walkable());
+
+    if (szzt_based) {
+        this->engineDefinition.register_element(3, ElementDef(EMonitor, "Monitor")
+            .with_visual(2, 0x1F)
+            .with_pushable()
+            .with_tickable_stat(1, ElementMonitorTick));
+    } else {
+        this->engineDefinition.register_element(3, ElementDef(EMonitor, "Monitor")
+            .with_visual(' ', 0x07)
+            .with_tickable_stat(1, ElementMonitorTick));
+    }
+
+    if (szzt_based) {
+        this->engineDefinition.register_element(19, ElementDef(EWater, "Lava")
+            .with_visual('o', 0x4E)
+            .with_placeable_on_top()
+            .with_editor_category(EditorCategoryTerrain, 'L', "Terrains:")
+            .with_touchable(ElementWaterTouch)); // TODO: ElementLavaTouch
+    } else {
+        this->engineDefinition.register_element(19, ElementDef(EWater, "Water")
+            .with_visual(176, 0xF9)
+            .with_placeable_on_top()
+            .with_editor_category(EditorCategoryTerrain, 'W', "Terrains:")
+            .with_touchable(ElementWaterTouch));
+    }
+
+    this->engineDefinition.register_element(20, ElementDef(EForest, "Forest")
+        .with_visual(176, 0x20)
+        .with_editor_category(EditorCategoryTerrain, 'F')
+        .with_touchable(ElementForestTouch));
+    
+    this->engineDefinition.register_element(4, ElementDef(EPlayer, "Player")
+        .with_visual(2, 0x1F)
+        .with_destructible()
+        .with_pushable()
+        .with_visible_in_dark()
+        .with_tickable_stat(1, ElementPlayerTick)
+        .with_editor_category(EditorCategoryItem, 'Z', "Items:"));
+    
+    this->engineDefinition.register_element(41, ElementDef(ELion, "Lion")
+        .with_visual(234, 0x0C)
+        .with_destructible(1)
+        .with_pushable()
+        .with_tickable_stat(2, ElementLionTick)
+        .with_touchable(ElementDamagingTouch)
+        .with_editor_category(EditorCategoryCreature, 'L', "Beasts:")
+        .with_p1_slider("Intelligence?"));
+
+    if (szzt_based) {
+        this->engineDefinition.register_element(59, ElementDef(ERoton, "Roton")
+            .with_visual(148, 0x0D)
+            .with_destructible(2)
+            .with_pushable()
+            .with_tickable_stat(1, ElementSZZTRotonTick)
+            .with_touchable(ElementDamagingTouch)
+            .with_editor_category(EditorCategoryUglies, 'R', "Uglies:")
+            .with_p1_slider("Intelligence?")
+            .with_p2_slider("Switch Rate?"));
+        
+        this->engineDefinition.register_element(60, ElementDef(EDragonPup, "Dragon Pup")
+            .with_visual(237, 0x04)
+            .with_destructible(1)
+            .with_pushable()
+            .with_tickable_stat(2, ElementSZZTDragonPupTick)
+            .with_touchable(ElementDamagingTouch)
+            .with_drawable(ElementSZZTDragonPupDraw)
+            .with_editor_category(EditorCategoryUglies, 'D')
+            .with_p1_slider("Intelligence?")
+            .with_p2_slider("Switch Rate?"));
+
+        this->engineDefinition.register_element(62, ElementDef(ESpider, "Spider")
+            .with_visual(15, 0xFF)
+            .with_destructible(3)
+            .with_tickable_stat(1, ElementSZZTSpiderTick)
+            .with_touchable(ElementDamagingTouch)
+            .with_editor_category(EditorCategoryUglies, 'S')
+            .with_p1_slider("Intelligence?"));
+
+        this->engineDefinition.register_element(61, ElementDef(EPairer, "Pairer")
+            .with_visual(229, 0x01)
+            .with_destructible(2)
+            .with_pushable()
+            .with_tickable_stat(2, ElementDefaultTick)
+            .with_touchable(ElementDamagingTouch)
+            .with_editor_category(EditorCategoryUglies, 'P')
+            .with_p1_slider("Intelligence?"));
+    }
+
+    this->engineDefinition.register_element(42, ElementDef(ETiger, "Tiger")
+        .with_visual(227, 0x0B)
+        .with_destructible(2)
+        .with_pushable()
+        .with_tickable_stat(2, ElementTigerTick)
+        .with_touchable(ElementDamagingTouch)
+        .with_editor_category(EditorCategoryCreature, 'T')
+        .with_p1_slider("Intelligence?")
+        .with_p2_slider("Firing rate?")
+        .with_p2_bullet_type("Firing type?"));
+
+    this->engineDefinition.register_element(44, ElementDef(ECentipedeHead, "Head")
+        .with_visual(233, ColorChoiceOnBlack)
+        .with_destructible(1)
+        .with_tickable_stat(2, ElementCentipedeHeadTick)
+        .with_touchable(ElementDamagingTouch)
+        .with_editor_category(EditorCategoryCreature, 'H', "Centipedes:")
+        .with_p1_slider("Intelligence?")
+        .with_p2_slider("Deviance?"));
+
+    this->engineDefinition.register_element(45, ElementDef(ECentipedeSegment, "Segment")
+        .with_visual('O', ColorChoiceOnBlack)
+        .with_destructible(3)
+        .with_tickable_stat(2, ElementCentipedeSegmentTick)
+        .with_touchable(ElementDamagingTouch)
+        .with_editor_category(EditorCategoryCreature, 'S'));
+
+    this->engineDefinition.register_element(szzt_based ? 69 : 18, ElementDef(EBullet, "Bullet")
+        .with_visual(248, 0x0F)
+        .with_destructible()
+        .with_tickable_stat(1, ElementBulletTick)
+        .with_touchable(ElementDamagingTouch));
+
+    this->engineDefinition.register_element(szzt_based ? 72 : 15, ElementDef(EStar, "Star")
+        .with_visual('S', 0x0F)
+        .with_tickable_stat(1, ElementStarTick)
+        .with_touchable(ElementDamagingTouch)
+        .with_drawable(ElementStarDraw));
+
+    this->engineDefinition.register_element(8, ElementDef(EKey, "Key")
+        .with_visual(12, ColorChoiceOnBlack)
+        .with_pushable()
+        .with_touchable(ElementKeyTouch)
+        .with_editor_category(EditorCategoryItem, 'K'));
+
+    this->engineDefinition.register_element(5, ElementDef(EAmmo, "Ammo")
+        .with_visual(132, 0x03)
+        .with_pushable()
+        .with_touchable(ElementAmmoTouch)
+        .with_editor_category(EditorCategoryItem, 'A'));
+
+    if (szzt_based) {
+        this->engineDefinition.register_element(64, ElementDef(EStone, "Stone")
+            .with_visual('Z', 0x0F)
+            .with_touchable(ElementSZZTStoneTouch)
+            .with_drawable(ElementSZZTStoneDraw)
+            .with_tickable_stat(1, ElementSZZTStoneTick)
+            .with_editor_category(EditorCategoryTerrain2, 'Z'));
+    }
+
+    this->engineDefinition.register_element(7, ElementDef(EGem, "Gem")
+        .with_visual(4, ColorChoiceOnBlack)
+        .with_pushable()
+        .with_destructible()
+        .with_touchable(ElementGemTouch)
+        .with_editor_category(EditorCategoryItem, 'G'));
+
+    this->engineDefinition.register_element(11, ElementDef(EPassage, "Passage")
+        .with_visual(240, ColorWhiteOnChoice)
+        .with_tickless_stat()
+        .with_visible_in_dark()
+        .with_touchable(ElementPassageTouch)
+        .with_editor_category(EditorCategoryItem, 'P')
+        .with_p3_board("Room thru passage?"));
+
+    this->engineDefinition.register_element(9, ElementDef(EDoor, "Door")
+        .with_visual(10, ColorWhiteOnChoice)
+        .with_touchable(ElementDoorTouch)
+        .with_editor_category(EditorCategoryItem, 'D'));
+
+    this->engineDefinition.register_element(10, ElementDef(EScroll, "Scroll")
+        .with_visual(232, 0x0F)
+        .with_pushable()
+        .with_tickable_stat(1, ElementScrollTick)
+        .with_touchable(ElementScrollTouch)
+        .with_editor_category(EditorCategoryItem, 'S')
+        .with_stat_text("Edit text of scroll"));
+
+    this->engineDefinition.register_element(12, ElementDef(EDuplicator, "Duplicator")
+        .with_visual(250, 0x0F)
+        .with_tickable_stat(2, ElementDuplicatorTick)
+        .with_drawable(ElementDuplicatorDraw)
+        .with_editor_category(EditorCategoryItem, 'U')
+        .with_step_direction("Source direction?")
+        .with_p2_slider("Duplication rate?;SF"));
+
+    if (!szzt_based) {
+        this->engineDefinition.register_element(6, ElementDef(ETorch, "Torch")
+            .with_visual(157, 0x06)
+            .with_visible_in_dark()
+            .with_touchable(ElementTorchTouch)
+            .with_editor_category(EditorCategoryItem, 'T'));
+    }
+
+    this->engineDefinition.register_element(39, ElementDef(ESpinningGun, "Spinning gun")
+        .with_visual(24, ColorWhiteOnChoice)
+        .with_tickable_stat(2, ElementSpinningGunTick)
+        .with_drawable(ElementSpinningGunDraw)
+        .with_editor_category(EditorCategoryCreature, 'G')
+        .with_p1_slider("Intelligence?")
+        .with_p2_slider("Firing rate?")
+        .with_p2_bullet_type("Firing type?"));
+
+    this->engineDefinition.register_element(35, ElementDef(ERuffian, "Ruffian")
+        .with_visual(5, 0x0D)
+        .with_destructible(2)
+        .with_pushable()
+        .with_tickable_stat(1, ElementRuffianTick)
+        .with_touchable(ElementDamagingTouch)
+        .with_editor_category(EditorCategoryCreature, 'R')
+        .with_p1_slider("Intelligence?")
+        .with_p2_slider("Resting time?"));
+
+    this->engineDefinition.register_element(34, ElementDef(EBear, "Bear")
+        .with_visual(szzt_based ? 235 : 153, szzt_based ? 0x02 : 0x06)
+        .with_destructible(1)
+        .with_pushable()
+        .with_tickable_stat(3, ElementBearTick)
+        .with_touchable(ElementDamagingTouch)
+        .with_editor_category(EditorCategoryCreature, 'B')
+        .with_p1_slider("Sensitivity?"));
+
+    this->engineDefinition.register_element(37, ElementDef(ESlime, "Slime")
+        .with_visual('*', ColorChoiceOnBlack)
+        .with_tickable_stat(3, ElementSlimeTick)
+        .with_touchable(ElementSlimeTouch)
+        .with_editor_category(EditorCategoryCreature, 'V')
+        .with_p2_slider("Movement speed?;FS"));
+
+    if (!szzt_based) {
+         this->engineDefinition.register_element(38, ElementDef(EShark, "Shark")
+            .with_visual('^', 0x07)
+            .with_tickable_stat(3, ElementSharkTick)
+            .with_editor_category(EditorCategoryCreature, 'Y')
+            .with_p1_slider("Intelligence?"));
+    }
+
+    this->engineDefinition.register_element(16, ElementDef(EConveyorCW, "Clockwise")
+        .with_visual('/', ColorChoiceOnBlack)
+        .with_drawable(ElementConveyorCWDraw)
+        .with_tickable_stat(3, ElementConveyorCWTick)
+        .with_editor_category(EditorCategoryItem, '1', "Conveyors:"));
+
+    this->engineDefinition.register_element(17, ElementDef(EConveyorCCW, "Counter")
+        .with_visual('\\', ColorChoiceOnBlack)
+        .with_drawable(ElementConveyorCCWDraw)
+        .with_tickable_stat(2, ElementConveyorCCWTick)
+        .with_editor_category(EditorCategoryItem, '2'));
+
+    this->engineDefinition.register_element(21, ElementDef(ESolid, "Solid")
+        .with_visual(219, ColorChoiceOnBlack)
+        .with_editor_category(EditorCategoryTerrain, 'S', "Walls:"));
+
+    this->engineDefinition.register_element(22, ElementDef(ENormal, "Normal")
+        .with_visual(178, ColorChoiceOnBlack)
+        .with_editor_category(EditorCategoryTerrain, 'N'));
+
+    this->engineDefinition.register_element(31, ElementDef(ELine, "Line")
+        .with_visual(206, ColorChoiceOnBlack)
+        .with_drawable(ElementLineDraw));
+
+    this->engineDefinition.register_element(szzt_based ? 71 : 43, ElementDef(EBlinkRayNs, "")
+        .with_visual(186, ColorChoiceOnBlack));
+
+    this->engineDefinition.register_element(szzt_based ? 70 : 33, ElementDef(EBlinkRayEw, "")
+        .with_visual(205, ColorChoiceOnBlack));        
+
+    this->engineDefinition.register_element(32, ElementDef(ERicochet, "Ricochet")
+        .with_visual('*', 0x0A)
+        .with_editor_category(EditorCategoryTerrain, 'R'));
+
+    this->engineDefinition.register_element(23, ElementDef(EBreakable, "Breakable")
+        .with_visual(177, ColorChoiceOnBlack)
+        .with_editor_category(EditorCategoryTerrain, 'B'));
+
+    this->engineDefinition.register_element(24, ElementDef(EBoulder, "Boulder")
+        .with_visual(254, ColorChoiceOnBlack)
+        .with_pushable()
+        .with_touchable(ElementPushableTouch)
+        .with_editor_category(EditorCategoryTerrain, 'O'));
+
+    this->engineDefinition.register_element(25, ElementDef(ESliderNS, "Slider (NS)")
+        .with_visual(18, ColorChoiceOnBlack)
+        .with_touchable(ElementPushableTouch)
+        .with_editor_category(EditorCategoryTerrain, '1'));
+
+    this->engineDefinition.register_element(26, ElementDef(ESliderEW, "Slider (EW)")
+        .with_visual(29, ColorChoiceOnBlack)
+        .with_touchable(ElementPushableTouch)
+        .with_editor_category(EditorCategoryTerrain, '2'));
+
+    this->engineDefinition.register_element(30, ElementDef(ETransporter, "Transporter")
+        .with_visual(197, ColorChoiceOnBlack)
+        .with_touchable(ElementTransporterTouch)
+        .with_drawable(ElementTransporterDraw)
+        .with_tickable_stat(2, ElementTransporterTick)
+        .with_editor_category(EditorCategoryTerrain, 'T')
+        .with_step_direction("Direction?"));
+
+    this->engineDefinition.register_element(40, ElementDef(EPusher, "Pusher")
+        .with_visual(16, ColorChoiceOnBlack)
+        .with_drawable(ElementPusherDraw)
+        .with_tickable_stat(4, ElementPusherTick)
+        .with_editor_category(EditorCategoryCreature, 'P')
+        .with_step_direction("Push direction?"));
+
+    this->engineDefinition.register_element(13, ElementDef(EBomb, "Bomb")
+        .with_visual(11, ColorChoiceOnBlack)
+        .with_drawable(ElementBombDraw)
+        .with_tickable_stat(6, ElementBombTick)
+        .with_touchable(ElementBombTouch)
+        .with_pushable()
+        .with_editor_category(EditorCategoryItem, 'B'));
+
+    this->engineDefinition.register_element(14, ElementDef(EEnergizer, "Energizer")
+        .with_visual(127, 0x05)
+        .with_touchable(ElementEnergizerTouch)
+        .with_editor_category(EditorCategoryItem, 'E'));
+
+    this->engineDefinition.register_element(29, ElementDef(EBlinkWall, "Blink wall")
+        .with_visual(206, ColorChoiceOnBlack)
+        .with_tickable_stat(1, ElementBlinkWallTick)
+        .with_drawable(ElementBlinkWallDraw)
+        .with_editor_category(EditorCategoryTerrain, szzt_based ? 'X' : 'L')
+        .with_p1_slider("Starting time?")
+        .with_p2_slider("Period?")
+        .with_step_direction("Wall direction?"));
+
+    this->engineDefinition.register_element(27, ElementDef(EFake, "Fake")
+        .with_visual(178, ColorChoiceOnBlack)
+        .with_placeable_on_top()
+        .with_walkable()
+        .with_touchable(ElementFakeTouch)
+        .with_editor_category(EditorCategoryTerrain, 'A'));
+
+    if (szzt_based) {
+        this->engineDefinition.register_element(47, ElementDef(EFloor, "Floor")
+            .with_visual(176, ColorChoiceOnBlack)
+            .with_placeable_on_top()
+            .with_walkable()
+            .with_editor_category(EditorCategoryTerrain2, 'F', "Terrains:"));
+
+        this->engineDefinition.register_element(63, ElementDef(EWeb, "Web")
+            .with_visual(197, ColorChoiceOnBlack)
+            .with_placeable_on_top()
+            .with_walkable()
+            .with_drawable(ElementSZZTWebDraw)
+            .with_editor_category(EditorCategoryTerrain2, 'W'));
+
+        this->engineDefinition.register_element(48, ElementDef(EWaterN, "Water N")
+            .with_visual(30, 0x19)
+            .with_placeable_on_top()
+            .with_walkable()
+            .with_editor_category(EditorCategoryTerrain2, '8'));
+
+        this->engineDefinition.register_element(49, ElementDef(EWaterS, "Water S")
+            .with_visual(31, 0x19)
+            .with_placeable_on_top()
+            .with_walkable()
+            .with_editor_category(EditorCategoryTerrain2, '2'));
+
+        this->engineDefinition.register_element(50, ElementDef(EWaterW, "Water W")
+            .with_visual(17, 0x19)
+            .with_placeable_on_top()
+            .with_walkable()
+            .with_editor_category(EditorCategoryTerrain2, '4'));
+
+        this->engineDefinition.register_element(51, ElementDef(EWaterE, "Water E")
+            .with_visual(16, 0x19)
+            .with_placeable_on_top()
+            .with_walkable()
+            .with_editor_category(EditorCategoryTerrain2, '6'));
+    }
+
+    this->engineDefinition.register_element(28, ElementDef(EInvisible, "Invisible")
+        .with_visual(' ', ColorChoiceOnBlack)
+        .with_touchable(ElementInvisibleTouch)
+        .with_editor_category(EditorCategoryTerrain, 'I'));
+
+    this->engineDefinition.register_element(36, ElementDef(EObject, "Object")
+        .with_visual(2, ColorChoiceOnBlack)
+        .with_drawable(ElementObjectDraw)
+        .with_tickable_stat(3, ElementObjectTick)
+        .with_touchable(ElementObjectTouch)
+        .with_editor_category(EditorCategoryCreature, 'O')
+        .with_p1_slider("Character?")
+        .with_stat_text("Edit Program"));
+    
+    this->engineDefinition.register_element(2, ElementDef(EMessageTimer, "")
+        .with_tickable_stat(-1, ElementMessageTimerTick));
+
+    this->engineDefinition.register_element(1, ElementDef(EBoardEdge, "")
+        .with_touchable(ElementBoardEdgeTouch));
+
+    // Update caches
+    {
+        char compared[21];
+        this->engineDefinition.elementNameMap.clear();
+        for (int i = 0; i < this->engineDefinition.elementCount; i++) {
+		    OopStringToWord(this->engineDefinition.elementDef(i).name, compared, sizeof(compared));
+            this->engineDefinition.elementNameMap.add(compared, i, false);
+        }
+    }
+
+    // Configure editor view
+    if (is_editor) {
+        this->engineDefinition.elementDefs[EBoardEdge].character = 'E';
+        this->engineDefinition.elementDefs[EInvisible].character = 176;
+    } else {
+        forceDarknessOff = false;
+    }
 }

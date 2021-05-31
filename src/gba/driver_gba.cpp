@@ -22,7 +22,7 @@ static uint16_t hsecs;
 static uint16_t prev_key_input;
 extern u32 __rom_end__;
 
-// #define DEBUG_CONSOLE
+#define DEBUG_CONSOLE
 
 uint8_t ext_tile_memory[62 * 27 * sizeof(Tile)];
 uint8_t ext_stat_memory[153 * sizeof(Stat)];
@@ -112,7 +112,8 @@ static void vram_update_bgcnt(void) {
 	u16* tile_bg_ptr = (u16*) (MEM_VRAM + MAP_ADDR_OFFSET + ((x&1) << 11) + (x&(~1)) + ((y + MAP_Y_OFFSET) << 6)); \
 	u16* tile_fg_ptr = &tile_bg_ptr[1 << 11]
 
-GBA_CODE_IWRAM static void vram_write_char(int16_t x, int16_t y, uint8_t col, uint8_t chr) {
+GBA_CODE_IWRAM
+static void vram_write_char(int16_t x, int16_t y, uint8_t col, uint8_t chr) {
 	GET_VRAM_PTRS;
 
 	*tile_bg_ptr = '\xDB' | (((col >> 4) & 0x07) << 12);
@@ -228,7 +229,8 @@ static void recalculate_hdma_offsets(bool debug) {
 	}
 }
 
-GBA_CODE_IWRAM void ZZT::irq_vblank(void) {
+GBA_CODE_IWRAM
+void ZZT::irq_vblank(void) {
 	REG_DMA0CNT = 0;
 	REG_BG0HOFS = 4;
 	REG_BG0VOFS = 0;
@@ -281,7 +283,8 @@ void zoo_video_gba_set_blinking(bool val) {
 
 // timer code
 
-GBA_CODE_IWRAM void ZZT::irq_timer_pit(void) {
+GBA_CODE_IWRAM
+void ZZT::irq_timer_pit(void) {
 	REG_IE |= (IRQ_VBLANK);
 	REG_IME = 1;
 
@@ -449,6 +452,7 @@ void GBADriver::sound_stop(void) {
 	gba_play_sound(0);
 }
 
+GBA_CODE_IWRAM
 void GBADriver::draw_char(int16_t x, int16_t y, uint8_t col, uint8_t chr) {
 	vram_write_char(x, y, col, chr);
 }
