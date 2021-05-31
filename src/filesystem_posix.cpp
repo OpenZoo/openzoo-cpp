@@ -94,19 +94,23 @@ IOStream *PosixFilesystemDriver::open_file_absolute(const char *filename, bool w
         char *path_parent = (char*) malloc(max_path_length);
         char *path_filename = (char*) malloc(max_path_length);
         if (split_path(filename, path_parent, max_path_length, path_filename, max_path_length)) {
-            delete stream;
+            bool found = false;
 
-            list_files([path_filename](FileEntry &entry) -> bool {
+            list_files([path_filename, &found](FileEntry &entry) -> bool {
                 if (strcasecmp(entry.filename, path_filename) == 0) {
                     strcpy(path_filename, entry.filename);
+                    found = true;
                     return false;
                 } else {
                     return true;
                 }
             });
 
-            join_path(path_parent, max_path_length, path_parent, path_filename);    
-            stream = new PosixIOStream(path_parent, write);
+            if (found) {
+                delete stream;
+                join_path(path_parent, max_path_length, path_parent, path_filename);    
+                stream = new PosixIOStream(path_parent, write);
+            }
         }
         free(path_filename);
         free(path_parent);

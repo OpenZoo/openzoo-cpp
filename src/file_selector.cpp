@@ -20,7 +20,6 @@ FileSelector::~FileSelector() {
 }
 
 bool FileSelector::select() {
-    size_t ext_len = strlen(this->extension);
     PathFilesystemDriver *path_fs = filesystem->is_path_driver() ? static_cast<PathFilesystemDriver*>(filesystem) : nullptr;
     char *past_path = nullptr;
     if (path_fs != nullptr) {
@@ -41,8 +40,10 @@ bool FileSelector::select() {
         }
 
         int listed_start = window.line_count;
-        filesystem->list_files([this, ext_len](FileEntry &entry) -> bool {
+        filesystem->list_files([this](FileEntry &entry) -> bool {
             sstring<20> wname;
+            sstring<31> ext_tokens;
+
             size_t name_len = strlen(entry.filename);
             if (name_len > StrSize(wname)) return true;
 
@@ -51,15 +52,23 @@ bool FileSelector::select() {
                     window.Append(DynString("!") + entry.filename + ";[" + entry.filename + "]");
                 }
             } else {
-                if (name_len < ext_len) return true;
+                StrCopy(ext_tokens, this->extension);
+                char *ext_token;
+                char *ext_save = ext_tokens;
 
-                if (strcasecmp(entry.filename + name_len - ext_len, extension) != 0) {
-                    return true;
+                while ((ext_token = strtok_r(ext_save, ";", &ext_save))) {
+                    size_t ext_len = strlen(ext_token);
+                    if (name_len < ext_len) continue;
+
+                    if (strcasecmp(entry.filename + name_len - ext_len, ext_token) == 0) {
+                        StrCopy(wname, entry.filename);
+                        wname[name_len - ext_len] = 0;
+                        window.Append(wname);
+                        break;
+                    }
                 }
 
-                StrCopy(wname, entry.filename);
-                wname[name_len - ext_len] = 0;
-                window.Append(wname);
+                while ((ext_token = strtok_r(ext_save, ";", &ext_save)));
             }
 
             return true;

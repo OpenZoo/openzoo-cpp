@@ -26,7 +26,6 @@ SOURCES		:= \
 	src/cxx_shim.cpp \
 	src/assets.cpp \
 	src/driver.cpp \
-	src/editor.cpp \
 	src/elements.cpp \
 	src/file_selector.cpp \
 	src/filesystem.cpp \

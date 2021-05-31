@@ -342,7 +342,7 @@ namespace ZZT {
         Board(uint8_t width, uint8_t height, int16_t stat_size);
         ~Board();
 
-        sstring<50> name;
+        sstring<60> name;
         TileMap tiles;
         StatList stats;
         BoardInfo info;
@@ -351,8 +351,11 @@ namespace ZZT {
         inline int height(void) const { return tiles.height; }
     };
 
+    class EngineDefinition;
+
     class World {
     private:
+        EngineDefinition *engine;
         uint16_t *board_len;
         uint8_t *board_format;
         int16_t max_board;
@@ -365,7 +368,7 @@ namespace ZZT {
         int16_t board_count;
         WorldInfo info;
 
-        World(WorldFormat format, int16_t max_board, bool compress_eagerly);
+        World(WorldFormat format, EngineDefinition *engine_def, int16_t max_board, bool compress_eagerly);
         ~World();
 
         inline int16_t max_board_count() const {
@@ -406,10 +409,13 @@ namespace ZZT {
         bool placeable_on_top = false;
         bool walkable = false;
         bool has_draw_proc = false;
+        int16_t score_value = 0;
+        int16_t cycle = -1;
         ElementDrawProc draw = ElementDefaultDraw;
         ElementTickProc tick = ElementDefaultTick;
         ElementTouchProc touch = ElementDefaultTouch;
-        sstring<20> name = "";
+        const char *name = "";
+#ifndef DISABLE_EDITOR
         const char *category_name = "";
         const char *p1_name = "";
         const char *p2_name = "";
@@ -417,15 +423,24 @@ namespace ZZT {
         const char *param_board_name = "";
         const char *param_direction_name = "";
         const char *param_text_name = "";
-        int16_t score_value = 0;
-        int16_t cycle = -1;
         int16_t editor_category = 0;
         char editor_shortcut = '\0';
+#else
+        bool param_has_text = false;
+#endif
 
         ElementDef() : ElementDef(EEmpty, "") { }
         ElementDef(ElementType _type, const char *_name) {
             type = _type;
-            StrCopy(name, _name);
+            name = _name;
+        }
+
+        inline bool has_text() const {
+#ifndef DISABLE_EDITOR
+            return param_text_name[0] != 0;
+#else
+            return param_has_text;
+#endif
         }
 
         ElementDef& with_visual(uint8_t _character, uint8_t _color) {
@@ -488,45 +503,63 @@ namespace ZZT {
         }
 
         ElementDef& with_editor_category(int16_t _editor_category, char _editor_shortcut) {
+#ifndef DISABLE_EDITOR
             editor_category = _editor_category;
             editor_shortcut = _editor_shortcut;
+#endif
             return *this;
         }
 
         ElementDef& with_editor_category(int16_t _editor_category, char _editor_shortcut, const char *_category_name) {
+#ifndef DISABLE_EDITOR
             editor_category = _editor_category;
             editor_shortcut = _editor_shortcut;
             category_name = _category_name;
+#endif
             return *this;
         }
 
         ElementDef& with_p1_slider(const char *name) {
+#ifndef DISABLE_EDITOR
             p1_name = name;
+#endif
             return *this;
         }
 
         ElementDef& with_p2_slider(const char *name) {
+#ifndef DISABLE_EDITOR
             p2_name = name;
+#endif
             return *this;
         }
 
         ElementDef& with_p2_bullet_type(const char *name) {
+#ifndef DISABLE_EDITOR
             param_bullet_type_name = name;
+#endif
             return *this;
         }
 
         ElementDef& with_p3_board(const char *name) {
+#ifndef DISABLE_EDITOR
             param_board_name = name;
+#endif
             return *this;
         }
 
         ElementDef& with_step_direction(const char *name) {
+#ifndef DISABLE_EDITOR
             param_direction_name = name;
+#endif
             return *this;
         }
 
         ElementDef& with_stat_text(const char *name) {
+#ifndef DISABLE_EDITOR
             param_text_name = name;
+#else
+            param_has_text = true;
+#endif
             return *this;
         }
     };
@@ -595,6 +628,7 @@ namespace ZZT {
         uint8_t textCutoff;
         int16_t torchDuration, torchDistSqr;
         int16_t torchDx, torchDy;
+        int16_t boardWidth, boardHeight, statCount;
 
         // Caches
         TokenMap<int16_t, -1, true> elementNameMap;
@@ -611,12 +645,16 @@ namespace ZZT {
             elementCount = 1;
         }
 
-        void register_element(uint8_t id, ElementDef def) {
-            elementTypeToId[def.type] = id;
-            elementDefs[id] = def;
+        void mark_element_used(uint8_t id) {
             if (elementCount <= id) {
                 elementCount = id + 1;
             }
+        }
+
+        void register_element(uint8_t id, ElementDef def) {
+            elementTypeToId[def.type] = id;
+            elementDefs[id] = def;
+            mark_element_used(id);
         }
 
         template<EngineQuirk quirk>
@@ -729,6 +767,14 @@ namespace ZZT {
             return elementDef(element);
         }
 
+        inline uint8_t elementId(ElementType type) {
+            return engineDefinition.get_element_id(type);
+        }
+
+        inline ElementType elementType(uint8_t id) {
+            return engineDefinition.elementDef(id).type;
+        }
+
         Game(void);
         ~Game();
 
@@ -762,7 +808,7 @@ namespace ZZT {
         void PauseOnError(void);
         void DisplayIOError(IOStream &stream);
         void WorldUnload(void);
-        bool WorldLoad(const char *filename, const char *extension, bool titleOnly);
+        bool WorldLoad(const char *filename, const char *extension, bool titleOnly, bool showError = true);
         bool WorldSave(const char *filename, const char *extension);
         void GameWorldSave(const char *prompt, char* filename, size_t filename_len, const char *extension);
         bool GameWorldLoad(const char *extension);
@@ -776,7 +822,7 @@ namespace ZZT {
         void DamageStat(int16_t attacker_stat_id);
         void BoardDamageTile(int16_t x, int16_t y);
         void BoardAttack(int16_t attacker_stat_id, int16_t x, int16_t y);
-        bool BoardShoot(uint8_t element, int16_t x, int16_t y, int16_t dx, int16_t dy, int16_t source);
+        bool BoardShoot(ElementType element, int16_t x, int16_t y, int16_t dx, int16_t dy, int16_t source);
         void CalcDirectionRnd(int16_t &deltaX, int16_t &deltaY);
         void CalcDirectionSeek(int16_t x, int16_t y, int16_t &deltaX, int16_t &deltaY);
         void TransitionDrawBoardChange(void);

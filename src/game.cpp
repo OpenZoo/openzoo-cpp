@@ -126,6 +126,10 @@ static Serializer *serializers[SERIALIZERS_COUNT] = {
     new SerializerFormatZZT(WorldFormatZZT),
     new SerializerFormatZZT(WorldFormatSuperZZT)
 };
+static EngineType engine_types[SERIALIZERS_COUNT] = {
+    ENGINE_TYPE_ZZT,
+    ENGINE_TYPE_SUPER_ZZT
+};
 
 static Serializer *get_serializer(WorldFormat format) {
     for (int i = 0; i < SERIALIZERS_COUNT; i++) {
@@ -136,8 +140,8 @@ static Serializer *get_serializer(WorldFormat format) {
     return nullptr;
 }
 
-static void convert_board(const uint8_t *data, size_t data_len, uint8_t from, uint8_t to, bool destroyDataUponCompletion, uint8_t *&out_data, size_t &out_data_len) {
-    Board *board = new Board(96, 80, 128); // TODO
+static void convert_board(EngineDefinition &def, const uint8_t *data, size_t data_len, uint8_t from, uint8_t to, bool destroyDataUponCompletion, uint8_t *&out_data, size_t &out_data_len) {
+    Board *board = new Board(def.boardWidth, def.boardHeight, def.statCount);
     Serializer *fromS = get_serializer((WorldFormat) (from & 0x7F));
     Serializer *toS = get_serializer((WorldFormat) (to & 0x7F));
 
@@ -160,8 +164,9 @@ static void convert_board(const uint8_t *data, size_t data_len, uint8_t from, ui
     out_data_len = stream.tell();
 }
 
-World::World(WorldFormat _format, int16_t _max_board, bool compress_eagerly) {
+World::World(WorldFormat _format, EngineDefinition *engine_def, int16_t _max_board, bool compress_eagerly) {
     this->format = _format;
+    this->engine = engine_def;
     this->max_board = _max_board;
     this->compress_eagerly = compress_eagerly;
 
@@ -223,7 +228,8 @@ void World::get_board(uint8_t id, uint8_t *&data, uint16_t &len, bool &temporary
         uint8_t *out_data;
         size_t out_len;
 
-        convert_board(this->board_data[id], this->board_len[id],
+        convert_board(*engine,
+            this->board_data[id], this->board_len[id],
             this->board_format[id], format,
             false, out_data, out_len);
 
@@ -249,7 +255,8 @@ void World::set_board(uint8_t id, uint8_t *data, uint16_t len, bool costlessly_l
         uint8_t *out_data;
         size_t out_len;
 
-        convert_board(data, len,
+        convert_board(*engine,
+            data, len,
             format, (uint8_t) format | 0x80,
             false, out_data, out_len);
 
@@ -303,7 +310,7 @@ bool Viewport::point_at(Board &board, int16_t sx, int16_t sy) {
 Game::Game(void):
     board(60, 25, 150),
     viewport(0, 0, 60, 25),
-    world(WorldFormatZZT, 100, true),
+    world(WorldFormatZZT, &engineDefinition, 255, true), /* TODO: dynamic board list scaling? */
     highScoreList(this)
 {
     tickSpeed = 4;
@@ -323,7 +330,7 @@ Game::~Game() {
 void Game::Initialize() {
     if (!initialized) {
         GenerateTransitionTable();
-        WorldCreate(ENGINE_TYPE_SUPER_ZZT);
+        WorldCreate(ENGINE_TYPE_ZZT);
         initialized = true;
     }
 }
@@ -729,19 +736,34 @@ void Game::WorldUnload(void) {
     }
 }
 
-bool Game::WorldLoad(const char *filename, const char *extension, bool titleOnly) {
+bool Game::WorldLoad(const char *filename, const char *extension, bool titleOnly, bool showError) {
     interface->SidebarShowMessage(0x0F, " Loading.....", true);
 
+    sstring<31> ext_tokens;
+    StrCopy(ext_tokens, extension);
+    char *ext_token;
+    char *ext_save = ext_tokens;
     char joinedName[256];
-    StrJoin(joinedName, 2, filename, extension);
-    IOStream *stream = filesystem->open_file(joinedName, false);
+    IOStream *stream = NULL;
+
+    while ((ext_token = strtok_r(ext_save, ";", &ext_save))) {
+        StrJoin(joinedName, 2, filename, ext_token);
+        if (stream != NULL) delete stream;
+        stream = filesystem->open_file(joinedName, false);
+        if (!stream->errored()) break;
+    }
 
     if (!stream->errored()) {
         WorldUnload();
+        bool result = false;
         
-        bool result = get_serializer(world.get_format())->deserialize_world(world, *stream, titleOnly, [this](auto bid) {
-            interface->SidebarShowMessage(ProgressAnimColors[bid & 7], ProgressAnimStrings[bid & 7], true);
-        });
+        for (int i = 0; i < SERIALIZERS_COUNT; i++) {
+            WorldCreate(engine_types[i]);
+            result = get_serializer(world.get_format())->deserialize_world(world, *stream, titleOnly, [this](auto bid) {
+                interface->SidebarShowMessage(ProgressAnimColors[bid & 7], ProgressAnimStrings[bid & 7], true);
+            });
+            if (result) break;
+        }
 
         if (result) {
             BoardOpen(world.info.current_board);
@@ -753,7 +775,7 @@ bool Game::WorldLoad(const char *filename, const char *extension, bool titleOnly
         }
     }
 
-    if (stream->errored()) {
+    if (stream->errored() && showError) {
         DisplayIOError(*stream);
     }
 
@@ -809,7 +831,7 @@ void Game::GameWorldSave(const char *prompt, char* filename, size_t filename_len
 }
 
 bool Game::GameWorldLoad(const char *extension) {
-    const char *title = StrEquals(extension, ".ZZT") ? "ZZT Worlds" : "Saved Games";
+    const char *title = StrEquals(extension, ".SAV") ? "Saved Games" : "ZZT Worlds";
     FileSelector *selector = new FileSelector(driver, filesystem, title, extension);
 
     if (selector->select()) {
@@ -1129,10 +1151,10 @@ void Game::BoardAttack(int16_t attacker_stat_id, int16_t x, int16_t y) {
     }
 }
 
-bool Game::BoardShoot(uint8_t element, int16_t x, int16_t y, int16_t dx, int16_t dy, int16_t source) {
+bool Game::BoardShoot(ElementType element, int16_t x, int16_t y, int16_t dx, int16_t dy, int16_t source) {
     Tile destTile = board.tiles.get(x + dx, y + dy);
     if (elementDef(destTile.element).walkable || destTile.element == EWater) {
-        AddStat(x + dx, y + dy, element, elementDef(element).color, 1, Stat());
+        AddStat(x + dx, y + dy, elementId(element), elementDef(element).color, 1, Stat());
         Stat& shotStat = board.stats[board.stats.count];
         shotStat.p1 = source;
         shotStat.step_x = dx;
@@ -1295,8 +1317,10 @@ void Game::GamePlayLoop(bool boardChanged) {
     if (justStarted) {
         GameAboutScreen();
         if (StrLength(startupWorldFileName) != 0) {
-            if (!WorldLoad(startupWorldFileName, ".ZZT", true)) {
-                WorldCreate(ENGINE_TYPE_SUPER_ZZT);
+            if (!WorldLoad(startupWorldFileName, ".ZZT", true, false)) {
+                if (!WorldLoad(startupWorldFileName, ".SZT", true, false)) {
+                    WorldCreate(ENGINE_TYPE_ZZT);
+                }
             }
             interface->SidebarGameDraw(*this, SIDEBAR_FLAG_SET_WORLD_NAME);
         }
@@ -1495,7 +1519,7 @@ void Game::GameTitleLoop(void) {
 
             switch (interface->HandleMenu(*this, TitleMenu, false)) {
                 case 'W': {
-                    if (GameWorldLoad(".ZZT")) {
+                    if (GameWorldLoad(".ZZT;.SZT")) {
                         returnBoardId = world.info.current_board;
                         boardChanged = true;
                     }

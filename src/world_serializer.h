@@ -36,7 +36,7 @@ namespace ZZT {
     protected:
         WorldFormat format;
     public:
-        inline WorldFormat get_format() {
+        inline WorldFormat get_format() const {
             return format;
         }
     };

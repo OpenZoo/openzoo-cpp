@@ -63,7 +63,7 @@ static void ElementLionTick(Game &game, int16_t stat_id) {
 static void ElementTigerTick(Game &game, int16_t stat_id) {
     Stat &stat = game.board.stats[stat_id];
     Stat &player = game.board.stats[0];
-    uint8_t element = (stat.p2 >= 0x80) ? EStar : EBullet;
+    ElementType element = (stat.p2 >= 0x80) ? EStar : EBullet;
 
     if ((game.random.Next(10) * 3) <= (stat.p2 & 0x7F)) {
         bool shot = false;
@@ -457,7 +457,7 @@ static void ElementSpinningGunTick(Game &game, int16_t stat_id) {
     Stat& stat = game.board.stats[stat_id];
     game.BoardDrawTile(stat.x, stat.y);
 
-    uint8_t element = (stat.p2 >= 0x80) ? EStar : EBullet;
+    ElementType element = (stat.p2 >= 0x80) ? EStar : EBullet;
 
     if (game.random.Next(9) < (stat.p2 & 0x7F)) {
         bool shot = false;
@@ -802,7 +802,7 @@ static void ElementBlinkWallTick(Game &game, int16_t stat_id) {
     if (stat.p3 == 1) {
         int16_t ix = stat.x + stat.step_x;
         int16_t iy = stat.y + stat.step_y;
-        uint8_t element = (stat.step_x != 0) ? EBlinkRayEw : EBlinkRayNs;
+        uint8_t element = game.elementId((stat.step_x != 0) ? EBlinkRayEw : EBlinkRayNs);
         uint8_t color = game.board.tiles.get(stat.x, stat.y).color;
 
         while (true) {
@@ -1334,7 +1334,7 @@ void Game::DrawPlayerSurroundings(int16_t x, int16_t y, int16_t bomb_phase) {
             if (bomb_phase > 0 && (Sqr(ix - x) + Sqr(iy - y)*torchYMul) < torchDistSqr) {
                 const Tile &tile = board.tiles.get(ix, iy);
                 if (bomb_phase == 1) {
-                    if (!StrEmpty(elementDef(tile.element).param_text_name)) {
+                    if (elementDef(tile.element).has_text()) {
                         int16_t i_stat = board.stats.id_at(ix, iy);
                         if (i_stat > 0) {
                             OopSend(i_stat, "BOMBED", false);
@@ -1469,7 +1469,7 @@ static void ElementPlayerTick(Game &game, int16_t stat_id) {
                 for (int16_t i = 0; i <= game.board.stats.count; i++) {
                     const Stat& istat = game.board.stats[i];
                     const Tile& itile = game.board.tiles.get(istat.x, istat.y);
-                    if (itile.element == EBullet && istat.p1 == ShotSourcePlayer) {
+                    if (game.elementType(itile.element) == EBullet && istat.p1 == ShotSourcePlayer) {
                         bulletCount++;
                     }
                 }
@@ -1614,12 +1614,18 @@ void Game::InitEngine(EngineType engineType, bool is_editor) {
         this->board.~Board();
       
         if (engineType == ENGINE_TYPE_SUPER_ZZT) {
-            new (&this->board) Board(96, 80, 128);
+            this->engineDefinition.boardWidth = 96;
+            this->engineDefinition.boardHeight = 80;
+            this->engineDefinition.statCount = 128;
             this->world.set_format(WorldFormatSuperZZT);
         } else {
-            new (&this->board) Board(60, 25, 150);
+            this->engineDefinition.boardWidth = 60;
+            this->engineDefinition.boardHeight = 25;
+            this->engineDefinition.statCount = 150;
             this->world.set_format(WorldFormatZZT);
         }
+
+        new (&this->board) Board(this->engineDefinition.boardWidth, this->engineDefinition.boardHeight, this->engineDefinition.statCount);
     }
 
     this->engineDefinition.quirks.clear();
@@ -2049,6 +2055,8 @@ void Game::InitEngine(EngineType engineType, bool is_editor) {
 
     this->engineDefinition.register_element(1, ElementDef(EBoardEdge, "")
         .with_touchable(ElementBoardEdgeTouch));
+
+    this->engineDefinition.mark_element_used(this->engineDefinition.textCutoff + 6);
 
     // Update caches
     {
