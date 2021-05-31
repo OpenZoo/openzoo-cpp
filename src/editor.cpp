@@ -777,14 +777,13 @@ int Editor::SelectBoard(const char *title, int16_t current_board, bool title_scr
 }
 
 void Editor::Loop(void) {
-    EngineType current_type = game->engineDefinition.engineType;
+    game->InitEngine(game->engineDefinition.engineType, true);
 
     if (game->world.info.is_save || (game->WorldGetFlagPosition("SECRET") >= 0)) {
         game->WorldUnload();
-        game->WorldCreate(current_type);
+        game->WorldCreate();
     }
 
-    game->InitEngine(current_type, true);
     game->currentTick = 0;
     was_modified = false;
     cursor_x = game->board.width() >> 1;
@@ -939,8 +938,8 @@ void Editor::Loop(void) {
             } break;
             case 'L': {
                 AskSaveChanged();
-                if (game->driver->keyPressed != KeyEscape && game->GameWorldLoad(".ZZT")) {
-                    bool is_secret = game->WorldGetFlagPosition("SECRET") >= 0;
+                if (game->driver->keyPressed != KeyEscape && game->GameWorldLoad(".ZZT;.SZT")) {
+				    bool is_secret = game->WorldGetFlagPosition("SECRET") >= 0;
                     if (game->world.info.is_save || is_secret) {
                         if (!game->debugEnabled) {
                             game->SidebarClearLine(3);
@@ -958,7 +957,7 @@ void Editor::Loop(void) {
 
                             game->PauseOnError();
                             game->WorldUnload();
-                            game->WorldCreate(current_type);
+                            game->WorldCreate();
                         }
                     }
                     was_modified = false;
@@ -989,7 +988,7 @@ void Editor::Loop(void) {
                     AskSaveChanged();
                     if (game->driver->keyPressed != KeyEscape) {
                         game->WorldUnload();
-                        game->WorldCreate(current_type);
+                        game->WorldCreate();
                         DrawRefresh();
                         was_modified = false;
                     }
@@ -1172,5 +1171,5 @@ void Editor::Loop(void) {
     }
 
     game->driver->keyPressed = 0;
-    game->InitEngine(current_type, false);
+    game->InitEngine(game->engineDefinition.engineType, false);
 }

@@ -354,7 +354,8 @@ Game::~Game() {
 
 void Game::Initialize() {
     if (!initialized) {
-        WorldCreate(ENGINE_TYPE_ZZT);
+		InitEngine(ENGINE_TYPE_ZZT, false);
+        WorldCreate();
         initialized = true;
     }
 }
@@ -442,8 +443,7 @@ void Game::BoardCreate(void) {
     BoardUpdateDrawOffset();
 }
 
-void Game::WorldCreate(EngineType type) {
-    InitEngine(type, false);
+void Game::WorldCreate() {
     world.board_count = 0;
     world.free_board(0);
     playerDirX = 0; // from ELEMENTS -> InitEditorStatSettings
@@ -755,6 +755,7 @@ bool Game::WorldLoad(const char *filename, const char *extension, bool titleOnly
     char *ext_save = ext_tokens;
     char joinedName[256];
     IOStream *stream = NULL;
+	bool editorEnabled = forceDarknessOff; // TODO: use actual "is editor active?" flag
 
     while ((ext_token = strtok_r(ext_save, ";", &ext_save))) {
         StrJoin(joinedName, 2, filename, ext_token);
@@ -766,9 +767,9 @@ bool Game::WorldLoad(const char *filename, const char *extension, bool titleOnly
     if (!stream->errored()) {
         WorldUnload();
         bool result = false;
-        
+
         for (int i = 0; i < SERIALIZERS_COUNT; i++) {
-            WorldCreate(engine_types[i]);
+            InitEngine(engine_types[i], editorEnabled);
             result = get_serializer(world.get_format())->deserialize_world(world, *stream, titleOnly, [this](auto bid) {
                 interface->SidebarShowMessage(ProgressAnimColors[bid & 7], ProgressAnimStrings[bid & 7], true);
             });
@@ -782,7 +783,10 @@ bool Game::WorldLoad(const char *filename, const char *extension, bool titleOnly
             interface->SidebarHideMessage();
             delete stream;
             return true;
-        }
+		} else {
+            InitEngine(ENGINE_TYPE_ZZT, editorEnabled);
+			WorldCreate();
+		}
     }
 
     if (stream->errored() && showError) {
@@ -1329,7 +1333,7 @@ void Game::GamePlayLoop(bool boardChanged) {
         if (StrLength(startupWorldFileName) != 0) {
             if (!WorldLoad(startupWorldFileName, ".ZZT", true, false)) {
                 if (!WorldLoad(startupWorldFileName, ".SZT", true, false)) {
-                    WorldCreate(ENGINE_TYPE_ZZT);
+                    WorldCreate();
                 }
             }
             interface->SidebarGameDraw(*this, SIDEBAR_FLAG_SET_WORLD_NAME);

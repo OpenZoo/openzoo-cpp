@@ -796,7 +796,7 @@ namespace ZZT {
         void BoardOpen(int16_t board_id);
         void BoardChange(int16_t board_id);
         void BoardCreate(void);
-        void WorldCreate(EngineType type);
+        void WorldCreate(void);
         void TransitionDrawToFill(uint8_t chr, uint8_t color);
         void BoardDrawTile(int16_t x, int16_t y);
         void BoardDrawChar(int16_t x, int16_t y, uint8_t drawn_color, uint8_t drawn_char);
