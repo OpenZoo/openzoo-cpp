@@ -591,7 +591,7 @@ namespace ZZT {
     };
 
     enum EngineQuirk {
-        QUIRK_BULLET_DRAWTILE_FIX, // Super ZZT
+        QUIRK_ZZT_VISUAL_GLITCHES, // ZZT
         QUIRK_BOARD_EDGE_TOUCH_DESINATION_FIX, // Super ZZT
         QUIRK_CENTIPEDE_EXTRA_CHECKS, // Super ZZT
         QUIRK_CONNECTION_DRAWING_CHECKS_UNDER_STAT, // Super ZZT
@@ -631,6 +631,9 @@ namespace ZZT {
         int16_t torchDuration, torchDistSqr;
         int16_t torchDx, torchDy;
         int16_t boardWidth, boardHeight, statCount;
+		int16_t ammoPerAmmo;
+		int16_t healthPerGem;
+		int16_t scorePerGem;
 
 		EngineDefinition() {
 			engineType = ENGINE_TYPE_INVALID;
@@ -639,7 +642,11 @@ namespace ZZT {
         // Caches
         TokenMap<int16_t, -1, true> elementNameMap;
 
-        uint8_t get_element_id(ElementType type) {
+		bool has_element(ElementType type) const {
+			return (type == EEmpty) || (elementTypeToId[type] != 0);
+		}
+
+        uint8_t get_element_id(ElementType type) const {
             return elementTypeToId[type];
         }
 
@@ -771,13 +778,17 @@ namespace ZZT {
             return elementDef(element);
         }
 
-        inline uint8_t elementId(ElementType type) {
+        inline uint8_t elementId(ElementType type) const {
             return engineDefinition.get_element_id(type);
         }
 
-        inline ElementType elementType(uint8_t id) {
+        inline ElementType elementType(uint8_t id) const {
             return engineDefinition.elementDef(id).type;
         }
+
+		inline bool hasElement(ElementType type) const {
+			return engineDefinition.has_element(type);
+		}
 
         Game(void);
         ~Game();

@@ -16,7 +16,7 @@ namespace ZZT {
         return (((c) >= 'a' && (c) <= 'z') ? ((c) - 0x20) : (c));
     }
 
-    template<size_t i> constexpr int StrSize(char (&str)[i]) {
+    template<size_t i> constexpr size_t StrSize(char (&str)[i]) {
         return i - 1;
     }
 

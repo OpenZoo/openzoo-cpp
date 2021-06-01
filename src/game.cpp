@@ -1414,6 +1414,10 @@ void Game::GamePlayLoop(bool boardChanged) {
                         BoardDrawTile(player.x, player.y);
                         player.x = dest_x;
                         player.y = dest_y;
+						if (engineDefinition.is<QUIRK_SUPER_ZZT_COMPAT_MISC>()) {
+							// TODO: Bugfix quirk?
+							player.under = board.tiles.get(player.x, player.y);
+						}
                         board.tiles.set(player.x, player.y, {
                             .element = EPlayer,
                             .color = elementDef(EPlayer).color

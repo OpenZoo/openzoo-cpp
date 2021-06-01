@@ -14,7 +14,7 @@ namespace ZZT {
         const uint16_t data[16];
     };
 
-    int16_t SoundParse(const char *input, uint8_t *output, int16_t outlen);
+    size_t SoundParse(const char *input, uint8_t *output, size_t outlen);
 
     class SoundQueue {
         int16_t bufpos;

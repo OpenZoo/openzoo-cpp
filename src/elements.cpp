@@ -376,7 +376,7 @@ TryMove:
                 game.GameUpdateSidebar();
             }
             game.BoardAttack(stat_id, ix, iy);
-            if (game.engineDefinition.is<QUIRK_BULLET_DRAWTILE_FIX>()) {
+            if (game.engineDefinition.isNot<QUIRK_ZZT_VISUAL_GLITCHES>()) {
                 game.BoardDrawTile(ix, iy);
             }
             return;
@@ -515,7 +515,9 @@ static void ElementConveyorTick(Game &game, int16_t x, int16_t y, int16_t direct
                     game.MoveStat(iStat, ix, iy);
                     game.board.tiles.set(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i], tmpTile);
                     // OpenZoo: Added missing BoardDrawTile() call.
-                    game.BoardDrawTile(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
+    		        if (game.engineDefinition.isNot<QUIRK_ZZT_VISUAL_GLITCHES>()) {
+	                    game.BoardDrawTile(x + DiagonalDeltaX[i], y + DiagonalDeltaY[i]);
+					}
                 } else {
                     game.board.tiles.set(ix, iy, tile);
                     game.BoardDrawTile(ix, iy);
@@ -1104,14 +1106,17 @@ static void ElementKeyTouch(Game &game, int16_t x, int16_t y, int16_t source_sta
 }
 
 static void ElementAmmoTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
-    game.world.info.ammo += 5;
+    game.world.info.ammo += game.engineDefinition.ammoPerAmmo;
 
     game.board.tiles.set_element(x, y, EEmpty);
     game.GameUpdateSidebar();
 	game.driver->sound_queue(2, "\x30\x01\x31\x01\x32\x01");
 
     if (game.msgFlags.first<MESSAGE_AMMO>()) {
-        game.DisplayMessage(200, "Ammunition - 5 shots per container.");
+		sstring<60> ammoMessage;
+		StrFormat(ammoMessage, "Ammunition - %d shots per container.", game.engineDefinition.ammoPerAmmo);
+
+        game.DisplayMessage(200, ammoMessage);
     }
 }
 
@@ -1138,9 +1143,9 @@ static void ElementSZZTStoneTick(Game &game, int16_t stat_id) {
 }
 
 static void ElementGemTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
-    game.world.info.gems += 1;
-    game.world.info.health += 1;
-    game.world.info.score += 10;
+    game.world.info.gems++;
+    game.world.info.health += game.engineDefinition.healthPerGem;
+    game.world.info.score += game.engineDefinition.scorePerGem;
 
     game.board.tiles.set_element(x, y, EEmpty);
     game.GameUpdateSidebar();
@@ -1261,7 +1266,11 @@ static void ElementInvisibleTouch(Game &game, int16_t x, int16_t y, int16_t sour
 }
 
 static void ElementForestTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
-    game.board.tiles.set_element(x, y, EEmpty);
+	if (game.engineDefinition.is<QUIRK_SUPER_ZZT_COMPAT_MISC>()) {
+	    game.board.tiles.set(x, y, {EFloor, 0x02});
+	} else {
+	    game.board.tiles.set_element(x, y, EEmpty);
+	}
     game.BoardDrawTile(x, y);
 
 	uint8_t forestSound[2];
@@ -1341,6 +1350,11 @@ static void ElementBoardEdgeTouch(Game &game, int16_t x, int16_t y, int16_t sour
 static void ElementWaterTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
 	game.driver->sound_queue(3, "\x40\x01\x50\x01");
     game.DisplayMessage(100, "Your way is blocked by water.");
+}
+
+static void ElementSZZTLavaTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
+	game.driver->sound_queue(3, "\x40\x01\x50\x01");
+    game.DisplayMessage(100, "Your way is blocked by lava.");
 }
 
 void Game::DrawPlayerSurroundings(int16_t x, int16_t y, int16_t bomb_phase) {
@@ -1527,6 +1541,9 @@ static void ElementPlayerTick(Game &game, int16_t stat_id) {
 
     switch (game.interface->HandleMenu(game, PlayMenu, false)) {
         case 'T': {
+			// TODO: Disable on Super ZZT at the menu level
+			if (!game.hasElement(ETorch)) break;
+
             if (game.world.info.torch_ticks <= 0) {
                 if (game.world.info.torches > 0) {
                     if (game.board.info.is_dark) {
@@ -1573,17 +1590,19 @@ static void ElementPlayerTick(Game &game, int16_t stat_id) {
         } break;
     }
 
-    if (game.world.info.torch_ticks > 0) {
-        game.world.info.torch_ticks--;
-        if (game.world.info.torch_ticks <= 0) {
-            game.DrawPlayerSurroundings(stat.x, stat.y, 0);
-			game.driver->sound_queue(3, "\x30\x01\x20\x01\x10\x01");
-        }
+	if (game.hasElement(ETorch)) {
+		if (game.world.info.torch_ticks > 0) {
+			game.world.info.torch_ticks--;
+			if (game.world.info.torch_ticks <= 0) {
+				game.DrawPlayerSurroundings(stat.x, stat.y, 0);
+				game.driver->sound_queue(3, "\x30\x01\x20\x01\x10\x01");
+			}
 
-        if (game.world.info.torch_ticks % 40 == 0) {
-            game.GameUpdateSidebar();
-        }
-    }
+			if (game.world.info.torch_ticks % (game.engineDefinition.torchDuration / 5) == 0) {
+				game.GameUpdateSidebar();
+			}
+		}
+	}
 
     if (game.world.info.energizer_ticks > 0) {
         game.world.info.energizer_ticks--;
@@ -1657,8 +1676,10 @@ void Game::InitEngine(EngineType engineType, bool is_editor) {
         this->engineDefinition.torchDy = 8;
         this->engineDefinition.torchDistSqr = 64;
         this->engineDefinition.textCutoff = 73;
+		this->engineDefinition.ammoPerAmmo = 10;
+		this->engineDefinition.healthPerGem = 10;
+		this->engineDefinition.scorePerGem = 10;
 
-        this->engineDefinition.quirks.set<QUIRK_BULLET_DRAWTILE_FIX>(); // Super ZZT
         this->engineDefinition.quirks.set<QUIRK_BOARD_EDGE_TOUCH_DESINATION_FIX>(); // Super ZZT
         this->engineDefinition.quirks.set<QUIRK_CENTIPEDE_EXTRA_CHECKS>(); // Super ZZT
         this->engineDefinition.quirks.set<QUIRK_CONNECTION_DRAWING_CHECKS_UNDER_STAT>(); // Super ZZT
@@ -1676,9 +1697,9 @@ void Game::InitEngine(EngineType engineType, bool is_editor) {
         this->engineDefinition.torchDy = 5;
         this->engineDefinition.torchDistSqr = 50;
         this->engineDefinition.textCutoff = 47;
-
-		// TODO: Should this be a SZZT-specific quirk or a visual bugfix?
-        this->engineDefinition.quirks.set<QUIRK_BULLET_DRAWTILE_FIX>(); // Super ZZT
+		this->engineDefinition.ammoPerAmmo = 5;
+		this->engineDefinition.healthPerGem = 1;
+		this->engineDefinition.scorePerGem = 10;
     }
 
     // Initialize elements
@@ -1707,7 +1728,7 @@ void Game::InitEngine(EngineType engineType, bool is_editor) {
             .with_visual('o', 0x4E)
             .with_placeable_on_top()
             .with_editor_category(EditorCategoryTerrain, 'L', "Terrains:")
-            .with_touchable(ElementWaterTouch)); // TODO: ElementLavaTouch
+            .with_touchable(ElementSZZTLavaTouch));
     } else {
         this->engineDefinition.register_element(19, ElementDef(EWater, "Water")
             .with_visual(176, 0xF9)

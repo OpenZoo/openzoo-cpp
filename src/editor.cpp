@@ -57,6 +57,7 @@ Editor::Editor(Game *game) {
     }
 
     this->stat_settings[EObject].p1 = 1;
+    this->stat_settings[EObject].p2 = 0;
     this->stat_settings[EBear].p1 = 8;
 }
 

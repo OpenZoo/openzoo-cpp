@@ -83,7 +83,7 @@ bool SoundQueue::pop(uint16_t &note, uint16_t &duration) {
     }
 }
 
-int16_t ZZT::SoundParse(const char *input, uint8_t *output, int16_t outlen) {
+size_t ZZT::SoundParse(const char *input, uint8_t *output, size_t outlen) {
     uint8_t note_octave = 3;
     uint8_t note_duration = 1;
     uint8_t note_tone;
