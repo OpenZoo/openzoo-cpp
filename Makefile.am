@@ -44,5 +44,5 @@ openzoo_SOURCES += src/cxx_shim.cpp
 endif
 
 openzoo_CFLAGS = $(DRIVER_CFLAGS)
-openzoo_CXXFLAGS = $(DRIVER_CFLAGS)
+openzoo_CXXFLAGS = $(DRIVER_CFLAGS) -std=c++14
 openzoo_LDADD = $(DRIVER_LDFLAGS)

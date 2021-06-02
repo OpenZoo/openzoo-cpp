@@ -368,6 +368,16 @@ bool SerializerFormatZZT::deserialize_world(World &world, IOStream &stream, bool
         uint16_t len = stream.read16();
         if (stream.errored()) break;
 
+		// Try to un-corrupt Super Locked worlds.
+		if (!szzt) {
+			if (bid == world.board_count && len <= 51) {
+				size_t new_len = stream.remaining();
+				if (new_len > 51 && new_len <= 32767) {
+					len = new_len;
+				}
+			}
+		}
+
         uint8_t *data = stream.ptr();
         if (data == nullptr) {
             data = (uint8_t*) malloc(len);

@@ -20,7 +20,7 @@ include $(DEVKITARM)/gba_rules
 # the makefile is found
 #
 #---------------------------------------------------------------------------------
-TARGET		:= $(notdir $(CURDIR))
+TARGET		:= openzoo
 BUILD		:= build_gba
 SOURCES		:= \
 	src/cxx_shim.cpp \

@@ -18,6 +18,8 @@ namespace ZZT {
         size_t write(const uint8_t *ptr, size_t len) override;
         size_t skip(size_t len) override;
         size_t tell(void) override;
+		size_t remaining(void) override;
+		bool reset(void) override;
         bool eof(void) override;
     };
 

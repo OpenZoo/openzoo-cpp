@@ -751,7 +751,6 @@ namespace ZZT {
 
         bool debugEnabled;
 
-        HighScoreList highScoreList;
         sstring<255> configRegistration;
         sstring<50> configWorldFile;
 // TODO: expose as configure flag

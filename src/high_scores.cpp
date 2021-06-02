@@ -19,13 +19,14 @@ void HighScoreList::Clear(void) {
 
 void HighScoreList::Load(const char *filename) {
     sstring<255> filename_joined;
-    StrJoin(filename_joined, 2, filename, ".HI");
+	bool szzt = game->engineDefinition.engineType == ENGINE_TYPE_SUPER_ZZT;
+    StrJoin(filename_joined, 2, filename, szzt ? ".HGS" : ".HI");
 
     IOStream *stream = game->filesystem->open_file(filename_joined, false);
 
     for (int i = 0; i < HIGH_SCORE_COUNT; i++) {
         if (stream->errored()) break;
-        stream->read_pstring(entries[i].name, StrSize(entries[i].name), 50, false);
+        stream->read_pstring(entries[i].name, StrSize(entries[i].name), szzt ? 60 : 50, false);
         entries[i].score = stream->read16();
     }
 
@@ -38,13 +39,14 @@ void HighScoreList::Load(const char *filename) {
 
 void HighScoreList::Save(const char *filename) {
     sstring<255> filename_joined;
-    StrJoin(filename_joined, 2, filename, ".HI");
+	bool szzt = game->engineDefinition.engineType == ENGINE_TYPE_SUPER_ZZT;
+    StrJoin(filename_joined, 2, filename, szzt ? ".HGS" : ".HI");
 
     IOStream *stream = game->filesystem->open_file(filename_joined, true);
 
     for (int i = 0; i < HIGH_SCORE_COUNT; i++) {
         if (stream->errored()) break;
-        stream->write_pstring(entries[i].name, 50, false);
+        stream->write_pstring(entries[i].name, szzt ? 60 : 50, false);
         stream->write16(entries[i].score);
     }
 

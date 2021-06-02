@@ -56,6 +56,21 @@ size_t PosixIOStream::tell(void) {
     return ftell(file);
 }
 
+size_t PosixIOStream::remaining(void) {
+    if (errored()) return -1;
+    size_t cur_pos = ftell(file);
+	fseek(file, 0, SEEK_END);
+	size_t end_pos = ftell(file);
+	fseek(file, cur_pos, SEEK_SET);
+	return end_pos - cur_pos;
+}
+
+bool PosixIOStream::reset(void) {
+    if (file == NULL) return false;
+	fseek(file, 0, SEEK_SET);
+	return true;
+}
+
 bool PosixIOStream::eof(void) {
     if (file == NULL) return false;
     return feof(file) != 0;

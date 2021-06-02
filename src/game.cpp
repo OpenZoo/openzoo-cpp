@@ -334,9 +334,8 @@ bool Viewport::point_at(Board &board, int16_t sx, int16_t sy) {
 
 Game::Game(void):
     board(60, 25, 150),
-    viewport(0, 0, 60, 25),
     world(WorldFormatZZT, &engineDefinition, 255, true), /* TODO: dynamic board list scaling? */
-    highScoreList(this)
+    viewport(0, 0, 60, 25)
 {
     tickSpeed = 4;
     debugEnabled = false;
@@ -350,6 +349,7 @@ Game::Game(void):
 }
 
 Game::~Game() {
+	
 }
 
 void Game::Initialize() {
@@ -740,7 +740,8 @@ void Game::DisplayIOError(IOStream &stream) {
 }
 
 void Game::WorldUnload(void) {
-    BoardClose();
+	// OpenZoo: Full BoardClose() is unnecessary here
+    board.stats.free_all_data();
     for (int i = 0; i <= world.board_count; i++) {
         world.free_board(i);
     }
@@ -765,11 +766,12 @@ bool Game::WorldLoad(const char *filename, const char *extension, bool titleOnly
     }
 
     if (!stream->errored()) {
-        WorldUnload();
         bool result = false;
 
         for (int i = 0; i < SERIALIZERS_COUNT; i++) {
+        	WorldUnload();
             InitEngine(engine_types[i], editorEnabled);
+			stream->reset();
             result = get_serializer(world.get_format())->deserialize_world(world, *stream, titleOnly, [this](auto bid) {
                 interface->SidebarShowMessage(ProgressAnimColors[bid & 7], ProgressAnimStrings[bid & 7], true);
             });
@@ -779,7 +781,6 @@ bool Game::WorldLoad(const char *filename, const char *extension, bool titleOnly
         if (result) {
             BoardOpen(world.info.current_board);
             StrCopy(loadedGameFileName, filename);
-            highScoreList.Load(world.info.name);
             interface->SidebarHideMessage();
             delete stream;
             return true;
@@ -836,7 +837,7 @@ void Game::GameWorldSave(const char *prompt, char* filename, size_t filename_len
         strncpy(filename, newFilename, filename_len - 1);
         filename[filename_len - 1] = 0;
 
-        if (StrEquals(extension, ".ZZT")) {
+        if (!StrEquals(extension, ".SAV")) {
             StrCopy(world.info.name, filename);
         }
 
@@ -1331,10 +1332,8 @@ void Game::GamePlayLoop(bool boardChanged) {
     if (justStarted) {
         GameAboutScreen();
         if (StrLength(startupWorldFileName) != 0) {
-            if (!WorldLoad(startupWorldFileName, ".ZZT", true, false)) {
-                if (!WorldLoad(startupWorldFileName, ".SZT", true, false)) {
-                    WorldCreate();
-                }
+            if (!WorldLoad(startupWorldFileName, ".ZZT;.SZT", true)) {
+				WorldCreate();
             }
             interface->SidebarGameDraw(*this, SIDEBAR_FLAG_SET_WORLD_NAME);
         }
@@ -1481,7 +1480,11 @@ void Game::GamePlayLoop(bool boardChanged) {
 
     if (gameStateElement == EPlayer) {
         if (world.info.health <= 0) {
-            highScoreList.Add(world.info.name, world.info.score);
+			HighScoreList *highScoreList = new HighScoreList(this);
+			if (highScoreList != nullptr) {
+				highScoreList->Load(world.info.name);
+	            highScoreList->Add(world.info.name, world.info.score);
+			}
         }
     } else if (gameStateElement == EMonitor) {
         interface->SidebarHideMessage();
@@ -1544,7 +1547,7 @@ void Game::GameTitleLoop(void) {
                 } break;
                 case 'P': {
                     if (world.info.is_save && !debugEnabled) {
-                        startPlay = WorldLoad(world.info.name, ".ZZT", false);
+						startPlay = WorldLoad(world.info.name, ".ZZT;.SZT", false);
                         returnBoardId = world.info.current_board;
                     } else {
                         startPlay = true;
@@ -1579,8 +1582,11 @@ void Game::GameTitleLoop(void) {
                     }
                 } break;
                 case 'H': {
-                    highScoreList.Load(world.info.name);
-                    highScoreList.Display(world.info.name, 0);
+					HighScoreList *highScoreList = new HighScoreList(this);
+					if (highScoreList != nullptr) {
+						highScoreList->Load(world.info.name);
+						highScoreList->Display(world.info.name, 0);
+					}
                 } break;
                 case '|': {
                     GameDebugPrompt();

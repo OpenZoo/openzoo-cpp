@@ -16,7 +16,10 @@ namespace ZZT {
         virtual size_t write(const uint8_t *ptr, size_t len) = 0;
         virtual size_t skip(size_t len) = 0;
         virtual size_t tell(void) = 0;
+        virtual bool reset(void) = 0;
         virtual bool eof(void) = 0;
+		// Return -1 if unknown.
+		virtual size_t remaining(void);
         virtual uint8_t *ptr(void);
 
         inline bool errored(void) {
@@ -46,6 +49,7 @@ namespace ZZT {
         size_t write(const uint8_t *ptr, size_t len) override;
         size_t skip(size_t len) override;
         size_t tell(void) override;
+		bool reset(void) override;
         bool eof(void) override;
     };
 
@@ -65,7 +69,9 @@ namespace ZZT {
         size_t write(const uint8_t *ptr, size_t len) override;
         size_t skip(size_t len) override;
         size_t tell(void) override;
+		bool reset(void) override;
         bool eof(void) override;
+		size_t remaining(void) override;
         virtual uint8_t *ptr(void) override;
     };
 

@@ -103,6 +103,10 @@ namespace ZZT {
         return true;
     }
 
+	size_t IOStream::remaining(void) {
+		return -1;
+	}
+
     uint8_t *IOStream::ptr(void) {
         return nullptr;
     }
@@ -125,6 +129,10 @@ namespace ZZT {
 
     size_t ErroredIOStream::tell(void) {
         return 0;
+    }
+
+    bool ErroredIOStream::reset(void) {
+        return false;
     }
 
     bool ErroredIOStream::eof(void) {
@@ -186,6 +194,15 @@ namespace ZZT {
     size_t MemoryIOStream::tell(void) {
         if (errored()) return 0;
         return mem_pos;
+    }
+
+	size_t MemoryIOStream::remaining(void) {
+		return mem_len <= mem_pos ? 0 : mem_len - mem_pos;
+	}
+
+    bool MemoryIOStream::reset(void) {
+		mem_pos = 0;
+        return true;
     }
 
     bool MemoryIOStream::eof(void) {

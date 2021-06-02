@@ -12,8 +12,8 @@ namespace ZZT {
     class Game;
 
     struct HighScoreEntry {
-        sstring<50> name;
         int16_t score;
+        sstring<60> name;
     };
 
     class HighScoreList {
