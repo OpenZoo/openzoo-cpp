@@ -20,7 +20,6 @@ OBJS = \
 	$(OBJDIR)/cxx_shim.o \
 	$(OBJDIR)/assets.o \
 	$(OBJDIR)/driver.o \
-	$(OBJDIR)/editor.o \
 	$(OBJDIR)/elements.o \
 	$(OBJDIR)/file_selector.o \
 	$(OBJDIR)/filesystem.o \

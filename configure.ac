@@ -5,6 +5,7 @@ AC_CONFIG_HEADERS([config.h])
 
 AC_PROG_CXX
 AC_LANG_PUSH([C++])
+AX_CXX_COMPILE_STDCXX(14, ext)
 
 AC_CANONICAL_HOST
 AC_CHECK_HEADERS([dirent.h sys/stat.h])
