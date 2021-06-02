@@ -64,7 +64,7 @@ namespace ZZT {
         void render_char_fg(int16_t x, int16_t y, bool blink);
 
         // audio
-        AudioSimulator *soundSimulator;
+        AudioSimulator<uint16_t> *soundSimulator;
         SDL_mutex *soundBufferMutex;
         SDL_AudioDeviceID audioDevice;
         SDL_AudioSpec audioSpec;

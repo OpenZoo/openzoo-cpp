@@ -23,7 +23,7 @@ namespace ZZT {
         uint8_t screen_chars[80*25];
         uint8_t screen_colors[80*25];
         
-        AudioSimulator *soundSimulator;
+        AudioSimulator<uint8_t> *soundSimulator;
         OnScreenKeyboard keyboard;
 
     public:

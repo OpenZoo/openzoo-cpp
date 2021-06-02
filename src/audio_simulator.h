@@ -6,11 +6,12 @@
 #include "sounds.h"
 
 namespace ZZT {
+	template <typename SampleFormat>
     class AudioSimulator {
     protected:
-        uint8_t sample_min;
-        uint8_t sample_none;
-        uint8_t sample_max;
+        SampleFormat sample_min;
+        SampleFormat sample_none;
+        SampleFormat sample_max;
 
         bool audio_signed;
         int audio_frequency;
@@ -24,8 +25,8 @@ namespace ZZT {
     
         uint32_t calc_jump(uint32_t targetNotePos, int32_t streamPos, int32_t streamLen);
         void jump_by(uint32_t amount, int32_t &streamPos);
-        virtual void note_to(uint32_t targetNotePos, uint32_t frequency, uint8_t *stream, int32_t &streamPos, int32_t streamLen);
-        void silence_to(uint32_t targetNotePos, uint8_t *stream, int32_t &streamPos, int32_t streamLen);
+        virtual void note_to(uint32_t targetNotePos, uint32_t frequency, SampleFormat *stream, int32_t &streamPos, int32_t streamLen);
+        void silence_to(uint32_t targetNotePos, SampleFormat *stream, int32_t &streamPos, int32_t streamLen);
 
     public:
         bool allowed;
@@ -36,7 +37,7 @@ namespace ZZT {
         void set_volume(int volume); /* 0 .. 127 */
         void set_frequency(int frequency);
         void clear(void);
-        void simulate(uint8_t *stream, size_t len);
+        void simulate(SampleFormat *stream, size_t len);
     };
 };
 

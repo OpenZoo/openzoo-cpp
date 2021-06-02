@@ -19,7 +19,8 @@ using namespace ZZT;
 // longest sample would be 2640 * 256 = 675840 samples
 #define FIXED_SHIFT 9
 
-uint32_t AudioSimulator::calc_jump(uint32_t targetNotePos, int32_t streamPos, int32_t streamLen) {
+template<typename SampleFormat>
+uint32_t AudioSimulator<SampleFormat>::calc_jump(uint32_t targetNotePos, int32_t streamPos, int32_t streamLen) {
     int32_t maxTargetChange = targetNotePos - current_note_pos;
     if (maxTargetChange < 0) {
         return 0;
@@ -32,7 +33,8 @@ uint32_t AudioSimulator::calc_jump(uint32_t targetNotePos, int32_t streamPos, in
     }
 }
 
-void AudioSimulator::jump_by(uint32_t amount, int32_t &streamPos) {
+template<typename SampleFormat>
+void AudioSimulator<SampleFormat>::jump_by(uint32_t amount, int32_t &streamPos) {
     current_note_pos += amount;
     streamPos += amount;
     if (current_note_pos >= current_note_max) {
@@ -40,7 +42,8 @@ void AudioSimulator::jump_by(uint32_t amount, int32_t &streamPos) {
     }
 }
 
-void AudioSimulator::note_to(uint32_t targetNotePos, uint32_t frequency, uint8_t *stream, int32_t &streamPos, int32_t streamLen) {
+template<typename SampleFormat>
+void AudioSimulator<SampleFormat>::note_to(uint32_t targetNotePos, uint32_t frequency, SampleFormat *stream, int32_t &streamPos, int32_t streamLen) {
     uint32_t iMax = calc_jump(targetNotePos, streamPos, streamLen);
 
     if (iMax > 0) {
@@ -68,7 +71,7 @@ void AudioSimulator::note_to(uint32_t targetNotePos, uint32_t frequency, uint8_t
             if (samplePos < (samplesPerChange >> 1)) {
                 if (samplePos < stepSize) {
                     // transition from max to min
-                    uint32_t trans_val = ((sample_max * (stepSize - samplePos)) + (sample_min * samplePos)) >> FIXED_SHIFT;
+                    SampleFormat trans_val = ((sample_max * (stepSize - samplePos)) + (sample_min * samplePos)) >> FIXED_SHIFT;
                     stream[streamPos + i] = trans_val;
                 } else {
                     stream[streamPos + i] = sample_min;
@@ -77,7 +80,7 @@ void AudioSimulator::note_to(uint32_t targetNotePos, uint32_t frequency, uint8_t
                 int midPos = samplePos - (samplesPerChange >> 1);
                 if (midPos < stepSize) {
                     // transition from min to max
-                    uint32_t trans_val = ((sample_min * (stepSize - midPos)) + (sample_max * midPos)) >> FIXED_SHIFT;
+                    SampleFormat trans_val = ((sample_min * (stepSize - midPos)) + (sample_max * midPos)) >> FIXED_SHIFT;
                     stream[streamPos + i] = trans_val;
                 } else {
                     stream[streamPos + i] = sample_max;
@@ -90,7 +93,8 @@ void AudioSimulator::note_to(uint32_t targetNotePos, uint32_t frequency, uint8_t
     jump_by(iMax, streamPos);
 }
 
-void AudioSimulator::silence_to(uint32_t targetNotePos, uint8_t *stream, int32_t &streamPos, int32_t streamLen) {
+template<typename SampleFormat>
+void AudioSimulator<SampleFormat>::silence_to(uint32_t targetNotePos, SampleFormat *stream, int32_t &streamPos, int32_t streamLen) {
     uint32_t iMax = calc_jump(targetNotePos, streamPos, streamLen);
     if (iMax > 0) {
         for (uint32_t i = 0; i < iMax; i++) {
@@ -100,7 +104,8 @@ void AudioSimulator::silence_to(uint32_t targetNotePos, uint8_t *stream, int32_t
     jump_by(iMax, streamPos);
 }
 
-AudioSimulator::AudioSimulator(SoundQueue *queue, int audio_frequency, bool audio_signed) {
+template<typename SampleFormat>
+AudioSimulator<SampleFormat>::AudioSimulator(SoundQueue *queue, int audio_frequency, bool audio_signed) {
     this->queue = queue;
     this->allowed = false;
     this->audio_signed = audio_signed;
@@ -109,15 +114,18 @@ AudioSimulator::AudioSimulator(SoundQueue *queue, int audio_frequency, bool audi
     set_frequency(audio_frequency);
 }
 
-void AudioSimulator::clear(void) {
+template<typename SampleFormat>
+void AudioSimulator<SampleFormat>::clear(void) {
     this->current_note = -1;
 }
 
-int AudioSimulator::volume(void) const {
+template<typename SampleFormat>
+int AudioSimulator<SampleFormat>::volume(void) const {
     return this->sample_none - this->sample_min;
 }
 
-void AudioSimulator::set_volume(int volume) {
+template<>
+void AudioSimulator<uint8_t>::set_volume(int volume) {
     this->sample_none = 128;
     this->sample_min = 128 - volume;
     this->sample_max = 128 + volume;
@@ -129,16 +137,33 @@ void AudioSimulator::set_volume(int volume) {
     }
 }
 
-void AudioSimulator::set_frequency(int frequency) {
+template<>
+void AudioSimulator<uint16_t>::set_volume(int volume) {
+    this->sample_none = 32768;
+    this->sample_min = 32768 - (volume << 8);
+    this->sample_max = 32768 + (volume << 8);
+
+    if (audio_signed) {
+        this->sample_min ^= 0x8000;
+        this->sample_none ^= 0x8000;
+        this->sample_max ^= 0x8000;
+    }
+}
+
+template<typename SampleFormat>
+void AudioSimulator<SampleFormat>::set_frequency(int frequency) {
     audio_frequency = frequency;
     samples_per_pit = frequency * 11 / 200;
     samples_per_drum = frequency / 1000;
 }
 
-void AudioSimulator::simulate(uint8_t *stream, size_t len) {
+template<typename SampleFormat>
+void AudioSimulator<SampleFormat>::simulate(SampleFormat *stream, size_t len) {
     if (!queue->enabled || !queue->is_playing || !allowed) {
         current_note = -1;
-        memset(stream, sample_none, len);
+		for (int i = 0; i < len; i++) {
+			stream[i] = sample_none;
+		}
     } else {
         int32_t pos = 0;
         while (pos < len) {
@@ -146,7 +171,9 @@ void AudioSimulator::simulate(uint8_t *stream, size_t len) {
                 uint16_t note, duration;
                 if (!queue->pop(note, duration)) {
                     queue->is_playing = false;
-                    memset(stream + pos, sample_none, len - pos);
+					for (int i = pos; i < len; i++) {
+						stream[i] = sample_none;
+					}
                     break;
                 } else {
                     current_note = note;
@@ -182,3 +209,6 @@ void AudioSimulator::simulate(uint8_t *stream, size_t len) {
         }
     }
 }
+
+template class ZZT::AudioSimulator<uint8_t>;
+template class ZZT::AudioSimulator<uint16_t>;

@@ -333,7 +333,7 @@ uint32_t ZZT::gameThread(Game *game) {
 
 void ZZT::audioCallback(SDL2Driver *driver, uint8_t *stream, int32_t len) {
     driver->sound_lock();
-    driver->soundSimulator->simulate(stream, len);
+    driver->soundSimulator->simulate((uint16_t*) stream, len >> 1);
     driver->sound_unlock();
 }
 
@@ -344,7 +344,7 @@ SDL2Driver::SDL2Driver(int width_chars, int height_chars) {
     this->screen_buffer = (uint8_t*) malloc(width_chars * height_chars * sizeof(uint8_t) * 2);
     this->screen_buffer_changed = (bool*) malloc(width_chars * height_chars * sizeof(bool) * 2);
     memset(this->screen_buffer_changed, 0, width_chars * height_chars * sizeof(bool) * 2);
-    this->soundSimulator = new AudioSimulatorBandlimited(&_queue, 48000, false);
+    this->soundSimulator = new AudioSimulatorBandlimited<uint16_t>(&_queue, 48000, false);
 }
 
 SDL2Driver::~SDL2Driver() {
@@ -420,7 +420,7 @@ void SDL2Driver::install(void) {
         memset(&requestedAudioSpec, 0, sizeof(SDL_AudioSpec));
         requestedAudioSpec = {
             .freq = 48000,
-            .format = AUDIO_U8,
+            .format = AUDIO_U16,
             .channels = 1,
             .samples = 2048,
             .callback = (SDL_AudioCallback) audioCallback,

@@ -283,7 +283,7 @@ void PSPDriver::get_video_size(int16_t &width, int16_t &height) {
 }
 
 PSPDriver::PSPDriver(void) {
-	this->soundSimulator = new AudioSimulator(&_queue, 44100, false);
+	this->soundSimulator = new AudioSimulator<uint8_t>(&_queue, 44100, false);
 }
 
 PSPDriver::~PSPDriver() {
