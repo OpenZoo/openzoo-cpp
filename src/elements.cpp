@@ -1654,11 +1654,13 @@ void Game::InitEngine(EngineType engineType, bool is_editor) {
             this->engineDefinition.boardWidth = 96;
             this->engineDefinition.boardHeight = 80;
             this->engineDefinition.statCount = 128;
+			this->engineDefinition.flagCount = 16;
             this->world.set_format(WorldFormatSuperZZT);
         } else {
             this->engineDefinition.boardWidth = 60;
             this->engineDefinition.boardHeight = 25;
             this->engineDefinition.statCount = 150;
+			this->engineDefinition.flagCount = 10;
             this->world.set_format(WorldFormatZZT);
         }
 

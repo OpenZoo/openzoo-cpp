@@ -260,10 +260,11 @@ namespace ZZT {
         Stat *stats;
     
     public:
+        int16_t count;
+
         StatList(int16_t size);
         ~StatList();
-
-        int16_t count;
+		void clear();
 
         inline int16_t stat_size() const {
             return size;
@@ -635,6 +636,7 @@ namespace ZZT {
         int16_t torchDuration, torchDistSqr;
         int16_t torchDx, torchDy;
         int16_t boardWidth, boardHeight, statCount;
+		int16_t flagCount;
 		int16_t ammoPerAmmo;
 		int16_t healthPerGem;
 		int16_t scorePerGem;

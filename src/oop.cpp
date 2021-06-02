@@ -291,7 +291,7 @@ FindNextStat:
 }
 
 int16_t Game::WorldGetFlagPosition(const char *name) {
-	for (int i = 0; i < MAX_FLAG; i++) {
+	for (int i = 0; i < engineDefinition.flagCount; i++) {
 		if (StrEquals(world.info.flags[i], name)) {
 			return i;
 		}
@@ -301,7 +301,7 @@ int16_t Game::WorldGetFlagPosition(const char *name) {
 
 void Game::WorldSetFlag(const char *name) {
 	if (WorldGetFlagPosition(name) < 0) {
-		for (int i = 0; i < MAX_FLAG; i++) {
+		for (int i = 0; i < engineDefinition.flagCount; i++) {
 			if (StrEmpty(world.info.flags[i])) {
 				StrCopy(world.info.flags[i], name);
 				return;

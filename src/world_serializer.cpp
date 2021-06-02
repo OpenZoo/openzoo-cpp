@@ -286,7 +286,7 @@ bool SerializerFormatZZT::serialize_world(World &world, IOStream &stream, std::f
     stream.write16(0);
     stream.write16(world.info.score);
     stream.write_pstring(world.info.name, 20, false);
-    for (int i = 0; i < MAX_FLAG; i++) {
+    for (int i = 0; i < (szzt ? 16 : 10); i++) {
         stream.write_pstring(world.info.flags[i], 20, false);
     }
     stream.write16(world.info.board_time_sec);
@@ -344,7 +344,7 @@ bool SerializerFormatZZT::deserialize_world(World &world, IOStream &stream, bool
     stream.read16();
     world.info.score = stream.read16();
     stream.read_pstring(world.info.name, StrSize(world.info.name), 20, false);
-    for (int i = 0; i < MAX_FLAG; i++) {
+    for (int i = 0; i < (szzt ? 16 : 10); i++) {
         stream.read_pstring(world.info.flags[i], StrSize(world.info.flags[i]), 20, false);
     }
     world.info.board_time_sec = stream.read16();

@@ -194,10 +194,13 @@ namespace ZZT {
         virtual void clrscr(void);
         virtual void set_cursor(bool value);
         virtual void set_border_color(uint8_t value);
+        virtual void move_chars(int srcX, int srcY, int width, int height, int destX, int destY);
         virtual void copy_chars(VideoCopy &copy, int x, int y, int width, int height, int destX, int destY);
         virtual void paste_chars(VideoCopy &copy, int x, int y, int width, int height, int destX, int destY);
-        virtual void scroll_chars(int x, int y, int width, int height, int deltaX, int deltaY);
         virtual bool set_video_size(int16_t width, int16_t height, bool simulate);
+
+		// helpers
+		void scroll_chars(int x, int y, int width, int height, int deltaX, int deltaY);
     };
 }
 

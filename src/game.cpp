@@ -124,9 +124,6 @@ StatList::StatList(int16_t _size)
 		.leader = -1
 	};
 	this->stats[1].data.len = 0;
-    for (int i = 2; i < (size + 3); i++) {
-		this->stats[i] = this->stats[1];
-    }
 }
 
 StatList::~StatList() {
@@ -135,6 +132,17 @@ StatList::~StatList() {
     if (size <= 150) {} else
 #endif
     free(this->stats);
+}
+
+void StatList::clear() {
+	free_all_data();
+	this->count = 0;
+	this->stats[1] = {
+		.data = StatData(),
+		.follower = -1,
+		.leader = -1
+	};
+	this->stats[1].data.len = 0;
 }
 
 // Board
@@ -427,7 +435,6 @@ void Game::BoardCreate(void) {
 
     board.tiles.set(playerX, playerY, {.element = EPlayer, .color = elementDef(EPlayer).color});
 
-    board.stats.count = 0;
     board.stats[0] = Stat();
     board.stats[0].x = playerX;
     board.stats[0].y = playerY;
@@ -527,6 +534,10 @@ void Game::BoardPointCameraAt(int16_t sx, int16_t sy) {
         int deltaY = old_cy_offset - viewport.cy_offset;
         if ((Abs(deltaX) + Abs(deltaY)) == 1) {
             driver->scroll_chars(viewport.x, viewport.y, viewport.width, viewport.height, deltaX, deltaY);
+			// TODO: Add proper ClearDisplayMessage().
+			for (int ix = 0; ix < viewport.width; ix++) {
+				BoardDrawTile(old_cx_offset + ix + 1, old_cy_offset + viewport.height);
+			}
             if (deltaX == 0) {
                 int y_pos = ((deltaY > 0) ? viewport.cy_offset : (viewport.cy_offset + viewport.height - 1)) + 1;
                 for (int i = 0; i < viewport.width; i++) {
@@ -966,28 +977,7 @@ void Game::MoveStat(int16_t stat_id, int16_t newX, int16_t newY, bool scrollOffs
 
     if (stat_id == 0 && scrollOffset) {
         // TODO: More accurate Super ZZT behaviour
-        int16_t old_cx_offset = viewport.cx_offset;
-        int16_t old_cy_offset = viewport.cy_offset;
-        if (BoardUpdateDrawOffset()) {
-            int deltaX = old_cx_offset - viewport.cx_offset;
-            int deltaY = old_cy_offset - viewport.cy_offset;
-            if ((Abs(deltaX) + Abs(deltaY)) == 1) {
-                driver->scroll_chars(viewport.x, viewport.y, viewport.width, viewport.height, deltaX, deltaY);
-                if (deltaX == 0) {
-                    int y_pos = ((deltaY > 0) ? viewport.cy_offset : (viewport.cy_offset + viewport.height - 1)) + 1;
-                    for (int i = 0; i < viewport.width; i++) {
-                        BoardDrawTile(viewport.cx_offset + i + 1, y_pos);
-                    }
-                } else {
-                    int x_pos = ((deltaX > 0) ? viewport.cx_offset : (viewport.cx_offset + viewport.width - 1)) + 1;
-                    for (int i = 0; i < viewport.height; i++) {
-                        BoardDrawTile(x_pos, viewport.cy_offset + i + 1);
-                    }
-                }
-            } else {
-                TransitionDrawToBoard();
-            }
-        }
+        BoardPointCameraAt(stat.x, stat.y);
     }
 
     BoardDrawTile(stat.x, stat.y);

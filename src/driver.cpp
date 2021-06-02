@@ -293,6 +293,7 @@ void Driver::draw_string(int16_t x, int16_t y, uint8_t col, const char* text) {
 }
 
 void Driver::clrscr(void) {
+	// TOO: de-hardcode
     for (int16_t y = 0; y < 25; y++) {
         for (int16_t x = 0; x < 80; x++) {
             draw_char(x, y, 0, 0);
@@ -319,10 +320,26 @@ void Driver::copy_chars(VideoCopy &copy, int x, int y, int width, int height, in
 }
 
 void Driver::paste_chars(VideoCopy &copy, int x, int y, int width, int height, int destX, int destY) {
-uint8_t col, chr;
+	uint8_t col, chr;
     for (int iy = 0; iy < height; iy++) {
         for (int ix = 0; ix < width; ix++) {
             copy.get(x + ix, y + iy, col, chr);
+            draw_char(destX + ix, destY + iy, col, chr);
+        }
+    }
+}
+
+void Driver::move_chars(int srcX, int srcY, int width, int height, int destX, int destY) {
+	uint8_t col, chr;
+	int ix_min = (srcX > destX) ? 0 : width - 1;
+	int ix_max = (srcX > destX) ? width : -1;
+	int ix_step = (srcX > destX) ? 1 : -1;
+	int iy_min = (srcY > destY) ? 0 : height - 1;
+	int iy_max = (srcY > destY) ? height : -1;
+	int iy_step = (srcY > destY) ? 1 : -1;
+    for (int iy = iy_min; iy != iy_max; iy += iy_step) {
+        for (int ix = ix_min; ix != ix_max; ix += ix_step) {
+            read_char(srcX + ix, srcY + iy, col, chr);
             draw_char(destX + ix, destY + iy, col, chr);
         }
     }
@@ -338,11 +355,7 @@ void Driver::scroll_chars(int x, int y, int width, int height, int deltaX, int d
     int from_y = (deltaY < 0) ? (y - deltaY) : y;
     int to_x = (deltaX < 0) ? x : (x + deltaX);
     int to_y = (deltaY < 0) ? y : (y + deltaY);
-    // TODO: optimize
-    VideoCopy *copy = new VideoCopy(copy_width, copy_height);
-    copy_chars(*copy, from_x, from_y, copy_width, copy_height, 0, 0);
-    paste_chars(*copy, 0, 0, copy_width, copy_height, to_x, to_y);
-    delete copy;
+	move_chars(from_x, from_y, copy_width, copy_height, to_x, to_y);
 }
 
 bool Driver::set_video_size(int16_t width, int16_t height, bool simulate) {
