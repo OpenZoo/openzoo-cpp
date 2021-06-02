@@ -1644,10 +1644,6 @@ static void ElementMonitorTick(Game &game, int16_t stat_id) {
     }
 }
 
-void Game::ResetMessageNotShownFlags(void) {
-    msgFlags.clear();
-}
-
 void Game::InitEngine(EngineType engineType, bool is_editor) {
     if (engineType != this->engineDefinition.engineType) {
         this->engineDefinition.engineType = engineType;

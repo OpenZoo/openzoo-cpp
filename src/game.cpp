@@ -73,6 +73,18 @@ TileMap::~TileMap() {
     free(this->tiles);
 }
 
+void TileMap::clear() {
+	memset(tiles + ((height + 2) * sizeof(Tile)), 0, ((width + 2) * height) * sizeof(Tile));
+
+    for (int ix = 0; ix <= width + 1; ix++) {
+        set(ix, 0, TileBoardEdge);
+        set(ix, height + 1, TileBoardEdge);
+    }
+    for (int iy = 0; iy <= height + 1; iy++) {
+        set(0, iy, TileBoardEdge);
+		set(width + 1, iy, TileBoardEdge);
+    }
+}
 
 // StatList
 
@@ -134,6 +146,12 @@ Board::Board(uint8_t width, uint8_t height, int16_t stat_size)
 
 Board::~Board() {
 
+}
+
+void Board::clear() {
+	tiles.clear();
+	memset(&info, 0, sizeof(BoardInfo));
+	info.max_shots = 255;
 }
 
 // World
@@ -306,8 +324,6 @@ Viewport::Viewport(int16_t _x, int16_t _y, int16_t _width, int16_t _height)
 	cy_offset = 0;
 }
 
-
-
 bool Viewport::set(int16_t nx, int16_t ny) {
     if (cx_offset != nx || cy_offset != ny) {
         cx_offset = nx;
@@ -395,30 +411,7 @@ void Game::BoardChange(int16_t board_id) {
 }
 
 void Game::BoardCreate(void) {
-    StrClear(board.name);
-    StrClear(board.info.message);
-    board.info.max_shots = 255;
-    board.info.is_dark = false;
-    board.info.reenter_when_zapped = false;
-    board.info.time_limit_seconds = 0;
-    for (int i = 0; i < 4; i++) {
-        board.info.neighbor_boards[i] = 0;
-    }
-
-    for (int ix = 0; ix <= board.width() + 1; ix++) {
-        board.tiles.set(ix, 0, TileBoardEdge);
-        board.tiles.set(ix, board.height() + 1, TileBoardEdge);
-    }
-    for (int iy = 0; iy <= board.height() + 1; iy++) {
-        board.tiles.set(0, iy, TileBoardEdge);
-        board.tiles.set(board.width() + 1, iy, TileBoardEdge);
-    }
-    
-    for (int ix = 1; ix <= board.width(); ix++) {
-        for (int iy = 1; iy <= board.height(); iy++) {
-            board.tiles.set(ix, iy, {.element = EEmpty, .color = 0x00});
-        }
-    }
+	board.clear();
 
     for (int ix = 1; ix <= board.width(); ix++) {
         board.tiles.set(ix, 1, TileBorder);
@@ -448,29 +441,13 @@ void Game::WorldCreate() {
     world.free_board(0);
     playerDirX = 0; // from ELEMENTS -> InitEditorStatSettings
     playerDirY = 0;
-    ResetMessageNotShownFlags();
+    msgFlags.clear();
     BoardCreate();
-    world.info.is_save = false;
-    world.info.current_board = 0;
-    world.info.ammo = 0;
-    world.info.gems = 0;
+	memset(&(world.info), 0, sizeof(WorldInfo));
     world.info.health = 100;
-    world.info.energizer_ticks = 0;
-    world.info.torches = 0;
-    world.info.torch_ticks = 0;
-    world.info.score = 0;
-    world.info.board_time_sec = 0;
-    world.info.board_time_hsec = 0;
-    for (int i = 0; i < 7; i++) {
-        world.info.keys[i] = false;
-    }
-    for (int i = 0; i < 10; i++) {
-        StrClear(world.info.flags[i]);
-    }
     BoardChange(0);
     StrCopy(board.name, "Title screen");
     StrClear(loadedGameFileName);
-    StrClear(world.info.name);
 }
 
 void Game::TransitionDrawToFill(uint8_t chr, uint8_t color) {

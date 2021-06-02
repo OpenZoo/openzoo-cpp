@@ -225,6 +225,8 @@ namespace ZZT {
         TileMap(const TileMap&&);
         ~TileMap();
 
+		void clear();
+
         bool valid(int16_t x, int16_t y) const {
             return x >= 0 && y >= 0 && x <= (width + 1) && y <= (width + 1);
         }
@@ -348,6 +350,8 @@ namespace ZZT {
         TileMap tiles;
         StatList stats;
         BoardInfo info;
+
+		void clear();
 
         inline int width(void) const { return tiles.width; }
         inline int height(void) const { return tiles.height; }
@@ -795,7 +799,6 @@ namespace ZZT {
         // elements.cpp
         void DrawPlayerSurroundings(int16_t x, int16_t y, int16_t bomb_phase);
         void GamePromptEndPlay(void);
-        void ResetMessageNotShownFlags(void);
         void InitEngine(EngineType type, bool is_editor);
 
         // game.cpp
