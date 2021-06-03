@@ -69,21 +69,6 @@ static void irq_timer_drums(void) {
 
 // video/input
 
-/**
- * VRAM layout:
- * - 00000 - 07FFF: 4x6 graphics mode (w/ blinking) characters
- *   - chars 0-255: charset, not blinking
- *   - chars 256-511: charset, blinking, visible
- *   - chars 512-767: [blink] charset, not blinking
- *   - chars 768-1023: [blink] empty space, not visible
- * - 08000 - 0BFFF: 4x8/8x8 combo graphics mode (w/o blinking) characters (TODO)
- *   - chars 0-255: 4x8 charset
- *   - chars 256-511: 8x8 charset
- * - 0C000 - 0DFFF: map data, 2KB per layer, four layers
- * - 0E000 - 0FFFF: currently unused
- * - 10000 - 17FFF: OBJ VRAM - we don't use OBJ, so this may be repurposed for other data; currently unused
- */
-
 #define FONT_HEIGHT 6
 #define MAP_Y_OFFSET 1
 #define MAP_ADDR_OFFSET 0xC000
