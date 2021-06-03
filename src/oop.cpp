@@ -157,13 +157,51 @@ void Game::OopReadDirection(Stat& stat, int16_t& position, int16_t& dx, int16_t&
 
 GBA_CODE_IWRAM
 int16_t Game::OopFindString(Stat& stat, int16_t start_pos, char *str) {
-	int16_t pos = start_pos;
 	size_t str_len = strlen(str);
-	int16_t max_pos = stat.data.len - str_len;
 
 	for (size_t i = 0; i < str_len; i++) {
 		str[i] = UpCase(str[i]);
 	}
+
+#ifdef LABEL_CACHE
+	if (str[0] == '\r' && (str[1] == '\'' || str[1] == ':')) {
+		stat.data.build_label_cache();
+		
+		int16_t pos = 0;
+
+		while (pos < stat.data.label_cache_len) {
+			size_t word_pos = 0;
+			int16_t cmp_pos = stat.data.label_cache[pos];
+			if (cmp_pos < start_pos) { pos++; continue; }
+			
+			do {
+				OopReadChar(stat, cmp_pos);
+				if (str[word_pos] != UpCase(oopChar)) {
+					goto NoMatchLbl;
+				}
+				word_pos++;
+			} while (word_pos < str_len);
+
+			// string matches
+			OopReadChar(stat, cmp_pos);
+			oopChar = UpCase(oopChar);
+
+			if ((oopChar >= 'A' && oopChar <= 'Z') || (oopChar == '_')) {
+				// word continues, match invalid
+			} else {
+				// word complete, match valid
+				return stat.data.label_cache[pos];
+			}
+	NoMatchLbl:
+			pos++;
+		}
+
+		return -1;
+	}
+#endif
+
+	int16_t pos = start_pos;
+	int16_t max_pos = stat.data.len - str_len;
 
 	while (pos <= max_pos) {
 		size_t word_pos = 0;

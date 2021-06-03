@@ -128,7 +128,11 @@ namespace ZZT {
         const char *data_rom = nullptr;
 #endif
         char *data = nullptr;
-        int16_t len = 0;
+#ifdef LABEL_CACHE
+		int16_t *label_cache = nullptr;
+		int16_t label_cache_len = -1;
+#endif
+	    int16_t len = 0;
     
         StatData() = default;
 
@@ -140,27 +144,65 @@ namespace ZZT {
             return data != b.data;
         }
 
+#ifdef LABEL_CACHE
+		inline void build_label_cache() {
+			if (label_cache_len < 0 && len > 0) {
+				label_cache = nullptr;
+				label_cache_len = 0;
+				for (int i = 0; i < len-1; i++) {
+					if (data[i] == '\r' && (data[i+1] == '\'' || data[i+1] == ':' || i <= 1)) {
+						label_cache_len++;
+					}
+				}
+				if (label_cache_len > 0) {
+					label_cache = (int16_t*) malloc(sizeof(int16_t) * label_cache_len);
+					int16_t j = 0;
+					for (int i = 0; i < len-1; i++) {
+						if (data[i] == '\r' && (data[i+1] == '\'' || data[i+1] == ':' || i <= 1)) {
+							label_cache[j++] = i;
+							if (j == label_cache_len) break;
+						}
+					}
+				}
+			}
+		}
+#endif
+
         inline void duplicate() {
             if (data != nullptr && len > 0) {
                 char *new_data = (char*) malloc(len);
                 memcpy(new_data, data, len);
                 data = new_data;
+
+#ifdef LABEL_CACHE
+				label_cache = nullptr;
+				label_cache_len = -1;
+#endif
             }
         }
 
         inline void clear_data() {
             data = nullptr;
             len = 0;
+
+#ifdef LABEL_CACHE
+			label_cache = nullptr;
+			label_cache_len = -1;
+#endif
         }
 
         inline void free_data() {
             if (data != nullptr && len > 0) {
                 free(data);
+#ifdef LABEL_CACHE
+				if (label_cache != nullptr && label_cache_len > 0) free(label_cache);
+#endif
                 clear_data();
             }
         }
 
         inline void alloc_data(int16_t length) {
+			clear_data();
 			len = length;
 			if (len > 0) {
 				data = (char*) malloc(len);

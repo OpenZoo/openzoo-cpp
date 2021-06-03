@@ -55,7 +55,7 @@ ARCH	:=	-mthumb -mthumb-interwork
 CFLAGS	:=	-g -Wall -O2 \
 		-mcpu=arm7tdmi -mtune=arm7tdmi \
 		-D__GBA__ \
-		$(ARCH) -DDISABLE_EDITOR -DROM_POINTERS
+		$(ARCH) -DDISABLE_EDITOR -DROM_POINTERS -DLABEL_CACHE
 
 CFLAGS	+=	$(INCLUDE)
 
