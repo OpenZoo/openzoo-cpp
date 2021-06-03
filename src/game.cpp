@@ -58,7 +58,6 @@ TileMap::TileMap(uint8_t _width, uint8_t _height)
     } else
 #endif
     this->tiles = (Tile*) malloc((width + 2) * (height + 2) * sizeof(Tile));
-    memset(this->tiles, 0, (width + 2) * (height + 2) * sizeof(Tile));
 }
 
 TileMap::TileMap(const TileMap&& other)
