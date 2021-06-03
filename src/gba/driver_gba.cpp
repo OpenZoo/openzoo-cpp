@@ -1,8 +1,11 @@
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 extern "C" {
 	#include <tonc.h>
 	#include "4x6_bin.h"
+	#include "4x8_bin.h"
+	#include "8x8_bin.h"
 }
 #include "assets.h"
 #include "driver_gba.h"
@@ -66,14 +69,30 @@ static void irq_timer_drums(void) {
 
 // video/input
 
+/**
+ * VRAM layout:
+ * - 00000 - 07FFF: 4x6 graphics mode (w/ blinking) characters
+ *   - chars 0-255: charset, not blinking
+ *   - chars 256-511: charset, blinking, visible
+ *   - chars 512-767: [blink] charset, not blinking
+ *   - chars 768-1023: [blink] empty space, not visible
+ * - 08000 - 0BFFF: 4x8/8x8 combo graphics mode (w/o blinking) characters (TODO)
+ *   - chars 0-255: 4x8 charset
+ *   - chars 256-511: 8x8 charset
+ * - 0C000 - 0DFFF: map data, 2KB per layer, four layers
+ * - 0E000 - 0FFFF: currently unused
+ * - 10000 - 17FFF: OBJ VRAM - we don't use OBJ, so this may be repurposed for other data; currently unused
+ */
+
 #define FONT_HEIGHT 6
 #define MAP_Y_OFFSET 1
-#define MAP_ADDR_OFFSET 0x8000
+#define MAP_ADDR_OFFSET 0xC000
 
 typedef struct {
 	uint16_t hofs0, vofs0, hofs1, vofs1, hofs2, vofs2, hofs3, vofs3;
 } hdma_ofs_t;
 
+EWRAM_BSS
 static hdma_ofs_t hdma_offsets[160];
 
 static const u16 default_palette[] = {
@@ -97,13 +116,15 @@ static const u16 default_palette[] = {
 
 static bool blinking_enabled = false;
 static uint8_t blink_ticks;
+static uint8_t mode_6_lines = 1;
 
 GBA_CODE_IWRAM
 static void vram_update_bgcnt(void) {
-	int fg_cbb = (blinking_enabled && (blink_ticks & 16)) ? 1 : 0;
+	int bg_cbb = !mode_6_lines ? 2 : 0;
+	int fg_cbb = !mode_6_lines ? 2 : ((blinking_enabled && (blink_ticks & 16)) ? 1 : 0);
 
-	REG_BG0CNT = BG_PRIO(3) | BG_CBB(0) | BG_SBB((MAP_ADDR_OFFSET >> 11) + 0) | BG_4BPP | BG_SIZE0;
-	REG_BG1CNT = BG_PRIO(2) | BG_CBB(0) | BG_SBB((MAP_ADDR_OFFSET >> 11) + 1) | BG_4BPP | BG_SIZE0;
+	REG_BG0CNT = BG_PRIO(3) | BG_CBB(bg_cbb) | BG_SBB((MAP_ADDR_OFFSET >> 11) + 0) | BG_4BPP | BG_SIZE0;
+	REG_BG1CNT = BG_PRIO(2) | BG_CBB(bg_cbb) | BG_SBB((MAP_ADDR_OFFSET >> 11) + 1) | BG_4BPP | BG_SIZE0;
 	REG_BG2CNT = BG_PRIO(1) | BG_CBB(fg_cbb) | BG_SBB((MAP_ADDR_OFFSET >> 11) + 2) | BG_4BPP | BG_SIZE0;
 	REG_BG3CNT = BG_PRIO(0) | BG_CBB(fg_cbb) | BG_SBB((MAP_ADDR_OFFSET >> 11) + 3) | BG_4BPP | BG_SIZE0;
 }
@@ -116,7 +137,7 @@ GBA_CODE_IWRAM
 static void vram_write_char(int16_t x, int16_t y, uint8_t col, uint8_t chr) {
 	GET_VRAM_PTRS;
 
-	*tile_bg_ptr = '\xDB' | (((col >> 4) & 0x07) << 12);
+	*tile_bg_ptr = '\xDB' | ((col << 8) & 0x7000); 
 	*tile_fg_ptr = chr | ((col & 0x80) << 1) | (col << 12);
 }
 
@@ -142,8 +163,8 @@ void platform_debug_puts(const char *text, bool status) {
 		int y = CONSOLE_YOFFSET + CONSOLE_HEIGHT;
 		GET_VRAM_PTRS;
 		
-		memset32(tile_fg_ptr, 0, 16);
-		memset32(tile_fg_ptr + (1 << 10), 0, 16);
+		memset32(tile_fg_ptr, 0, 32 * 2 / 4);
+		memset32(tile_fg_ptr + (1 << 10), 0, 32 * 2 / 4);
 
 		while (*text != '\0') {
 			char c = *(text++);
@@ -166,11 +187,11 @@ void platform_debug_puts(const char *text, bool status) {
 				int y = CONSOLE_YOFFSET;
 				GET_VRAM_PTRS;
 
-				memcpy32(tile_fg_ptr, tile_fg_ptr + 32, 16 * (CONSOLE_HEIGHT - 1));
-				memcpy32(tile_fg_ptr + (1 << 10), tile_fg_ptr + 32 + (1 << 10), 16 * (CONSOLE_HEIGHT - 1));
+				memcpy32(tile_fg_ptr, tile_fg_ptr + 32, 32 * (CONSOLE_HEIGHT - 1) * 2 / 4);
+				memcpy32(tile_fg_ptr + (1 << 10), tile_fg_ptr + 32 + (1 << 10), 32 * (CONSOLE_HEIGHT - 1) * 2 / 4);
 
-				memset32(tile_fg_ptr + (32*(CONSOLE_HEIGHT-1)), 0, 16);
-				memset32(tile_fg_ptr + (32*(CONSOLE_HEIGHT-1)) + (1 << 10), 0, 16);
+				memset32(tile_fg_ptr + (32*(CONSOLE_HEIGHT-1)), 0, 32 * 2 / 4);
+				memset32(tile_fg_ptr + (32*(CONSOLE_HEIGHT-1)) + (1 << 10), 0, 32 * 2 / 4);
 
 				console_y--;
 			}
@@ -240,25 +261,35 @@ void ZZT::irq_vblank(void) {
 	REG_BG2VOFS = 0;
 	REG_BG3HOFS = 0;
 	REG_BG3VOFS = 0;
-	REG_DMA0SAD = (vu32) hdma_offsets;
-	REG_DMA0DAD = (vu32) &REG_BG0HOFS;
-	REG_DMA0CNT = DMA_AT_HBLANK | DMA_REPEAT | DMA_SRC_INC | DMA_DST_RELOAD | (sizeof(hdma_ofs_t) >> 2) | DMA_32 | DMA_ENABLE;
+	if (mode_6_lines) {
+		REG_DMA0SAD = (vu32) hdma_offsets;
+		REG_DMA0DAD = (vu32) &REG_BG0HOFS;
+		REG_DMA0CNT = DMA_AT_HBLANK | DMA_REPEAT | DMA_SRC_INC | DMA_DST_RELOAD | (sizeof(hdma_ofs_t) >> 2) | DMA_32 | DMA_ENABLE;
+
+		if (blinking_enabled) {
+			if (((blink_ticks++) & 15) == 0) {
+				vram_update_bgcnt();
+			}
+		}
 
 #ifdef DEBUG_CONSOLE
-	if ((REG_KEYINPUT & KEY_R) == 0) {
-		recalculate_hdma_offsets(true);
-	} else {
-		recalculate_hdma_offsets(false);
-	}
+		if ((REG_KEYINPUT & KEY_R) == 0) {
+			recalculate_hdma_offsets(true);
+		} else {
+			recalculate_hdma_offsets(false);
+		}
 #endif
-
-	driver.update_joy();
-
-	if (blinking_enabled) {
-		if (((blink_ticks++) & 15) == 0) {
-			vram_update_bgcnt();
+	} else {
+		if ((REG_KEYINPUT & KEY_R) == 0) {
+			int16_t vofs = (32 * 8) - (20 * 8);
+			REG_BG0VOFS = vofs;
+			REG_BG1VOFS = vofs;
+			REG_BG2VOFS = vofs;
+			REG_BG3VOFS = vofs;
 		}
 	}
+
+	driver.update_joy();
 
 #ifdef DEBUG_CONSOLE
 	sstring<20> num_str;
@@ -316,31 +347,50 @@ void ZZT::irq_timer_pit(void) {
 
 #define dbg_ticks() (REG_TM2CNT_L | (REG_TM3CNT_L << 16))
 
-void zoo_video_gba_install(const uint8_t *charset_bin) {
+static void zoo_video_gba_load_charset(uint32_t mem_offset, Charset &charset) {
+	uint16_t *offset = (uint16_t*) (MEM_VRAM + mem_offset);
+	memset32((uint32_t*) offset, 0x0000000, 256 * 32 / 4);
+
+	if (charset.width() > 4) {
+		Charset::Iterator charsetIterator = charset.iterate();
+		while (charsetIterator.next()) {
+			if (charsetIterator.value >= 128) {
+				uint16_t *line = offset + (charsetIterator.x >> 2) + ((uint32_t) charsetIterator.y << 1) + ((uint32_t) charsetIterator.glyph << 4);
+				*line |= (1 << ((charsetIterator.x & 0x03) << 2));
+			}
+		}
+	} else {
+		Charset::Iterator charsetIterator = charset.iterate();
+		while (charsetIterator.next()) {
+			if (charsetIterator.value >= 128) {
+				uint16_t *line = offset + 1 + ((uint32_t) charsetIterator.y << 1) + ((uint32_t) charsetIterator.glyph << 4);
+				*line |= (1 << (charsetIterator.x << 2));
+			}
+		}
+	}
+}
+
+void zoo_video_gba_install(void) {
 	recalculate_hdma_offsets(false);
 
 	// add interrupts
 	irq_add(II_VBLANK, irq_vblank);
 	
-	// load 4x6 charset
-	memset32(((uint32_t*) (MEM_VRAM)), 0x0000000, 256 * 32);
+	// load charsets
 	Charset charset = Charset(256, 4, 6, 1, _4x6_bin);
-	Charset::Iterator charsetIterator = charset.iterate();
-	while (charsetIterator.next()) {
-		if (charsetIterator.value >= 128) {
-			uint16_t &line = *(((uint16_t*) MEM_VRAM) + 1 + ((uint32_t) charsetIterator.y << 1) + ((uint32_t) charsetIterator.glyph << 4));
-			line |= (1 << (charsetIterator.x << 2));
-		}
-	}
+	zoo_video_gba_load_charset(0x00000, charset);
+	// TODO: re-enable once Super ZZT mode is in
+	/* charset = Charset(256, 4, 8, 1, _4x8_bin);
+	zoo_video_gba_load_charset(0x08000, charset);
+	charset = Charset(256, 8, 8, 1, _8x8_bin);
+	zoo_video_gba_load_charset(0x0A000, charset); */
 
-	// 32KB is used to faciliate blinking:
-	// chars 0-255: charset, not blinking
-	// chars 256-511: charset, blinking, visible
-	// chars 512-767: [blink] charset, not blinking
-	// chars 768-1023: [blink] empty space, not visible
-	memcpy32(((uint32_t*) (MEM_VRAM + (256*32))), ((uint32_t*) (MEM_VRAM)), 256 * 32);
-	memcpy32(((uint32_t*) (MEM_VRAM + (512*32))), ((uint32_t*) (MEM_VRAM)), 256 * 32);
-	memset32(((uint32_t*) (MEM_VRAM + (768*32))), 0x0000000, 256 * 32);
+	mode_6_lines = 1;
+
+	// initialize 32KB of data for blinking - see VRAM layout
+	memcpy32(((uint32_t*) (MEM_VRAM + (256*32))), ((uint32_t*) (MEM_VRAM)), 256 * 32 / 4);
+	memcpy32(((uint32_t*) (MEM_VRAM + (512*32))), ((uint32_t*) (MEM_VRAM)), 256 * 32 / 4);
+	memset32(((uint32_t*) (MEM_VRAM + (768*32))), 0x0000000, 256 * 32 / 4);
 
 	// load palette
 	for (int i = 0; i < 16; i++) {
@@ -352,7 +402,7 @@ void zoo_video_gba_install(const uint8_t *charset_bin) {
 	vram_update_bgcnt();
 
 	// clear display
-	memset32((void*) (MEM_VRAM + MAP_ADDR_OFFSET), 0x00000000, 64 * 32 * 2);
+	memset32((void*) (MEM_VRAM + MAP_ADDR_OFFSET), 0x00000000, 32 * 32 * 2 * 4 / 4);
 }
 
 GBADriver::GBADriver() {
@@ -377,7 +427,7 @@ void GBADriver::install(void) {
 	REG_TM3CNT_H = TM_FREQ_1 | TM_CASCADE | TM_ENABLE;
 #endif
 
-    zoo_video_gba_install(_4x6_bin);
+    zoo_video_gba_install();
 
 	zoo_video_gba_set_blinking(true);
 	zoo_video_gba_show();

@@ -97,7 +97,7 @@ export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 CFILES		:=
 CPPFILES	:=	$(foreach src,$(SOURCES),$(notdir $(src)))
 SFILES		:=
-BINFILES	:=	4x6.bin
+BINFILES	:=	4x6.bin 4x8.bin 8x8.bin
 
 export LD	:=	$(CC)
 
@@ -157,6 +157,12 @@ $(OFILES_SOURCES) : $(HFILES)
 
 4x6.bin: 4x6.png font2raw.py
 	@python3 ../tools/font2raw.py ../fonts/4x6.png 4 6 raw $@
+
+4x8.bin: 4x8.png font2raw.py
+	@python3 ../tools/font2raw.py ../fonts/4x8.png 4 8 raw $@
+
+8x8.bin: pc_cga.png font2raw.py
+	@python3 ../tools/font2raw.py ../fonts/pc_cga.png 8 8 raw $@
 
 -include $(DEPSDIR)/*.d
 #---------------------------------------------------------------------------------------

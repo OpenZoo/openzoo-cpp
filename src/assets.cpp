@@ -48,8 +48,8 @@ bool Charset::Iterator::next() {
         value = (value << (8 / shift)) - value; // 1, 4 => 15...
         this->data_pos += shift;
         if (this->data_pos >= 8) {
-            this->data_pos = 0;
-            this->data++;
+            this->data += (this->data_pos >> 3);
+            this->data_pos &= 7;
         }
 
         return true;
