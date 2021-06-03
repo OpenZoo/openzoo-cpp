@@ -14,6 +14,8 @@ void TextWindowSuperZZTGBA::DrawClose(void) {
 	zoo_set_force_4x8_mode(FORCE_4X8_MODE_NONE);
 }
 
+UserInterfaceSuperZZTGBA::UserInterfaceSuperZZTGBA(Driver *driver) : UserInterfaceSuperZZT(driver, 36, 24) { }
+
 TextWindow *UserInterfaceSuperZZTGBA::CreateTextWindow(FilesystemDriver *fsDriver) {
 	return new TextWindowSuperZZTGBA(driver, fsDriver, 18, 1, 38, 17);
 }

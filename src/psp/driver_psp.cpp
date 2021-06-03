@@ -5,6 +5,8 @@
 #include "assets.h"
 #include "driver_psp.h"
 #include "filesystem_posix.h"
+#include "user_interface.h"
+#include "user_interface_super_zzt.h"
 
 extern "C" {
 	#include "6x10_psp.h"
@@ -63,6 +65,7 @@ typedef struct {
 
 static Game *game;
 static PSPDriver driver = PSPDriver();
+static uint32_t video_doubleWide = 1;
 
 static uint32_t __attribute__((aligned(16))) gu_clut4[16];
 static uint32_t __attribute__((aligned(16))) gu_list[262144];
@@ -203,7 +206,7 @@ void PSPDriver::draw_frame(void) {
 	for (int y = 0; y < 25; y++) {
 		uint16_t cy0 = y*10+FRAME_Y_OFFSET;
 		uint16_t cy1 = (y+1)*10+FRAME_Y_OFFSET;
-		for (int x = 0; x < 80; x++, i+=2, chr_ptr++, col_ptr++) {
+		for (int x = 0; x < (video_doubleWide >= 2 ? 40 : 80); x++, i+=2, chr_ptr++, col_ptr++) {
 			uint8_t chr = *chr_ptr;
 			uint8_t col = *col_ptr;
 			int should_blink_now = 0;
@@ -218,8 +221,8 @@ void PSPDriver::draw_frame(void) {
 			bg_col = (bg_col & 0xFF00FF00) | ((bg_col & 0xFF) << 16) | ((bg_col & 0xFF0000) >> 16);
 			fg_col = (fg_col & 0xFF00FF00) | ((fg_col & 0xFF) << 16) | ((fg_col & 0xFF0000) >> 16);
 
-			u16 cx0 = x*6;
-			u16 cx1 = (x+1)*6;
+			u16 cx0 = x*6*video_doubleWide;
+			u16 cx1 = (x+1)*6*video_doubleWide;
 			u32 cu = (chr & 31)<<3;
 			u32 cv = (chr >> 5)<<4;
 
@@ -248,6 +251,10 @@ void PSPDriver::draw_frame(void) {
 				fg_cells[1].z = 0;
 				fg_cells += 2;
 			}
+		}
+		if (video_doubleWide >= 2) {
+			chr_ptr += 40;
+			col_ptr += 40;
 		}
 	}
 
@@ -362,6 +369,16 @@ void PSPDriver::uninstall(void) {
 	running = false;
 
 	sceKernelStopVTimer(pit_timer_id);
+}
+
+UserInterface *PSPDriver::create_user_interface(Game &game) {
+	if (game.engineDefinition.engineType == ENGINE_TYPE_SUPER_ZZT) {
+		video_doubleWide = 2;
+		return new UserInterfaceSuperZZT(this, 40, 25);
+	} else {
+		video_doubleWide = 1;
+		return new UserInterface(this);
+	}
 }
 
 static int psp_game_thread(SceSize args, void *argp) {

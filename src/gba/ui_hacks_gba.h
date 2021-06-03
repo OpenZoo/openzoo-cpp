@@ -19,7 +19,7 @@ namespace ZZT {
 
     class UserInterfaceSuperZZTGBA: public UserInterfaceSuperZZT {
     public:
-        UserInterfaceSuperZZTGBA(Driver *driver) : UserInterfaceSuperZZT(driver) { }
+        UserInterfaceSuperZZTGBA(Driver *driver);
 
 		virtual TextWindow *CreateTextWindow(FilesystemDriver *fsDriver) override;
     };

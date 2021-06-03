@@ -31,6 +31,7 @@ OBJS = \
 	$(OBJDIR)/txtwind.o \
 	$(OBJDIR)/user_interface.o \
 	$(OBJDIR)/user_interface_osk.o \
+	$(OBJDIR)/user_interface_super_zzt.o \
 	$(OBJDIR)/utils/iostream.o \
 	$(OBJDIR)/utils/math.o \
 	$(OBJDIR)/utils/strings.o \

@@ -56,6 +56,7 @@ namespace ZZT {
 
         uint8_t *screen_buffer;
         bool *screen_buffer_changed;
+		bool video_doubleWide;
 
         CharsetTexture* loadCharsetFromBMP(const char *path);
         CharsetTexture* loadCharsetFromBytes(const uint8_t *buf, size_t len);
@@ -75,6 +76,8 @@ namespace ZZT {
 
         void install(void);
         void uninstall(void);
+
+		UserInterface *create_user_interface(Game &game) override;
 
         // required (input)
         void update_input(void) override;

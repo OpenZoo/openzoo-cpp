@@ -1,9 +1,11 @@
 #include <cstddef>
 #include <cstring>
 #include <SDL.h>
+#include "driver.h"
 #include "driver_sdl2.h"
 #include "filesystem_posix.h"
 #include "user_interface_slim.h"
+#include "user_interface_super_zzt.h"
 #include "gamevars.h"
 
 #define PIT_SPEED_MS 55
@@ -181,9 +183,9 @@ void SDL2Driver::render_char_bg(int16_t x, int16_t y) {
     uint32_t bg_col = ega_palette[col];
 
     SDL_Rect out_rect = {
-        .x = x * charsetTexture->charWidth,
+        .x = x * charsetTexture->charWidth * (video_doubleWide ? 2 : 1),
         .y = y * charsetTexture->charHeight,
-        .w = charsetTexture->charWidth,
+        .w = charsetTexture->charWidth * (video_doubleWide ? 2 : 1),
         .h = charsetTexture->charHeight
     };
 
@@ -213,9 +215,9 @@ void SDL2Driver::render_char_fg(int16_t x, int16_t y, bool blink) {
     };
 
     SDL_Rect out_rect = {
-        .x = x * charsetTexture->charWidth,
+        .x = x * charsetTexture->charWidth * (video_doubleWide ? 2 : 1),
         .y = y * charsetTexture->charHeight,
-        .w = charsetTexture->charWidth,
+        .w = charsetTexture->charWidth * (video_doubleWide ? 2 : 1),
         .h = charsetTexture->charHeight
     };
 
@@ -594,6 +596,16 @@ void SDL2Driver::sound_lock(void) {
 
 void SDL2Driver::sound_unlock(void) {
     SDL_UnlockMutex(soundBufferMutex);
+}
+
+UserInterface *SDL2Driver::create_user_interface(Game &game) {
+	if (game.engineDefinition.engineType == ENGINE_TYPE_SUPER_ZZT) {
+		video_doubleWide = true;
+		return new UserInterfaceSuperZZT(this, 40, 25);
+	} else {
+		video_doubleWide = false;
+		return new UserInterface(this);
+	}
 }
 
 static Game *game;

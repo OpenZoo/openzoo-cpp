@@ -11,12 +11,18 @@ namespace ZZT {
 
         VideoCopy *BackupSidebar();
         void RestoreSidebar(VideoCopy *copy);
+		void ClearSidebar();
+		uint8_t GetSidebarColor();
+
+	protected:
+		int16_t width, height;
 
     public:
-        UserInterfaceSuperZZT(Driver *driver);
+        UserInterfaceSuperZZT(Driver *driver, int width, int height);
 
 		virtual void ConfigureViewport(int16_t &x, int16_t &y, int16_t &width, int16_t &height) override;
-		
+		virtual TextWindow *CreateTextWindow(FilesystemDriver *fsDriver) override;
+
         virtual bool SidebarPromptYesNo(const char *message, bool defaultReturn) override;
         virtual void SidebarPromptString(const char *prompt, const char *extension, char *filename, int filenameLen, InputPromptMode mode) override;
         virtual void SidebarGameDraw(Game &game, uint32_t flags) override;

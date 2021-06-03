@@ -38,6 +38,8 @@ namespace ZZT {
         void install(void);
         void uninstall(void);
 
+		UserInterface *create_user_interface(Game &game);
+
         // required (input)
         void update_input(void) override;
         void set_text_input(bool enabled, InputPromptMode mode) override;
