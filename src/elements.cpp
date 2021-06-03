@@ -23,17 +23,18 @@ void ZZT::ElementDefaultTouch(Game &game, int16_t x, int16_t y, int16_t source_s
 }
 
 static void ElementMessageTimerTick(Game &game, int16_t stat_id) {
-    char message[256];
     Stat &stat = game.board.stats[stat_id];
     if (stat.x == 0) {
-        StrJoin(message, 3, " ", game.board.info.message, " ");
-        game.driver->draw_string((60 - StrLength(game.board.info.message)) / 2, 24, 9 + (stat.p2 % 7), message);
+		game.interface->GameShowMessage(game, 9 + (stat.p2 % 7));
 
         if (--stat.p2 <= 0) {
             game.RemoveStat(stat_id);
             game.currentStatTicked--;
             game.BoardDrawBorder();
-            StrClear(game.board.info.message);
+			game.interface->GameHideMessage(game);
+			for (int i = 0; i < game.engineDefinition.messageLines; i++) {
+	            StrClear(game.board.info.message[i]);
+			}
         }
     }
 }
@@ -717,7 +718,11 @@ static void ElementEnergizerTouch(Game &game, int16_t x, int16_t y, int16_t sour
     game.GameUpdateSidebar();
 
     if (game.msgFlags.first<MESSAGE_ENERGIZER>()) {
-        game.DisplayMessage(200, "Energizer - You are invincible");
+		if (game.engineDefinition.is<QUIRK_SUPER_ZZT_MESSAGES>()) {
+	        game.DisplayMessage(200, "Shield:", "You are invincible");
+		} else {
+	        game.DisplayMessage(200, "Energizer - You are invincible");
+		}
     }
 
     game.OopSend(0, "ALL:ENERGIZE", false);
@@ -1085,10 +1090,19 @@ static void ElementKeyTouch(Game &game, int16_t x, int16_t y, int16_t source_sta
 
     // OpenZoo: Explicit handling for Black Keys/Doors (portability).
     if (value != 0) {
-        if (key == 0) StrCopy(message, "You already have a Black key?");
-        else StrJoin(message, 3, "You already have a ", ColorNames[key - 1], " key!");
-
-        game.DisplayMessage(200, message);
+		if (game.engineDefinition.is<QUIRK_SUPER_ZZT_MESSAGES>()) {
+	        if (key == 0) game.DisplayMessage(200, "You already have a", "Black key?");
+    	    else {
+				StrJoin(message, 2, ColorNames[key - 1], " key!");
+	        	game.DisplayMessage(200, "You already have a", message);
+			}
+		} else {
+	        if (key == 0) game.DisplayMessage(200, "You already have a Black key?");
+    	    else {
+				StrJoin(message, 3, "You already have a ", ColorNames[key - 1], " key!");
+	        	game.DisplayMessage(200, message);
+			}
+		}
         game.driver->sound_queue(2, "\x30\x02\x20\x02");
     } else {
         if (key == 0) game.world.info.gems = (game.world.info.gems & 0xFF) | 0x100;
@@ -1097,10 +1111,20 @@ static void ElementKeyTouch(Game &game, int16_t x, int16_t y, int16_t source_sta
         game.board.tiles.set_element(x, y, EEmpty);
         game.GameUpdateSidebar();
 
-        if (key == 0) StrCopy(message, "You now have the Black key?");
-        else StrJoin(message, 3, "You now have the ", ColorNames[key - 1], " key.");
+		if (game.engineDefinition.is<QUIRK_SUPER_ZZT_MESSAGES>()) {
+	        if (key == 0) game.DisplayMessage(200, "You now have the", "Black key?");
+    	    else {
+				StrJoin(message, 2, ColorNames[key - 1], " key!");
+	        	game.DisplayMessage(200, "You now have the", message);
+			}
+		} else {
+	        if (key == 0) game.DisplayMessage(200, "You now have the Black key?");
+    	    else {
+				StrJoin(message, 3, "You now have the ", ColorNames[key - 1], " key!");
+	        	game.DisplayMessage(200, message);
+			}
+		}
 
-        game.DisplayMessage(200, message);
         game.driver->sound_queue(2, "\x40\x01\x44\x01\x47\x01\x40\x01\x44\x01\x47\x01\x40\x01\x44\x01\x47\x01\x50\x02");
     }
 }
@@ -1114,9 +1138,13 @@ static void ElementAmmoTouch(Game &game, int16_t x, int16_t y, int16_t source_st
 
     if (game.msgFlags.first<MESSAGE_AMMO>()) {
 		sstring<60> ammoMessage;
-		StrFormat(ammoMessage, "Ammunition - %d shots per container.", game.engineDefinition.ammoPerAmmo);
-
-        game.DisplayMessage(200, ammoMessage);
+		if (game.engineDefinition.is<QUIRK_SUPER_ZZT_MESSAGES>()) {
+			StrFormat(ammoMessage, "%d shots", game.engineDefinition.ammoPerAmmo);
+    	    game.DisplayMessage(200, "Ammunition:", ammoMessage);
+		} else {
+			StrFormat(ammoMessage, "Ammunition - %d shots per container.", game.engineDefinition.ammoPerAmmo);
+    	    game.DisplayMessage(200, ammoMessage);
+		}
     }
 }
 
@@ -1128,7 +1156,11 @@ static void ElementSZZTStoneTouch(Game &game, int16_t x, int16_t y, int16_t sour
 
     game.BoardDamageTile(x, y);
     game.GameUpdateSidebar();
-    game.DisplayMessage(200, "You have found a Stone of Power!");
+	if (game.engineDefinition.is<QUIRK_SUPER_ZZT_MESSAGES>()) {
+	    game.DisplayMessage(200, "You have found a", "Stone of Power!");
+	} else {
+	    game.DisplayMessage(200, "You have found a Stone of Power!");
+	}
 }
 
 static void ElementSZZTStoneDraw(Game &game, int16_t x, int16_t y, uint8_t &chr) {
@@ -1180,16 +1212,34 @@ static void ElementDoorTouch(Game &game, int16_t x, int16_t y, int16_t source_st
         else game.world.info.keys[key - 1] = false; 
         game.GameUpdateSidebar();
 
-        if (key == 0) StrCopy(message, "The Black door is now open?");
-        else StrJoin(message, 3, "The ", ColorNames[key - 1], " door is now open.");
-
-        game.DisplayMessage(200, message);
+		if (game.engineDefinition.is<QUIRK_SUPER_ZZT_MESSAGES>()) {
+			if (key == 0) game.DisplayMessage(200, "The Black door", "is now open?");
+			else {
+				StrJoin(message, 3, "The ", ColorNames[key - 1], " door");
+				game.DisplayMessage(200, message, "is now open.");
+			}
+		} else {
+			if (key == 0) game.DisplayMessage(200, "The Black door is now open?");
+			else {
+				StrJoin(message, 3, "The ", ColorNames[key - 1], " door is now open.");
+				game.DisplayMessage(200, message);
+			}
+		}
         game.driver->sound_queue(3, "\x30\x01\x37\x01\x3B\x01\x30\x01\x37\x01\x3B\x01\x40\x04");
     } else {
-        if (key == 0) StrCopy(message, "The Black door is locked?");
-        else StrJoin(message, 3, "The ", ColorNames[key - 1], " door is locked!");
-
-        game.DisplayMessage(200, message);
+		if (game.engineDefinition.is<QUIRK_SUPER_ZZT_MESSAGES>()) {
+			if (key == 0) game.DisplayMessage(200, "The Black door", "is locked?");
+			else {
+				StrJoin(message, 3, "The ", ColorNames[key - 1], " door");
+				game.DisplayMessage(200, message, "is locked!");
+			}
+		} else {
+			if (key == 0) game.DisplayMessage(200, "The Black door is locked?");
+			else {
+				StrJoin(message, 3, "The ", ColorNames[key - 1], " door is locked!");
+				game.DisplayMessage(200, message);
+			}
+		}
         game.driver->sound_queue(3, "\x17\x01\x10\x01");
     }
 }
@@ -1262,7 +1312,11 @@ static void ElementInvisibleTouch(Game &game, int16_t x, int16_t y, int16_t sour
     game.BoardDrawTile(x, y);
 
 	game.driver->sound_queue(3, "\x12\x01\x10\x01");
-    game.DisplayMessage(100, "You are blocked by an invisible wall.");
+	if (game.engineDefinition.is<QUIRK_SUPER_ZZT_MESSAGES>()) {
+    	game.DisplayMessage(100, "You are blocked", "by an invisible wall.");
+	} else {
+    	game.DisplayMessage(100, "You are blocked by an invisible wall.");
+	}
 }
 
 static void ElementForestTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
@@ -1284,13 +1338,21 @@ static void ElementForestTouch(Game &game, int16_t x, int16_t y, int16_t source_
 	game.driver->sound_queue(3, forestSound, 2);
 
     if (game.msgFlags.first<MESSAGE_FOREST>()) {
-        game.DisplayMessage(200, "A path is cleared through the forest.");
+		if (game.engineDefinition.is<QUIRK_SUPER_ZZT_MESSAGES>()) {
+    	    game.DisplayMessage(200, "A path is cleared", "through the forest.");
+		} else {
+    	    game.DisplayMessage(200, "A path is cleared through the forest.");
+		}
     }
 }
 
 static void ElementFakeTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
     if (game.msgFlags.first<MESSAGE_FAKE>()) {
-        game.DisplayMessage(150, "A fake wall - secret passage!");
+		if (game.engineDefinition.is<QUIRK_SUPER_ZZT_MESSAGES>()) {
+	        game.DisplayMessage(150, "A fake wall:", "Secret Passage!");
+		} else {
+	        game.DisplayMessage(150, "A fake wall - secret passage!");
+		}
     }
 }
 
@@ -1334,6 +1396,7 @@ static void ElementBoardEdgeTouch(Game &game, int16_t x, int16_t y, int16_t sour
 
             game.BoardUpdateDrawOffset();
             game.TransitionDrawBoardChange();
+			game.interface->GameHideMessage(game);
             delta_x = 0;
             delta_y = 0;
             game.BoardEnter();
@@ -1349,12 +1412,20 @@ static void ElementBoardEdgeTouch(Game &game, int16_t x, int16_t y, int16_t sour
 
 static void ElementWaterTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
 	game.driver->sound_queue(3, "\x40\x01\x50\x01");
-    game.DisplayMessage(100, "Your way is blocked by water.");
+	if (game.engineDefinition.is<QUIRK_SUPER_ZZT_MESSAGES>()) {
+	    game.DisplayMessage(100, "Your way is", "blocked by water.");
+	} else {
+	    game.DisplayMessage(100, "Your way is blocked by water.");		
+	}
 }
 
 static void ElementSZZTLavaTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
 	game.driver->sound_queue(3, "\x40\x01\x50\x01");
-    game.DisplayMessage(100, "Your way is blocked by lava.");
+	if (game.engineDefinition.is<QUIRK_SUPER_ZZT_MESSAGES>()) {
+	    game.DisplayMessage(100, "Your way is", "blocked by lava.");
+	} else {
+	    game.DisplayMessage(100, "Your way is blocked by lava.");		
+	}
 }
 
 void Game::DrawPlayerSurroundings(int16_t x, int16_t y, int16_t bomb_phase) {
@@ -1474,7 +1545,11 @@ static void ElementPlayerTick(Game &game, int16_t stat_id) {
         game.driver->shiftPressed = false;
 
         if (game.board.stats.id_at(0, 0) == -1) {
-            game.DisplayMessage(32000, " Game over  -  Press ESCAPE");
+			if (game.engineDefinition.is<QUIRK_SUPER_ZZT_MESSAGES>()) {
+				game.DisplayMessage(32000, "Game over", "-- Press ESCAPE --");
+			} else {
+				game.DisplayMessage(32000, " Game over  -  Press ESCAPE");
+			}
         }
 
         game.tickTimeDuration = 0;
@@ -1494,11 +1569,19 @@ static void ElementPlayerTick(Game &game, int16_t stat_id) {
         if (game.playerDirX != 0 || game.playerDirY != 0) {
             if (game.board.info.max_shots == 0) {
                 if (game.msgFlags.first<MESSAGE_NO_SHOOTING>()) {
-                    game.DisplayMessage(200, "Can't shoot in this place!");
+					if (game.engineDefinition.is<QUIRK_SUPER_ZZT_MESSAGES>()) {
+        	            game.DisplayMessage(200, "Can't shoot", "in this place!");
+					} else {
+        	            game.DisplayMessage(200, "Can't shoot in this place!");
+					}
                 }
             } else if (game.world.info.ammo == 0) {
                 if (game.msgFlags.first<MESSAGE_OUT_OF_AMMO>()) {
-                    game.DisplayMessage(200, "You don't have any ammo!");
+					if (game.engineDefinition.is<QUIRK_SUPER_ZZT_MESSAGES>()) {
+	                    game.DisplayMessage(200, "You don't have", "any ammo!");
+					} else {
+	                    game.DisplayMessage(200, "You don't have any ammo!");
+					}
                 }
             } else {
                 int16_t bulletCount = 0;
@@ -1554,12 +1637,20 @@ static void ElementPlayerTick(Game &game, int16_t stat_id) {
                         game.GameUpdateSidebar();
                     } else {
                         if (game.msgFlags.first<MESSAGE_ROOM_NOT_DARK>()) {
-                            game.DisplayMessage(200, "Don't need torch - room is not dark!");
+							if (game.engineDefinition.is<QUIRK_SUPER_ZZT_MESSAGES>()) {
+        	                    game.DisplayMessage(200, "Don't need torch:", "Room is not dark!");
+							} else {
+        	                    game.DisplayMessage(200, "Don't need torch - room is not dark!");
+							}
                         }
                     }
                 } else {
                     if (game.msgFlags.first<MESSAGE_OUT_OF_TORCHES>()) {
-                        game.DisplayMessage(200, "You don't have any torches!");
+						if (game.engineDefinition.is<QUIRK_SUPER_ZZT_MESSAGES>()) {
+	                        game.DisplayMessage(200, "You don't have", "any torches!");
+						} else {
+	                        game.DisplayMessage(200, "You don't have any torches!");
+						}
                     }
                 }
             }
@@ -1674,27 +1765,30 @@ void Game::InitEngine(EngineType engineType, bool is_editor) {
         this->engineDefinition.torchDy = 8;
         this->engineDefinition.torchDistSqr = 64;
         this->engineDefinition.textCutoff = 73;
+		this->engineDefinition.messageLines = 2;
 		this->engineDefinition.ammoPerAmmo = 10;
 		this->engineDefinition.healthPerGem = 10;
 		this->engineDefinition.scorePerGem = 10;
 
-        this->engineDefinition.quirks.set<QUIRK_BOARD_EDGE_TOUCH_DESINATION_FIX>(); // Super ZZT
-        this->engineDefinition.quirks.set<QUIRK_CENTIPEDE_EXTRA_CHECKS>(); // Super ZZT
-        this->engineDefinition.quirks.set<QUIRK_CONNECTION_DRAWING_CHECKS_UNDER_STAT>(); // Super ZZT
-        this->engineDefinition.quirks.set<QUIRK_OOP_LENIENT_COLOR_MATCHES>(); // Super ZZT
-        this->engineDefinition.quirks.set<QUIRK_OOP_SUPER_ZZT_MOVEMENT>(); // Super ZZT - also moves locking to P3
-        this->engineDefinition.quirks.set<QUIRK_BOARD_CHANGE_SENDS_ENTER>(); // Super ZZT
-        this->engineDefinition.quirks.set<QUIRK_PLAYER_BGCOLOR_FROM_FLOOR>(); // Super ZZT
-        this->engineDefinition.quirks.set<QUIRK_PLAYER_AFFECTED_BY_WATER>(); // Super ZZT
-        this->engineDefinition.quirks.set<QUIRK_SUPER_ZZT_FOREST_SOUND>(); // Super ZZT
-        this->engineDefinition.quirks.set<QUIRK_SUPER_ZZT_STONES_OF_POWER>(); // Super ZZT - affects OOP #GIVE/#TAKE
-        this->engineDefinition.quirks.set<QUIRK_SUPER_ZZT_COMPAT_MISC>(); // Super ZZT - assorted
-    } else {
+        this->engineDefinition.quirks.set<QUIRK_BOARD_EDGE_TOUCH_DESINATION_FIX>();
+        this->engineDefinition.quirks.set<QUIRK_CENTIPEDE_EXTRA_CHECKS>();
+        this->engineDefinition.quirks.set<QUIRK_CONNECTION_DRAWING_CHECKS_UNDER_STAT>();
+        this->engineDefinition.quirks.set<QUIRK_OOP_LENIENT_COLOR_MATCHES>();
+        this->engineDefinition.quirks.set<QUIRK_OOP_SUPER_ZZT_MOVEMENT>();
+        this->engineDefinition.quirks.set<QUIRK_BOARD_CHANGE_SENDS_ENTER>();
+        this->engineDefinition.quirks.set<QUIRK_PLAYER_BGCOLOR_FROM_FLOOR>();
+        this->engineDefinition.quirks.set<QUIRK_PLAYER_AFFECTED_BY_WATER>();
+        this->engineDefinition.quirks.set<QUIRK_SUPER_ZZT_FOREST_SOUND>();
+        this->engineDefinition.quirks.set<QUIRK_SUPER_ZZT_MESSAGES>();
+        this->engineDefinition.quirks.set<QUIRK_SUPER_ZZT_STONES_OF_POWER>();
+        this->engineDefinition.quirks.set<QUIRK_SUPER_ZZT_COMPAT_MISC>();
+	} else {
         this->engineDefinition.torchDuration = 200;
         this->engineDefinition.torchDx = 8;
         this->engineDefinition.torchDy = 5;
         this->engineDefinition.torchDistSqr = 50;
         this->engineDefinition.textCutoff = 47;
+		this->engineDefinition.messageLines = 1;
 		this->engineDefinition.ammoPerAmmo = 5;
 		this->engineDefinition.healthPerGem = 1;
 		this->engineDefinition.scorePerGem = 10;

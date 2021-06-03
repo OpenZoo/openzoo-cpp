@@ -80,7 +80,7 @@ bool SerializerFormatZZT::serialize_board(Board &board, IOStream &stream, bool p
     for (int i = 0; i < 4; i++)
         stream.write8(board.info.neighbor_boards[i]);
     stream.write_bool(board.info.reenter_when_zapped);
-    if (!szzt) stream.write_pstring(board.info.message, 58, packed);
+    if (!szzt) stream.write_pstring(board.info.message[0], 58, packed);
     stream.write8(board.info.start_player_x);
     stream.write8(board.info.start_player_y);
     if (szzt && !packed) stream.skip(4); // DrawXOffset/DrawYOffset
@@ -197,8 +197,9 @@ bool SerializerFormatZZT::deserialize_board(Board &board, IOStream &stream, bool
     for (int i = 0; i < 4; i++)
         board.info.neighbor_boards[i] = stream.read8();
     board.info.reenter_when_zapped = stream.read_bool();
-    if (!szzt) stream.read_pstring(board.info.message, StrSize(board.info.message), 58, packed);
-    else board.info.message[0] = 0;
+	for (int i = 0; i < MAX_MESSAGE_LINES; i++)
+		board.info.message[i][0] = 0;
+    if (!szzt) stream.read_pstring(board.info.message[0], StrSize(board.info.message[0]), 58, packed);
     board.info.start_player_x = stream.read8();
     board.info.start_player_y = stream.read8();
     if (szzt && !packed) stream.skip(4); // DrawXOffset/DrawYOffset

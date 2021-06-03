@@ -530,14 +530,17 @@ void Game::BoardPointCameraAt(int16_t sx, int16_t sy) {
     int16_t old_cx_offset = viewport.cx_offset;
     int16_t old_cy_offset = viewport.cy_offset;
     if (viewport.point_at(board, sx, sy)) {
+		int16_t new_cx_offset = viewport.cx_offset;
+		int16_t new_cy_offset = viewport.cy_offset;
         int deltaX = old_cx_offset - viewport.cx_offset;
         int deltaY = old_cy_offset - viewport.cy_offset;
         if ((Abs(deltaX) + Abs(deltaY)) == 1) {
+			viewport.cx_offset = old_cx_offset;
+			viewport.cy_offset = old_cy_offset;	
+			interface->GameHideMessage(*this);
+			viewport.cx_offset = new_cx_offset;
+			viewport.cy_offset = new_cy_offset;	
             driver->scroll_chars(viewport.x, viewport.y, viewport.width, viewport.height, deltaX, deltaY);
-			// TODO: Add proper ClearDisplayMessage().
-			for (int ix = 0; ix < viewport.width; ix++) {
-				BoardDrawTile(old_cx_offset + ix + 1, old_cy_offset + viewport.height);
-			}
             if (deltaX == 0) {
                 int y_pos = ((deltaY > 0) ? viewport.cy_offset : (viewport.cy_offset + viewport.height - 1)) + 1;
                 for (int i = 0; i < viewport.width; i++) {
@@ -558,8 +561,13 @@ void Game::BoardPointCameraAt(int16_t sx, int16_t sy) {
 void Game::BoardDrawBorder(void) {
     for (int ix = 1; ix <= board.width(); ix++) {
         BoardDrawTile(ix, 1);
-        BoardDrawTile(ix, board.height());
-    }
+	}
+
+	for (int iy = 0; iy < engineDefinition.messageLines; iy++) {
+		for (int ix = 1; ix <= board.width(); ix++) {
+			BoardDrawTile(ix, board.height() - iy);
+		}
+	}
 
     for (int iy = 1; iy <= board.height(); iy++) {
         BoardDrawTile(1, iy);
@@ -1032,17 +1040,22 @@ void Game::GameUpdateSidebar(void) {
     interface->SidebarGameDraw(*this, SIDEBAR_FLAG_UPDATE);
 }
 
-void Game::DisplayMessage(int16_t time, const char *message) {
+void Game::DisplayMessage(int16_t time, const char *messageLine1) {
+	DisplayMessage(time, messageLine1, "");
+}
+
+void Game::DisplayMessage(int16_t time, const char *messageLine1, const char *messageLine2) {
     int16_t timer_id = board.stats.id_at(0, 0);
     if (timer_id != -1) {
         RemoveStat(timer_id);
         BoardDrawBorder();
     }
 
-    if (strlen(message) != 0) {
+    if (messageLine1[0] != 0 || messageLine2[0] != 0) {
         AddStat(0, 0, EMessageTimer, 0, 1, Stat());
         board.stats[board.stats.count].p2 = time / (tickTimeDuration + 1);
-        StrCopy(board.info.message, message);
+        StrCopy(board.info.message[0], messageLine1);
+        StrCopy(board.info.message[1], messageLine2);
     }
 }
 
@@ -1191,7 +1204,11 @@ void Game::BoardEnter(void) {
     board.info.start_player_y = board.stats[0].y;
 
     if (board.info.is_dark && msgFlags.first<MESSAGE_HINT_TORCH>()) {
-        DisplayMessage(200, "Room is dark - you need to light a torch!");
+		if (engineDefinition.is<QUIRK_SUPER_ZZT_MESSAGES>()) {
+	        DisplayMessage(200, "Room is dark:", "Light a torch!");
+		} else {
+	        DisplayMessage(200, "Room is dark - you need to light a torch!");
+		}
     }
 
     world.info.board_time_sec = 0;

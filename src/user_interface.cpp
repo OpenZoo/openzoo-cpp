@@ -287,6 +287,47 @@ void UserInterface::SidebarGameDraw(Game &game, uint32_t flags) {
     }
 }
 
+void UserInterface::GameHideMessage(Game &game) {
+	for (int iy = 0; iy < game.engineDefinition.messageLines; iy++) {
+		for (int ix = 0; ix < game.viewport.width; ix++) {
+			game.BoardDrawTile(game.viewport.cx_offset + ix + 1, game.viewport.cy_offset + game.viewport.height - iy);
+		}
+	}
+}
+
+void UserInterface::GameShowMessage(Game &game, uint8_t color) {
+	sstring<80> message;
+
+	int y = game.viewport.y + game.viewport.height - 1;
+	for (int i = game.engineDefinition.messageLines - 1; i >= 0; i--) {
+		if (game.board.info.message[i][0] == 0) continue;
+
+		int msg_len = strlen(game.board.info.message[i]);
+		int width = game.viewport.width;
+		int msg_x = (msg_len - width) / 2;
+		if (msg_x < 0) {
+			msg_x = 0;
+			width = strlen(game.board.info.message[i]);
+		}
+
+		if (width == game.viewport.width) {
+			strncpy(message, game.board.info.message[i] + msg_x, width);
+			message[width] = 0;
+		} else if (width == game.viewport.width - 1) {
+			message[0] = ' ';
+			strncpy(message + 1, game.board.info.message[i] + msg_x, width);
+			message[width + 1] = 0;
+		} else {
+			message[0] = ' ';
+			strncpy(message + 1, game.board.info.message[i] + msg_x, width);
+			message[width + 1] = ' ';
+			message[width + 2] = 0;
+		}
+
+		game.driver->draw_string(game.viewport.x + (game.viewport.width - strlen(message)) / 2, y--, color, message);
+	}
+}
+
 void UserInterface::SidebarShowMessage(uint8_t color, const char *message, bool temporary) {
     SidebarClearLine(5);
 

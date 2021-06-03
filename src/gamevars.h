@@ -19,6 +19,7 @@
 
 #define MAX_ELEMENT 80
 #define MAX_FLAG 16
+#define MAX_MESSAGE_LINES 2
 
 namespace ZZT {
     typedef enum : uint8_t {
@@ -229,7 +230,7 @@ namespace ZZT {
         bool is_dark;
         uint8_t neighbor_boards[4];
         bool reenter_when_zapped;
-        sstring<58> message;
+        sstring<58> message[MAX_MESSAGE_LINES];
         uint8_t start_player_x;
         uint8_t start_player_y;
         int16_t time_limit_seconds;
@@ -648,6 +649,7 @@ namespace ZZT {
         QUIRK_PLAYER_BGCOLOR_FROM_FLOOR, // Super ZZT
         QUIRK_PLAYER_AFFECTED_BY_WATER, // Super ZZT
         QUIRK_SUPER_ZZT_FOREST_SOUND, // Super ZZT
+        QUIRK_SUPER_ZZT_MESSAGES, // Super ZZT
         QUIRK_SUPER_ZZT_STONES_OF_POWER, // Super ZZT - affects OOP #GIVE/#TAKE
         QUIRK_SUPER_ZZT_COMPAT_MISC, // Super ZZT - assorted
         EngineQuirkCount  
@@ -675,6 +677,7 @@ namespace ZZT {
         ElementDef elementDefs[MAX_ELEMENT];
         uint8_t elementCount;
         uint8_t textCutoff;
+		uint8_t messageLines;
         int16_t torchDuration, torchDistSqr;
         int16_t torchDx, torchDy;
         int16_t boardWidth, boardHeight, statCount;
@@ -879,6 +882,7 @@ namespace ZZT {
         void GameDrawSidebar(void);
         void GameUpdateSidebar(void);
         void DisplayMessage(int16_t time, const char *message);
+        void DisplayMessage(int16_t time, const char *messageLine1, const char *messageLine2);
         void DamageStat(int16_t attacker_stat_id);
         void BoardDamageTile(int16_t x, int16_t y);
         void BoardAttack(int16_t attacker_stat_id, int16_t x, int16_t y);

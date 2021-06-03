@@ -55,6 +55,8 @@ namespace ZZT {
         virtual void SidebarGameDraw(Game &game, uint32_t flags);
         virtual void SidebarShowMessage(uint8_t color, const char *message, bool temporary);
         virtual int HandleMenu(Game &game, const MenuEntry *entries, bool simulate);
+		virtual void GameShowMessage(Game &game, uint8_t color);
+		virtual void GameHideMessage(Game &game);
 
         inline void SidebarHideMessage() {
             SidebarShowMessage(0x0F, nullptr, true);
