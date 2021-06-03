@@ -429,9 +429,11 @@ static void zoo_video_set_mode_6_lines(uint8_t value) {
 		mode_6_lines_inited = true;
 	}
 	if (mode_6_lines != value) {
+		VBlankIntrWait();
 		zoo_video_clear_fast();
 		mode_6_lines = value;
 		vram_update_bgcnt();
+		VBlankIntrWait();
 	}
 }
 

@@ -360,35 +360,35 @@ static const char *boolToString(bool value) {
 void Editor::EditBoardInfo(void) {
     sstring<50> num_str;
 
-    TextWindow window = TextWindow(game->driver, game->filesystem);
-    window.DrawOpen();
+    TextWindow *window = game->interface->CreateTextWindow(game->filesystem);
+    window->DrawOpen();
     bool exit_requested = false;
     
     do {
-        window.Clear();
+        window->Clear();
 
-        window.selectable = true;
-        StrCopy(window.title, "Board Information");
+        window->selectable = true;
+        StrCopy(window->title, "Board Information");
 
-        window.Append(DynString("         Title: ") + game->board.name);
+        window->Append(DynString("         Title: ") + game->board.name);
         StrFromInt(num_str, game->board.info.max_shots);
-        window.Append(DynString("      Can fire: ") + num_str + " shots.");
-        window.Append(DynString(" Board is dark: ") + boolToString(game->board.info.is_dark));
+        window->Append(DynString("      Can fire: ") + num_str + " shots.");
+        window->Append(DynString(" Board is dark: ") + boolToString(game->board.info.is_dark));
         
         for (int i = 0; i < 4; i++) {
             GetBoardName(game->board.info.neighbor_boards[i], true, num_str, sizeof(num_str));
-            window.Append(DynString("       ") + NeighborBoardStrs[i] + ": " + num_str);
+            window->Append(DynString("       ") + NeighborBoardStrs[i] + ": " + num_str);
         }
 
-        window.Append(DynString("Re-enter when zapped: ") + boolToString(game->board.info.reenter_when_zapped));
+        window->Append(DynString("Re-enter when zapped: ") + boolToString(game->board.info.reenter_when_zapped));
         StrFromInt(num_str, game->board.info.time_limit_seconds);
-        window.Append(DynString("  Time limit, 0=None: ") + num_str + " sec.");
-        window.Append("          Quit!");
+        window->Append(DynString("  Time limit, 0=None: ") + num_str + " sec.");
+        window->Append("          Quit!");
 
-        window.Select(false, false);
-        was_modified |= (game->driver->keyPressed == KeyEnter && window.line_pos != (window.line_count - 1));
+        window->Select(false, false);
+        was_modified |= (game->driver->keyPressed == KeyEnter && window->line_pos != (window->line_count - 1));
         if (game->driver->keyPressed == KeyEnter) {
-            switch (window.line_pos) {
+            switch (window->line_pos) {
                 case 0: { // title
                     game->interface->PopupPromptString("New title for board:", game->board.name, sizeof(game->board.name));
                 } break;
@@ -407,7 +407,7 @@ void Editor::EditBoardInfo(void) {
                 case 4:
                 case 5:
                 case 6: { // neighbor boards
-                    int id = window.line_pos - 3;
+                    int id = window->line_pos - 3;
                     game->board.info.neighbor_boards[id] = SelectBoard(
                         NeighborBoardStrs[id],
                         game->board.info.neighbor_boards[id],
@@ -437,7 +437,8 @@ void Editor::EditBoardInfo(void) {
         }
     } while (!exit_requested);
     
-    window.DrawClose();
+    window->DrawClose();
+	delete window;
 }
 
 void Editor::DrawTextEditSidebar(void) {
@@ -459,11 +460,11 @@ void Editor::DrawTextEditSidebar(void) {
 void Editor::EditStatText(int16_t stat_id, const char *prompt) {
     bool *affected_stats;
     Stat &stat = game->board.stats[stat_id];
-    TextWindow window = TextWindow(game->driver, game->filesystem);
-    StrCopy(window.title, prompt);
-    window.DrawOpen();
-    window.selectable = false;
-    CopyStatDataToTextWindow(stat, window);
+    TextWindow *window = game->interface->CreateTextWindow(game->filesystem);
+    StrCopy(window->title, prompt);
+    window->DrawOpen();
+    window->selectable = false;
+    CopyStatDataToTextWindow(stat, *window);
 
     affected_stats = (bool*) malloc(sizeof(bool) * (game->board.stats.count + 1));
 
@@ -477,11 +478,11 @@ void Editor::EditStatText(int16_t stat_id, const char *prompt) {
     }
 
     DrawTextEditSidebar();
-    window.Edit();
+    window->Edit();
 
     int16_t len = 0;
-    for (int i = 0; i < window.line_count; i++) {
-        len += window.lines[i]->length() + 1;
+    for (int i = 0; i < window->line_count; i++) {
+        len += window->lines[i]->length() + 1;
     }
     stat.data.alloc_data(len);
 
@@ -493,14 +494,16 @@ void Editor::EditStatText(int16_t stat_id, const char *prompt) {
     }
 
     char *data_ptr = stat.data.data;
-    for (int i = 0; i < window.line_count; i++) {
-        int len = window.lines[i]->length();
-        memcpy(data_ptr, window.lines[i]->c_str(), len);
+    for (int i = 0; i < window->line_count; i++) {
+        int len = window->lines[i]->length();
+        memcpy(data_ptr, window->lines[i]->c_str(), len);
         data_ptr[len] = '\r';
         data_ptr += len + 1;
     }
 
-    window.DrawClose();
+    window->DrawClose();
+	delete window;
+
     game->driver->keyPressed = 0;
 
     free(affected_stats);
@@ -630,11 +633,13 @@ void Editor::TransferBoard(void) {
     game->SidebarPromptChoice(true, 3, "Transfer board:", "Import Export", i);
     if (game->driver->keyPressed != KeyEscape) {
         if (i == 0) {
-            FileSelector *selector = new FileSelector(game->driver, game->filesystem, "Import board", ".BRD");
+			TextWindow *window = game->interface->CreateTextWindow(game->filesystem);
+            FileSelector *selector = new FileSelector(window, game->filesystem, "Import board", ".BRD");
 
             if (selector->select()) {
                 StrCopy(game->savedBoardFileName, selector->get_filename());
                 delete selector;
+				delete window;
 
                 StrJoin(filename_joined, 2, game->savedBoardFileName, ".BRD");
                 IOStream *stream = game->filesystem->open_file(filename_joined, false);
@@ -670,6 +675,7 @@ void Editor::TransferBoard(void) {
                 delete stream;
             } else {
                 delete selector;
+				delete window;
             }
         } else if (i == 1) {
             // export
@@ -733,15 +739,16 @@ void Editor::EditHelpFile() {
     filename[0] = '*';
     game->interface->SidebarPromptString("File to edit", ".HLP", filename + 1, sizeof(filename) - 5, InputPMAlphanumeric);
     if (filename[1] != 0) {
-        TextWindow window = TextWindow(game->driver, game->filesystem);
+        TextWindow *window = game->interface->CreateTextWindow(game->filesystem);
         strcat(filename, ".HLP");
-        window.OpenFile(filename, false);
-        StrJoin(window.title, 2, "Editing ", filename);
-        window.DrawOpen();
+        window->OpenFile(filename, false);
+        StrJoin(window->title, 2, "Editing ", filename);
+        window->DrawOpen();
         DrawTextEditSidebar();
-        window.Edit();
-        window.SaveFile(filename);
-        window.DrawClose();
+        window->Edit();
+        window->SaveFile(filename);
+        window->DrawClose();
+		delete window;
     }
 }
 
@@ -762,19 +769,19 @@ void Editor::GetBoardName(int16_t board_id, bool title_screen_is_none, char *buf
 
 int Editor::SelectBoard(const char *title, int16_t current_board, bool title_screen_is_none) {
     sstring<50> boardName;
-    TextWindow window = TextWindow(game->driver, game->filesystem);
-    StrCopy(window.title, title);
-    window.line_pos = current_board;
-    window.selectable = true;
+    TextWindow *window = game->interface->CreateTextWindow(game->filesystem);
+    StrCopy(window->title, title);
+    window->line_pos = current_board;
+    window->selectable = true;
     for (int i = 0; i <= game->world.board_count; i++) {
         GetBoardName(i, title_screen_is_none, boardName, sizeof(boardName));
-        window.Append(boardName);
+        window->Append(boardName);
     }
-    window.Append("Add new board");
-    window.DrawOpen();
-    window.Select(false, false);
-    window.DrawClose();
-    return (game->driver->keyPressed == KeyEscape) ? 0 : window.line_pos;
+    window->Append("Add new board");
+    window->DrawOpen();
+    window->Select(false, false);
+    window->DrawClose();
+    return (game->driver->keyPressed == KeyEscape) ? 0 : window->line_pos;
 }
 
 void Editor::Loop(void) {
@@ -1130,7 +1137,7 @@ void Editor::Loop(void) {
                 UpdateDrawMode();
             } break;
             case 'H': {
-                TextWindowDisplayFile(game->driver, game->filesystem, "editor.hlp", "World editor help");
+                game->interface->DisplayFile(game->filesystem, "editor.hlp", "World editor help");
             } break;
             case 'X': {
                 FloodFill(cursor_x, cursor_y, game->board.tiles.get(cursor_x, cursor_y));

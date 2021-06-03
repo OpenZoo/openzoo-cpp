@@ -74,7 +74,7 @@ TileMap::~TileMap() {
 }
 
 void TileMap::clear() {
-	memset(tiles + ((height + 2) * sizeof(Tile)), 0, ((width + 2) * height) * sizeof(Tile));
+	memset(tiles, 0, ((width + 2) * (height + 2)) * sizeof(Tile));
 
     for (int ix = 0; ix <= width + 1; ix++) {
         set(ix, 0, TileBoardEdge);
@@ -1059,6 +1059,7 @@ void Game::DisplayMessage(int16_t time, const char *messageLine1, const char *me
     if (timer_id != -1) {
         RemoveStat(timer_id);
         BoardDrawBorder();
+		interface->GameHideMessage(*this);
     }
 
     if (messageLine1[0] != 0 || messageLine2[0] != 0) {
