@@ -60,5 +60,8 @@ copies of the blinking-supporting character set is not possible.
 Emulating the PC speaker on GBA is easy - simply run a sound timer for the duration of a given frequency,
 and use DMG channel 2 to emit 1/2 duty square waves.
 
+Notably, since we're only generating square waves, we set the GBA's sampling rate to 262.144kHz. This should
+hopefully improve audio fidelity a little on real hardware.
+
 There are some frequency inaccuracies introduced by virtue of the GBA's limitations, but this isn't really
-a big deal.
+a big deal

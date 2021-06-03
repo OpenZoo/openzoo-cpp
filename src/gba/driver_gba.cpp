@@ -77,7 +77,6 @@ typedef struct {
 	uint16_t hofs0, vofs0, hofs1, vofs1, hofs2, vofs2, hofs3, vofs3;
 } hdma_ofs_t;
 
-EWRAM_BSS
 static hdma_ofs_t hdma_offsets[160];
 
 static const u16 default_palette[] = {
@@ -101,7 +100,8 @@ static const u16 default_palette[] = {
 
 static bool blinking_enabled = false;
 static uint8_t blink_ticks;
-static uint8_t mode_6_lines = 1;
+static uint8_t mode_6_lines;
+static bool mode_6_lines_inited = false;
 
 GBA_CODE_IWRAM
 static void vram_update_bgcnt(void) {
@@ -115,7 +115,11 @@ static void vram_update_bgcnt(void) {
 }
 
 #define GET_VRAM_PTRS \
-	u16* tile_bg_ptr = (u16*) (MEM_VRAM + MAP_ADDR_OFFSET + ((x&1) << 11) + (x&(~1)) + ((y + MAP_Y_OFFSET) << 6)); \
+	u16* tile_bg_ptr = (u16*) (MEM_VRAM + MAP_ADDR_OFFSET + ((x&1) << 11) + (x & 0x3E) + ((y + MAP_Y_OFFSET) << 6)); \
+	u16* tile_fg_ptr = &tile_bg_ptr[1 << 11]
+
+#define GET_VRAM_PTRS_WIDE \
+	u16* tile_bg_ptr = (u16*) (MEM_VRAM + MAP_ADDR_OFFSET + (1 << 11) + (x << 1) + ((y + MAP_Y_OFFSET) << 6)); \
 	u16* tile_fg_ptr = &tile_bg_ptr[1 << 11]
 
 GBA_CODE_IWRAM
@@ -126,6 +130,33 @@ static void vram_write_char(int16_t x, int16_t y, uint8_t col, uint8_t chr) {
 	*tile_fg_ptr = chr | ((col & 0x80) << 1) | (col << 12);
 }
 
+GBA_CODE_IWRAM
+static void vram_write_char_4x8(int16_t x, int16_t y, uint8_t col, uint8_t chr) {
+	GET_VRAM_PTRS;
+
+	*tile_bg_ptr = '\xDB' | ((col << 8) & 0x7000); 
+	*tile_fg_ptr = chr | (col << 12);
+}
+
+GBA_CODE_IWRAM
+static void vram_write_char_8x8(int16_t x, int16_t y, uint8_t col, uint8_t chr) {
+	if (x >= 32) return;
+
+	GET_VRAM_PTRS_WIDE;
+
+	tile_bg_ptr[0] = '\xDB' | 0x100 | ((col << 8) & 0x7000); 
+	tile_fg_ptr[0] = chr | 0x100 | (col << 12);
+
+	// clear the other layers
+	tile_bg_ptr -= (1 << 10);
+	tile_fg_ptr -= (1 << 10);
+
+	tile_bg_ptr[0] = 0;
+	tile_fg_ptr[0] = 0;
+}
+
+// TODO: figure out how to adapt to the wide mode
+GBA_CODE_IWRAM
 static void vram_read_char(int16_t x, int16_t y, uint8_t *col, uint8_t *chr) {
 	GET_VRAM_PTRS;
 
@@ -265,22 +296,17 @@ void ZZT::irq_vblank(void) {
 		}
 #endif
 	} else {
+		int16_t vofs = 8;
 		if ((REG_KEYINPUT & KEY_R) == 0) {
-			int16_t vofs = (32 * 8) - (20 * 8);
-			REG_BG0VOFS = vofs;
-			REG_BG1VOFS = vofs;
-			REG_BG2VOFS = vofs;
-			REG_BG3VOFS = vofs;
+			vofs = (32 * 8) - (20 * 8);
 		}
+		REG_BG0VOFS = vofs;
+		REG_BG1VOFS = vofs;
+		REG_BG2VOFS = vofs;
+		REG_BG3VOFS = vofs;
 	}
 
 	driver.update_joy();
-
-#ifdef DEBUG_CONSOLE
-	sstring<20> num_str;
-	StrFromInt(num_str, platform_debug_free_memory());
-	platform_debug_puts(num_str, true);
-#endif
 }
 
 void zoo_video_gba_hide(void) {
@@ -298,6 +324,26 @@ void zoo_video_gba_set_blinking(bool val) {
 }
 
 // timer code
+
+#define dbg_ticks() (REG_TM2CNT_L | (REG_TM3CNT_L << 16))
+
+uint32_t tmp_ticks = 0;
+bool tick_started = false;
+
+void gba_on_tick_start() {
+	tick_started = true;
+	tmp_ticks = dbg_ticks();
+}
+
+void gba_on_tick_end() {
+	if (!tick_started) return;
+	tick_started = false;
+	sstring<127> tmp;
+	tmp_ticks = dbg_ticks() - tmp_ticks;
+	if (tmp_ticks >= 0x80000000) tmp_ticks = 0xFFFFFFFF - tmp_ticks;
+	sprintf(tmp, "%d ticks, %d%%, %d bytes", tmp_ticks, tmp_ticks * 10 / 184568, platform_debug_free_memory());
+	platform_debug_puts(tmp, true);
+}
 
 GBA_CODE_IWRAM
 void ZZT::irq_timer_pit(void) {
@@ -330,8 +376,6 @@ void ZZT::irq_timer_pit(void) {
 	}
 }
 
-#define dbg_ticks() (REG_TM2CNT_L | (REG_TM3CNT_L << 16))
-
 static void zoo_video_gba_load_charset(uint32_t mem_offset, Charset &charset) {
 	uint16_t *offset = (uint16_t*) (MEM_VRAM + mem_offset);
 	memset32((uint32_t*) offset, 0x0000000, 256 * 32 / 4);
@@ -355,22 +399,30 @@ static void zoo_video_gba_load_charset(uint32_t mem_offset, Charset &charset) {
 	}
 }
 
+static void zoo_video_set_mode_6_lines(uint8_t value) {
+	if (value == 0 && !mode_6_lines_inited) {
+		// load the charsets here, so it doesn't slow down initial start
+		Charset charset = Charset(256, 4, 8, 1, _4x8_bin);
+		zoo_video_gba_load_charset(0x08000, charset);
+		charset = Charset(256, 8, 8, 1, _8x8_bin);
+		zoo_video_gba_load_charset(0x0A000, charset);
+		mode_6_lines_inited = true;
+	}
+	mode_6_lines = value;
+}
+
 void zoo_video_gba_install(void) {
 	recalculate_hdma_offsets(false);
 
 	// add interrupts
 	irq_add(II_VBLANK, irq_vblank);
 	
+
+
 	// load charsets
 	Charset charset = Charset(256, 4, 6, 1, _4x6_bin);
 	zoo_video_gba_load_charset(0x00000, charset);
-	// TODO: re-enable once Super ZZT mode is in
-	/* charset = Charset(256, 4, 8, 1, _4x8_bin);
-	zoo_video_gba_load_charset(0x08000, charset);
-	charset = Charset(256, 8, 8, 1, _8x8_bin);
-	zoo_video_gba_load_charset(0x0A000, charset); */
-
-	mode_6_lines = 1;
+	zoo_video_set_mode_6_lines(1);
 
 	// initialize 32KB of data for blinking - see VRAM layout
 	memcpy32(((uint32_t*) (MEM_VRAM + (256*32))), ((uint32_t*) (MEM_VRAM)), 256 * 32 / 4);

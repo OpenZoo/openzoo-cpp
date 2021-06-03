@@ -1293,6 +1293,12 @@ void Game::GameAboutScreen(void) {
     TextWindowDisplayFile(driver, filesystem, "ABOUT.HLP", "About ZZT...");
 }
 
+#ifdef __GBA__
+// TODO: remove hack
+extern void gba_on_tick_start();
+extern void gba_on_tick_end();
+#endif
+
 void Game::GamePlayLoop(bool boardChanged) {
     GameDrawSidebar();
 
@@ -1414,7 +1420,13 @@ void Game::GamePlayLoop(bool boardChanged) {
 
         if (currentStatTicked > board.stats.count && !gamePlayExitRequested) {
             // all stats ticked
+#ifdef __GBA__
+			gba_on_tick_end();
+#endif
             if (HasTimeElapsed(tickTimeCounter, tickTimeDuration)) {
+#ifdef __GBA__
+				gba_on_tick_start();
+#endif
                 currentTick++;
                 if (currentTick > 420) {
                     currentTick = 1;
