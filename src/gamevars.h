@@ -648,6 +648,8 @@ namespace ZZT {
         QUIRK_BOARD_CHANGE_SENDS_ENTER, // Super ZZT
         QUIRK_PLAYER_BGCOLOR_FROM_FLOOR, // Super ZZT
         QUIRK_PLAYER_AFFECTED_BY_WATER, // Super ZZT
+		QUIRK_SUPER_ZZT_HINTS, // Super ZZT
+		QUIRK_SUPER_ZZT_FLOOR_FILLING, // Super ZZT
         QUIRK_SUPER_ZZT_FOREST_SOUND, // Super ZZT
         QUIRK_SUPER_ZZT_MESSAGES, // Super ZZT
         QUIRK_SUPER_ZZT_STONES_OF_POWER, // Super ZZT - affects OOP #GIVE/#TAKE
@@ -858,6 +860,7 @@ namespace ZZT {
         void BoardCreate(void);
         void WorldCreate(void);
         void TransitionDrawToFill(uint8_t chr, uint8_t color);
+        void BoardRemoveTile(int16_t x, int16_t y);
         void BoardDrawTile(int16_t x, int16_t y);
         void BoardDrawChar(int16_t x, int16_t y, uint8_t drawn_color, uint8_t drawn_char);
         bool BoardUpdateDrawOffset(void);

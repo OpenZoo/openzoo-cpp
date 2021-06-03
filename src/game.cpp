@@ -472,6 +472,36 @@ void Game::TransitionDrawToFill(uint8_t chr, uint8_t color) {
 
 }
 
+void Game::BoardRemoveTile(int16_t x, int16_t y) {
+	int16_t ix, iy;
+	
+	if (engineDefinition.is<QUIRK_SUPER_ZZT_FLOOR_FILLING>()) {
+		uint8_t floorColor = 0;
+
+		for (int i = 0; i < 4; i++) {
+			ix = x + NeighborDeltaX[i];
+			iy = y + NeighborDeltaY[i];
+			Tile tile = board.tiles.get(ix, iy);
+			if (elementDef(tile.element).cycle != -1) {
+				tile = board.stats.at(ix, iy).under;
+			}
+			if (tile.element == EEmpty || tile.element == ESliderNS || tile.element == ESliderEW || tile.element == EBoulder) {
+				floorColor = 0;
+				break;
+			} else if (tile.element == EFloor) {
+				floorColor = tile.color;
+			}
+		}
+
+		if (floorColor != 0) {
+			board.tiles.set(x, y, {EFloor, floorColor});
+			return;
+		}
+	}
+
+	board.tiles.set_element(x, y, EEmpty);
+}
+
 GBA_CODE_IWRAM
 void Game::BoardDrawTile(int16_t x, int16_t y) {
     Tile tile = board.tiles.get(x, y);
@@ -956,7 +986,7 @@ bool Game::BoardPrepareTileForPlacement(int16_t x, int16_t y) {
         RemoveStat(stat_id);
     } else if (stat_id < 0) {
         if (!elementDefAt(x, y).placeable_on_top) {
-            board.tiles.set_element(x, y, EEmpty);
+            BoardRemoveTile(x, y);
         }
     } else {
         // player (stat 0) cannot be modified
@@ -1046,6 +1076,10 @@ static const char * menu_str_editor(Game *game) {
     return game->editorEnabled ? "Editor" : nullptr;
 }
 
+static const char * menu_str_hint(Game *game) {
+    return game->engineDefinition.is<QUIRK_SUPER_ZZT_HINTS>() ? "Hint" : nullptr;
+}
+
 void Game::GameUpdateSidebar(void) {
     interface->SidebarGameDraw(*this, SIDEBAR_FLAG_UPDATE);
 }
@@ -1088,8 +1122,9 @@ void Game::DamageStat(int16_t attacker_stat_id) {
 					driver->sound_queue(4, "\x20\x01\x23\x01\x27\x01\x30\x01\x10\x01");
 
                     // move player to start
-                    board.tiles.set_element(attacker_stat.x, attacker_stat.y, EEmpty);
-                    BoardDrawTile(attacker_stat.x, attacker_stat.y);
+                    BoardRemoveTile(attacker_stat.x, attacker_stat.y);
+					// OpenZoo: redundant wrt DrawPlayerSurroundings, removed in Super ZZT
+                    // BoardDrawTile(attacker_stat.x, attacker_stat.y);
                     int old_x = attacker_stat.x;
                     int old_y = attacker_stat.y;
                     attacker_stat.x = board.info.start_player_x;
@@ -1131,8 +1166,8 @@ void Game::BoardDamageTile(int16_t x, int16_t y) {
     if (stat_id != -1) {
         DamageStat(stat_id);
     } else {
-        board.tiles.set_element(x, y, EEmpty);
-        BoardDrawTile(x, y);
+		BoardRemoveTile(x, y);
+		if (engineDefinition.isNot<QUIRK_SUPER_ZZT_COMPAT_MISC>()) BoardDrawTile(x, y);
     }
 }
 
@@ -1523,6 +1558,7 @@ const MenuEntry ZZT::PlayMenu[] = {
     {.id = 'T', .keys = {'T'}, .joy_button = JoyButtonB}, // Torch
     {.id = 'S', .keys = {'S'}, .name_func = menu_str_save},
     {.id = 'P', .keys = {'P'}}, // Pause - hidden in menu mode
+    {.id = 'h', .keys = {'H'}, .name_func = menu_str_hint},
     {.id = 'H', .keys = {'H'}, .name = "Help"},
     {.id = '?', .keys = {'?'}, .name = "Console command"},
     {.id = 'B', .keys = {'B'}, .name_func = menu_str_sound},

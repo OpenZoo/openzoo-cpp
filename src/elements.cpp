@@ -711,8 +711,8 @@ static void ElementEnergizerTouch(Game &game, int16_t x, int16_t y, int16_t sour
 		"\x30\x03\x23\x03\x24\x03\x25\x03\x35\x03\x25\x03\x23\x03\x20\x03"
 		"\x30\x03\x23\x03\x24\x03\x25\x03\x35\x03\x25\x03\x23\x03\x20\x03");
 
-    game.board.tiles.set_element(x, y, EEmpty);
-    game.BoardDrawTile(x, y);
+	game.BoardRemoveTile(x, y);
+	if (game.engineDefinition.isNot<QUIRK_SUPER_ZZT_COMPAT_MISC>()) game.BoardDrawTile(x, y);
 
     game.world.info.energizer_ticks = 75;
     game.GameUpdateSidebar();
@@ -886,8 +886,8 @@ void ZZT::ElementMove(Game &game, int16_t old_x, int16_t old_y, int16_t new_x, i
     } else {
         game.board.tiles.set(new_x, new_y, game.board.tiles.get(old_x, old_y));
         game.BoardDrawTile(new_x, new_y);
-        game.board.tiles.set_element(old_x, old_y, EEmpty);
-        game.BoardDrawTile(old_x, old_y);
+		game.BoardRemoveTile(old_x, old_y);
+        if (game.engineDefinition.isNot<QUIRK_SUPER_ZZT_COMPAT_MISC>()) game.BoardDrawTile(old_x, old_y);
     }
 }
 
@@ -1108,7 +1108,7 @@ static void ElementKeyTouch(Game &game, int16_t x, int16_t y, int16_t source_sta
         if (key == 0) game.world.info.gems = (game.world.info.gems & 0xFF) | 0x100;
         else game.world.info.keys[key - 1] = true;
 
-        game.board.tiles.set_element(x, y, EEmpty);
+		game.BoardRemoveTile(x, y);
         game.GameUpdateSidebar();
 
 		if (game.engineDefinition.is<QUIRK_SUPER_ZZT_MESSAGES>()) {
@@ -1132,7 +1132,7 @@ static void ElementKeyTouch(Game &game, int16_t x, int16_t y, int16_t source_sta
 static void ElementAmmoTouch(Game &game, int16_t x, int16_t y, int16_t source_stat_id, int16_t &delta_x, int16_t &delta_y) {
     game.world.info.ammo += game.engineDefinition.ammoPerAmmo;
 
-    game.board.tiles.set_element(x, y, EEmpty);
+	game.BoardRemoveTile(x, y);
     game.GameUpdateSidebar();
 	game.driver->sound_queue(2, "\x30\x01\x31\x01\x32\x01");
 
@@ -1179,7 +1179,7 @@ static void ElementGemTouch(Game &game, int16_t x, int16_t y, int16_t source_sta
     game.world.info.health += game.engineDefinition.healthPerGem;
     game.world.info.score += game.engineDefinition.scorePerGem;
 
-    game.board.tiles.set_element(x, y, EEmpty);
+	game.BoardRemoveTile(x, y);
     game.GameUpdateSidebar();
 	game.driver->sound_queue(2, "\x40\x01\x37\x01\x34\x01\x30\x01");
 
@@ -1205,8 +1205,8 @@ static void ElementDoorTouch(Game &game, int16_t x, int16_t y, int16_t source_st
 
     // OpenZoo: Explicit handling for Black Keys/Doors (portability).
     if (value != 0) {
-        game.board.tiles.set_element(x, y, EEmpty);
-        game.BoardDrawTile(x, y);
+		game.BoardRemoveTile(x, y);
+        if (game.engineDefinition.isNot<QUIRK_SUPER_ZZT_COMPAT_MISC>()) game.BoardDrawTile(x, y);
 
         if (key == 0) game.world.info.gems &= 0xFF;
         else game.world.info.keys[key - 1] = false; 
@@ -1675,6 +1675,9 @@ static void ElementPlayerTick(Game &game, int16_t stat_id) {
         case 'H': {
             game.interface->DisplayFile(game.filesystem, "GAME.HLP", "Playing ZZT");
         } break;
+		case 'h': {
+			game.OopSend(0, "ALL:HINT", false);
+		} break;
         case '?': {
             game.GameDebugPrompt();
             game.driver->keyPressed = 0;
@@ -1778,6 +1781,8 @@ void Game::InitEngine(EngineType engineType, bool is_editor) {
         this->engineDefinition.quirks.set<QUIRK_BOARD_CHANGE_SENDS_ENTER>();
         this->engineDefinition.quirks.set<QUIRK_PLAYER_BGCOLOR_FROM_FLOOR>();
         this->engineDefinition.quirks.set<QUIRK_PLAYER_AFFECTED_BY_WATER>();
+        this->engineDefinition.quirks.set<QUIRK_SUPER_ZZT_HINTS>();
+        this->engineDefinition.quirks.set<QUIRK_SUPER_ZZT_FLOOR_FILLING>();
         this->engineDefinition.quirks.set<QUIRK_SUPER_ZZT_FOREST_SOUND>();
         this->engineDefinition.quirks.set<QUIRK_SUPER_ZZT_MESSAGES>();
         this->engineDefinition.quirks.set<QUIRK_SUPER_ZZT_STONES_OF_POWER>();
