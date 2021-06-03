@@ -4,7 +4,7 @@
 #include <cstdint>
 #include "filesystem.h"
 #include "driver.h"
-#include "utils/strings.h"
+#include "utils/stringutils.h"
 
 #define MAX_TEXT_WINDOW_LINES 1024
 #define TEXT_WINDOW_LINE_LENGTH 50

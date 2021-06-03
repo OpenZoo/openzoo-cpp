@@ -3,7 +3,7 @@
 #include <cstring>
 #include "driver.h"
 #include "gamevars.h"
-#include "utils/math.h"
+#include "utils/mathutils.h"
 
 using namespace ZZT;
 

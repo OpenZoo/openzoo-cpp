@@ -1,5 +1,5 @@
 #include <cstdlib>
-#include "utils/strings.h"
+#include "utils/stringutils.h"
 #include "filesystem.h"
 
 using namespace ZZT;

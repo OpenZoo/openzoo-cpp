@@ -1,5 +1,5 @@
-#ifndef __UTILS_STRINGS_H__
-#define __UTILS_STRINGS_H__
+#ifndef __UTILS_STRINGUTILS_H__
+#define __UTILS_STRINGUTILS_H__
 
 #include <cstdint>
 #include <cstdio>

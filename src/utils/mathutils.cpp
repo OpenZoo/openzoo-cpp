@@ -1,5 +1,5 @@
 #include <cstdint>
-#include "math.h"
+#include "mathutils.h"
 
 namespace ZZT {
 

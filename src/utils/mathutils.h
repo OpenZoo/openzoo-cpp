@@ -1,5 +1,5 @@
-#ifndef __UTILS_MATH_H__
-#define __UTILS_MATH_H__
+#ifndef __UTILS_MATHUTILS_H__
+#define __UTILS_MATHUTILS_H__
 
 #include <cstdint>
 

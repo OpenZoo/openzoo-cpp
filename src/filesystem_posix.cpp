@@ -3,7 +3,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include "utils/strings.h"
+#include "utils/stringutils.h"
 #include "filesystem_posix.h"
 
 using namespace ZZT;

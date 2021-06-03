@@ -6,7 +6,7 @@ TARGET = openzoo
 BUILD_PRX = 1
 
 LIBS = -lpsputility -lpsppower -lpspaudiolib -lpspaudio -lpspgum -lpspgu -lm
-DEFINES = -DDISABLE_EDITOR
+DEFINES = -DDISABLE_EDITOR -DLABEL_CACHE
 CFLAGS = -O2 -G0 -Wall $(DEFINES)
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 
@@ -33,8 +33,8 @@ OBJS = \
 	$(OBJDIR)/user_interface_osk.o \
 	$(OBJDIR)/user_interface_super_zzt.o \
 	$(OBJDIR)/utils/iostream.o \
-	$(OBJDIR)/utils/math.o \
-	$(OBJDIR)/utils/strings.o \
+	$(OBJDIR)/utils/mathutils.o \
+	$(OBJDIR)/utils/stringutils.o \
 	$(OBJDIR)/world_serializer.o \
 	$(OBJDIR)/audio_simulator.o \
 	$(OBJDIR)/psp/driver_psp.o

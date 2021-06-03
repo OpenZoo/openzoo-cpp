@@ -17,8 +17,8 @@ openzoo_SOURCES = \
 	src/user_interface_slim.cpp \
 	src/user_interface_super_zzt.cpp \
 	src/utils/iostream.cpp \
-	src/utils/math.cpp \
-	src/utils/strings.cpp \
+	src/utils/mathutils.cpp \
+	src/utils/stringutils.cpp \
 	src/world_serializer.cpp
 
 if DRIVER_SDL2

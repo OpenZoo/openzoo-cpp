@@ -1,7 +1,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include "strings.h"
+#include "stringutils.h"
 
 namespace ZZT {
 

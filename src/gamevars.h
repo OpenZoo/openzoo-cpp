@@ -5,9 +5,9 @@
 #include <cstdint>
 #include <cstdlib> // TODO
 #include "utils/iostream.h"
-#include "utils/math.h"
+#include "utils/mathutils.h"
 #include "utils/quirkset.h"
-#include "utils/strings.h"
+#include "utils/stringutils.h"
 #include "utils/tokenmap.h"
 #include "filesystem.h"
 #include "driver.h"

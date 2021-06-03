@@ -2,7 +2,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 
-#include "utils/strings.h"
+#include "utils/stringutils.h"
 #include "file_selector.h"
 
 using namespace ZZT;
