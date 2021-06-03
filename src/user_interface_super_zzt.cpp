@@ -187,13 +187,13 @@ void UserInterfaceSuperZZT::SidebarGameDraw(Game &game, uint32_t flags) {
 			}
 			driver->draw_string(short_offset, 5, 0x6F, "START ");
 			driver->draw_string(short_offset + 6, 5, 0x6E, "Menu ");
-			for (int iy = status_offset + 3; iy < status_offset + 11; iy++) {
+			for (int iy = status_offset + 3; iy < status_offset + 12; iy++) {
 				driver->draw_string(1, iy, 0x60, "           ");
 			}
 		}
 
-		for (int iy = status_offset + 11; iy < height; iy++) {
-			driver->draw_string(1, iy, iy == (height - 1) ? 0x10 : 0x60, "           ");
+		for (int iy = status_offset + 12; iy < height; iy++) {
+			driver->draw_string(1, iy, (iy >= 20 && iy == (height - 1)) ? 0x10 : 0x60, "           ");
 		}
 
 		if (short_sidebar) {

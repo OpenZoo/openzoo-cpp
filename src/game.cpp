@@ -1022,13 +1022,14 @@ void Game::MoveStat(int16_t stat_id, int16_t newX, int16_t newY, bool scrollOffs
     stat.x = newX;
     stat.y = newY;
 
+    BoardDrawTile(oldX, oldY);
+
     if (stat_id == 0 && scrollOffset) {
         // TODO: More accurate Super ZZT behaviour
         BoardPointCameraAt(stat.x, stat.y);
     }
 
     BoardDrawTile(stat.x, stat.y);
-    BoardDrawTile(oldX, oldY);
 
     if (stat_id == 0 && board.info.is_dark && world.info.torch_ticks > 0) {
         if ((Sqr(oldX - stat.x) + Sqr(oldY - stat.y)) == 1) {
@@ -1549,6 +1550,9 @@ const MenuEntry ZZT::TitleMenu[] = {
     {.id = 'S', .keys = {'S'}, .name = "Game speed"},
     {.id = 'H', .keys = {'H'}, .name = "High scores"},
     {.id = '|', .keys = {'|'}, .name = "Console command"},
+#ifdef __GBA__
+	{.id = 255, .name = "Sleep"},
+#endif
     {.id = 'Q', .keys = {'Q', KeyEscape}, .name = "Quit ZZT"},
     {.id = -1}
 };
@@ -1561,6 +1565,9 @@ const MenuEntry ZZT::PlayMenu[] = {
     {.id = 'H', .keys = {'H'}, .name = "Help"},
     {.id = '?', .keys = {'?'}, .name = "Console command"},
     {.id = 'B', .keys = {'B'}, .name_func = menu_str_sound},
+#ifdef __GBA__
+	{.id = 255, .name = "Sleep"},
+#endif
     {.id = 'Q', .keys = {'Q', KeyEscape}, .name = "Quit game"},
     {.id = -1}
 };
@@ -1639,6 +1646,9 @@ void Game::GameTitleLoop(void) {
                 case 'Q': {
                     gameTitleExitRequested = interface->SidebarPromptYesNo("Quit ZZT? ", true);
                 } break;
+#ifdef __GBA__
+				case 255: zoo_gba_sleep(); break;
+#endif
             }
 
             if (startPlay) {

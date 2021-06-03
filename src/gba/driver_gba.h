@@ -12,6 +12,7 @@ typedef enum : uint8_t {
 } Force4x8ModeType;
 
 void zoo_set_force_4x8_mode(Force4x8ModeType value);
+void zoo_gba_sleep();
 
 namespace ZZT {
     class GBADriver: public Driver {
@@ -26,7 +27,8 @@ namespace ZZT {
         void install(void);
         void uninstall(void);
 
-		UserInterface *create_user_interface(Game &game);
+		UserInterface *create_user_interface(Game &game) override;
+		void move_chars(int srcX, int srcY, int width, int height, int destX, int destY) override;
 
         // required (input)
         void update_input(void) override;

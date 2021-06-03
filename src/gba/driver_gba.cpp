@@ -44,7 +44,7 @@ static inline void gba_play_sound(uint16_t freq) {
 		REG_SOUND2CNT_L = SSQR_DUTY1_2 | SSQR_IVOL(0);
 		REG_SOUND2CNT_H = SFREQ_RESET;
 	} else {
-		REG_SOUND2CNT_L = SSQR_DUTY1_2 | SSQR_IVOL(12);
+		REG_SOUND2CNT_L = SSQR_DUTY1_2 | SSQR_IVOL(15);
 		REG_SOUND2CNT_H = (2048 - (131072 / (int)freq)) | SFREQ_RESET;
 	}
 }
@@ -67,6 +67,20 @@ static void irq_timer_drums(void) {
 
 		// reset timer
 		REG_TM1CNT_H = 0;
+	}
+}
+
+static void irq_timer_soundbias(void) {
+	if (REG_SOUNDBIAS > 0xC000) {
+		uint16_t new_bias = REG_SOUNDBIAS - 1;
+		REG_SOUNDBIAS = new_bias;
+
+		// set timer
+		REG_TM1CNT_L = 65536 - 64;
+		REG_TM1CNT_H = TM_FREQ_64 | TM_IRQ | TM_ENABLE;
+	} else {
+		REG_TM1CNT_H = 0;
+		irq_add(II_TIMER1, (fnptr) irq_timer_drums);
 	}
 }
 
@@ -106,6 +120,7 @@ static uint8_t blink_ticks;
 static uint8_t mode_6_lines;
 static Force4x8ModeType force_4x8_mode = FORCE_4X8_MODE_NONE;
 static bool mode_6_lines_inited = false;
+static bool video_hidden = false;
 
 void zoo_set_force_4x8_mode(Force4x8ModeType value) {
 	force_4x8_mode = value;
@@ -293,7 +308,7 @@ void ZZT::irq_vblank(void) {
 	REG_BG2VOFS = 0;
 	REG_BG3HOFS = 0;
 	REG_BG3VOFS = 0;
-	if (mode_6_lines) {
+	if (mode_6_lines && !video_hidden) {
 		REG_DMA0SAD = (vu32) hdma_offsets;
 		REG_DMA0DAD = (vu32) &REG_BG0HOFS;
 		REG_DMA0CNT = DMA_AT_HBLANK | DMA_REPEAT | DMA_SRC_INC | DMA_DST_RELOAD | (sizeof(hdma_ofs_t) >> 2) | DMA_32 | DMA_ENABLE;
@@ -326,10 +341,13 @@ void ZZT::irq_vblank(void) {
 }
 
 void zoo_video_gba_hide(void) {
+	video_hidden = true;
+	REG_DMA0CNT = 0;
 	REG_DISPCNT = DCNT_BLANK;
 }
 
 void zoo_video_gba_show(void) {
+	video_hidden = false;
 	VBlankIntrWait();
 	REG_DISPCNT = DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3;
 }
@@ -467,6 +485,12 @@ void zoo_video_gba_install(void) {
 GBADriver::GBADriver() {
 }
 
+static void zoo_sound_gba_init() {
+	REG_SOUNDCNT_X = SSTAT_ENABLE;
+	REG_SOUNDCNT_L = SDMG_LVOL(7) | SDMG_RVOL(7) | SDMG_LSQR2 | SDMG_RSQR2;
+	REG_SOUNDCNT_H = SDS_DMG100;
+}
+
 void GBADriver::install(void) {
 	zoo_video_gba_hide();
 	irq_init(isr_master_nest);
@@ -492,11 +516,11 @@ void GBADriver::install(void) {
 	zoo_video_gba_show();
 
 	// init sound
-	REG_SOUNDCNT_X = SSTAT_ENABLE;
-	REG_SOUNDCNT_L = SDMG_LVOL(7) | SDMG_RVOL(7) | SDMG_LSQR2 | SDMG_RSQR2;
-	REG_SOUNDCNT_H = SDS_DMG100;
+	zoo_sound_gba_init();
+	irq_add(II_TIMER1, (fnptr) irq_timer_soundbias);
+
 	REG_SOUNDBIAS = 0xC200;
-	irq_add(II_TIMER1, (fnptr) irq_timer_drums);
+	irq_timer_soundbias();
 
 	// init pit
 	irq_add(II_TIMER0, irq_timer_pit);
@@ -554,6 +578,7 @@ void GBADriver::delay(int ms) {
 
 void GBADriver::idle(IdleMode mode) {
 	if (mode == IMYield) return;
+	if (mode == IMUntilPit) IntrWait(1, IRQ_TIMER0);
 	VBlankIntrWait();
 }
 
@@ -605,6 +630,70 @@ UserInterface *GBADriver::create_user_interface(Game &game) {
 	}
 }
 
+void GBADriver::move_chars(int srcX, int srcY, int width, int height, int destX, int destY) {
+	uint16_t buffer[32];
+
+	uint8_t col, chr;
+	int ix_min = (srcX > destX) ? 0 : width - 1;
+	int ix_max = (srcX > destX) ? width : -1;
+	int ix_step = (srcX > destX) ? 1 : -1;
+	int iy_min = (srcY > destY) ? 0 : height - 1;
+	int iy_max = (srcY > destY) ? height : -1;
+	int iy_step = (srcY > destY) ? 1 : -1;
+	// optimize the Super ZZT case
+	if (!mode_6_lines && force_4x8_mode == FORCE_4X8_MODE_NONE && srcX >= 12 && destX >= 12) {
+		int x = -6;
+		int y = iy_min;
+		GET_VRAM_PTRS_WIDE;
+		
+		if (iy_step > 0) {
+			for (int iy = iy_min; iy != iy_max; iy++, tile_bg_ptr += 32, tile_fg_ptr += 32) {
+				memcpy16(buffer, tile_bg_ptr + srcX + (srcY << 5), width);
+				memcpy16(tile_bg_ptr + destX + (destY << 5), buffer, width);
+				memcpy16(buffer, tile_fg_ptr + srcX + (srcY << 5), width);
+				memcpy16(tile_fg_ptr + destX + (destY << 5), buffer, width);
+			}
+		} else {
+			for (int iy = iy_min; iy != iy_max; iy--, tile_bg_ptr -= 32, tile_fg_ptr -= 32) {
+				memcpy16(buffer, tile_bg_ptr + srcX + (srcY << 5), width);
+				memcpy16(tile_bg_ptr + destX + (destY << 5), buffer, width);
+				memcpy16(buffer, tile_fg_ptr + srcX + (srcY << 5), width);
+				memcpy16(tile_fg_ptr + destX + (destY << 5), buffer, width);
+			}
+		}
+		return;
+	}
+
+    for (int iy = iy_min; iy != iy_max; iy += iy_step) {
+        for (int ix = ix_min; ix != ix_max; ix += ix_step) {
+            read_char(srcX + ix, srcY + iy, col, chr);
+            draw_char(destX + ix, destY + iy, col, chr);
+        }
+    }
+}
+
+void zoo_gba_sleep() {
+	VBlankIntrWait();
+	zoo_video_gba_hide();
+	REG_SOUNDCNT_X = 0;
+
+	REG_KEYCNT = KCNT_IRQ | KCNT_AND | KEY_START | KEY_SELECT;
+
+	uint16_t old_ie = REG_IE;
+	REG_IE = (IRQ_KEYPAD);
+	Stop();
+	REG_IE = old_ie;
+	
+	REG_KEYCNT = 0;
+
+	while ((REG_KEYINPUT & 0x3FF) != 0x3FF) {
+		VBlankIntrWait();
+	}
+	
+	zoo_video_gba_show();
+	zoo_sound_gba_init();	
+}
+
 int main(void) {
 	REG_WAITCNT = 0x4000;
 
@@ -620,6 +709,6 @@ int main(void) {
 
 	driver.uninstall();
 
-	while(1);
+	SoftReset();
 	//return 0;
 }

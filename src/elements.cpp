@@ -1,5 +1,6 @@
 #include "gamevars.h"
 #include "txtwind.h"
+#include "platform_hacks.h"
 
 using namespace ZZT;
 
@@ -1682,6 +1683,9 @@ static void ElementPlayerTick(Game &game, int16_t stat_id) {
             game.GameDebugPrompt();
             game.driver->keyPressed = 0;
         } break;
+#ifdef __GBA__
+		case 255: zoo_gba_sleep(); break;
+#endif
     }
 
 	if (game.hasElement(ETorch)) {
