@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <cstring>
 #include "driver.h"
+#include "gamevars.h"
 #include "utils/math.h"
 
 using namespace ZZT;
@@ -360,4 +361,8 @@ void Driver::scroll_chars(int x, int y, int width, int height, int deltaX, int d
 
 bool Driver::set_video_size(int16_t width, int16_t height, bool simulate) {
     return false;
+}
+
+UserInterface *Driver::create_user_interface(Game &game) {
+	return new UserInterface(this);
 }

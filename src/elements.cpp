@@ -1673,7 +1673,7 @@ static void ElementPlayerTick(Game &game, int16_t stat_id) {
             game.driver->keyPressed = ' ';
         } break;
         case 'H': {
-            TextWindowDisplayFile(game.driver, game.filesystem, "GAME.HLP", "Playing ZZT");
+            game.interface->DisplayFile(game.filesystem, "GAME.HLP", "Playing ZZT");
         } break;
         case '?': {
             game.GameDebugPrompt();

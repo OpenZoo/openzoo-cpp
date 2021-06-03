@@ -8,11 +8,11 @@ namespace ZZT {
         FilesystemDriver *filesystem;
         const char *title;
         const char *extension;
-        TextWindow window;
+        TextWindow *window;
         sstring<64> filename;
 
     public:
-        FileSelector(Driver* driver, FilesystemDriver *filesystem, const char *title, const char *extension);
+        FileSelector(TextWindow *window, FilesystemDriver *filesystem, const char *title, const char *extension);
         ~FileSelector();
 
         inline const char *get_filename() {

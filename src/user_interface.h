@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include "driver.h"
+#include "filesystem.h"
 
 #define SIDEBAR_FLAG_UPDATE 1
 #define SIDEBAR_FLAG_SET_WORLD_NAME 2
@@ -10,6 +11,7 @@
 
 namespace ZZT {
     class Game;
+	class TextWindow;
 
     struct MenuEntry {
         const int id;
@@ -41,6 +43,7 @@ namespace ZZT {
 
     protected:
         Driver *driver;
+		uint8_t messageColor;
 
         void PromptString(int16_t x, int16_t y, uint8_t arrowColor, uint8_t color, int16_t width, InputPromptMode mode, char *buffer, int buflen);
         bool WaitYesNo(bool defaultReturn);
@@ -48,6 +51,9 @@ namespace ZZT {
     public:
         UserInterface(Driver *driver);
         virtual ~UserInterface() { }
+
+		virtual TextWindow *CreateTextWindow(FilesystemDriver *fsDriver);
+		virtual void ConfigureViewport(int16_t &x, int16_t &y, int16_t &width, int16_t &height);
 
         virtual bool SidebarPromptYesNo(const char *message, bool defaultReturn);
         virtual void SidebarPromptString(const char *prompt, const char *extension, char *filename, int filenameLen, InputPromptMode mode);
@@ -57,6 +63,7 @@ namespace ZZT {
         virtual int HandleMenu(Game &game, const MenuEntry *entries, bool simulate);
 		virtual void GameShowMessage(Game &game, uint8_t color);
 		virtual void GameHideMessage(Game &game);
+		virtual void DisplayFile(FilesystemDriver *filesystem, const char *filename, const char *title);
 
         inline void SidebarHideMessage() {
             SidebarShowMessage(0x0F, nullptr, true);

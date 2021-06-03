@@ -58,12 +58,10 @@ int main(int argc, char** argv) {
 	
 	game.driver = &driver;
 	game.filesystem = new NullFilesystemDriver();
-	game.interface = new UserInterface(&driver);
 
 	game.GameTitleLoop();
 
 	delete game.filesystem;
-	delete game.interface;
 
 	return 0;
 }

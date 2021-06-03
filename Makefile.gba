@@ -38,11 +38,13 @@ SOURCES		:= \
 	src/user_interface.cpp \
 	src/user_interface_osk.cpp \
 	src/user_interface_slim.cpp \
+	src/user_interface_super_zzt.cpp \
 	src/utils/iostream.cpp \
 	src/utils/math.cpp \
 	src/utils/strings.cpp \
 	src/world_serializer.cpp \
-	src/gba/driver_gba.cpp
+	src/gba/driver_gba.cpp \
+	src/gba/ui_hacks_gba.cpp
 
 INCLUDES	:= src src/gba src/utils
 DATA		:=

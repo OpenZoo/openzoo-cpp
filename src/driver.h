@@ -8,6 +8,9 @@
 #define MAX_KEYS_PRESSED 8
 
 namespace ZZT {
+	class Game;
+	class UserInterface;
+
     typedef enum {
         IMYield,
         IMUntilPit,
@@ -129,6 +132,10 @@ namespace ZZT {
         /* VIDEO */
 
     public:
+
+		/* PROVIDERS */
+
+		virtual UserInterface *create_user_interface(Game &game);
 
         /* INPUT */
 

@@ -297,6 +297,12 @@ void UserInterface::GameHideMessage(Game &game) {
 
 void UserInterface::GameShowMessage(Game &game, uint8_t color) {
 	sstring<80> message;
+	
+	if (color == 0) {
+		color = messageColor;
+	} else {
+		messageColor = color;
+	}
 
 	int y = game.viewport.y + game.viewport.height - 1;
 	for (int i = game.engineDefinition.messageLines - 1; i >= 0; i--) {
@@ -340,6 +346,30 @@ void UserInterface::SidebarShowMessage(uint8_t color, const char *message, bool 
     }
 }
 
+TextWindow *UserInterface::CreateTextWindow(FilesystemDriver *fsDriver) {
+	return new TextWindow(driver, fsDriver, 5, 3, 50, 18);
+}
+
+void UserInterface::ConfigureViewport(int16_t &x, int16_t &y, int16_t &width, int16_t &height) {
+	x = 0;
+	y = 0;
+	width = 60;
+	height = 25;
+}
+
+void UserInterface::DisplayFile(FilesystemDriver *filesystem, const char *filename, const char *title) {
+    TextWindow *window = CreateTextWindow(filesystem);
+    StrCopy(window->title, title);
+    window->OpenFile(filename, false);
+    if (window->line_count > 0) {
+	    window->selectable = false;
+        window->DrawOpen();
+        window->Select(false, true);
+        window->DrawClose();
+    }
+	delete window;
+}
+
 int UserInterface::HandleMenu(Game &game, const MenuEntry *entries, bool simulate) {
     if (driver->joy_button_pressed(JoyButtonStart, simulate) || driver->keyPressed == KeyF10) {
         if (simulate) {
@@ -349,22 +379,22 @@ int UserInterface::HandleMenu(Game &game, const MenuEntry *entries, bool simulat
         sstring<10> numStr;
         const MenuEntry *entry = entries;
         const char *name;
-        TextWindow window = TextWindow(driver, nullptr);
-        StrCopy(window.title, "Menu");
+        TextWindow *window = CreateTextWindow(nullptr);
+        StrCopy(window->title, "Menu");
         int i = 0;
         while (entry->id >= 0) {
             name = entry->get_name(&game);
             if (name != NULL) {
                 StrFromInt(numStr, i);
-                window.Append(DynString("!") + numStr + ";" + name);
+                window->Append(DynString("!") + numStr + ";" + name);
             }
             entry++; i++;
         }
-        window.DrawOpen();
-        window.Select(true, false);
-        window.DrawClose();
-        if (!window.rejected && !StrEmpty(window.hyperlink)) {
-            int result = atoi(window.hyperlink);
+        window->DrawOpen();
+        window->Select(true, false);
+        window->DrawClose();
+        if (!window->rejected && !StrEmpty(window->hyperlink)) {
+            int result = atoi(window->hyperlink);
             return entries[result].id;
         } else {
             return -1;

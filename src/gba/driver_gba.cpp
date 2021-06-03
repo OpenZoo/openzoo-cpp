@@ -11,7 +11,10 @@ extern "C" {
 #include "driver_gba.h"
 #include "filesystem_romfs.h"
 #include "user_interface_slim.h"
+#include "user_interface_super_zzt.h"
+#include "gamevars.h"
 #include "platform_hacks.h"
+#include "ui_hacks_gba.h"
 
 #include "gamevars.h"
 #include "sounds.h"
@@ -101,7 +104,12 @@ static const u16 default_palette[] = {
 static bool blinking_enabled = false;
 static uint8_t blink_ticks;
 static uint8_t mode_6_lines;
+static Force4x8ModeType force_4x8_mode = FORCE_4X8_MODE_NONE;
 static bool mode_6_lines_inited = false;
+
+void zoo_set_force_4x8_mode(Force4x8ModeType value) {
+	force_4x8_mode = value;
+}
 
 GBA_CODE_IWRAM
 static void vram_update_bgcnt(void) {
@@ -162,6 +170,14 @@ static void vram_read_char(int16_t x, int16_t y, uint8_t *col, uint8_t *chr) {
 
 	*chr = (*tile_fg_ptr & 0xFF);
 	*col = (*tile_fg_ptr >> 12) | ((*tile_bg_ptr >> 8) & 0x70) | ((*tile_fg_ptr >> 1) & 0x80);
+}
+
+GBA_CODE_IWRAM
+static void vram_read_char_wide(int16_t x, int16_t y, uint8_t *col, uint8_t *chr) {
+	GET_VRAM_PTRS_WIDE;
+
+	*chr = (*tile_fg_ptr & 0xFF);
+	*col = (*tile_fg_ptr >> 12) | ((*tile_bg_ptr >> 8) & 0x70);
 }
 
 #ifdef DEBUG_CONSOLE
@@ -341,7 +357,7 @@ void gba_on_tick_end() {
 	sstring<127> tmp;
 	tmp_ticks = dbg_ticks() - tmp_ticks;
 	if (tmp_ticks >= 0x80000000) tmp_ticks = 0xFFFFFFFF - tmp_ticks;
-	sprintf(tmp, "%d ticks, %d%%, %d bytes", tmp_ticks, tmp_ticks * 10 / 184568, platform_debug_free_memory());
+	siprintf(tmp, "%d ticks, %d%%, %d bytes", tmp_ticks, tmp_ticks * 10 / 184568, platform_debug_free_memory());
 	platform_debug_puts(tmp, true);
 }
 
@@ -399,6 +415,10 @@ static void zoo_video_gba_load_charset(uint32_t mem_offset, Charset &charset) {
 	}
 }
 
+static void zoo_video_clear_fast(void) {
+	memset32((void*) (MEM_VRAM + MAP_ADDR_OFFSET), 0x00000000, 32 * 32 * 2 * 4 / 4);
+}
+
 static void zoo_video_set_mode_6_lines(uint8_t value) {
 	if (value == 0 && !mode_6_lines_inited) {
 		// load the charsets here, so it doesn't slow down initial start
@@ -408,7 +428,11 @@ static void zoo_video_set_mode_6_lines(uint8_t value) {
 		zoo_video_gba_load_charset(0x0A000, charset);
 		mode_6_lines_inited = true;
 	}
-	mode_6_lines = value;
+	if (mode_6_lines != value) {
+		zoo_video_clear_fast();
+		mode_6_lines = value;
+		vram_update_bgcnt();
+	}
 }
 
 void zoo_video_gba_install(void) {
@@ -417,12 +441,9 @@ void zoo_video_gba_install(void) {
 	// add interrupts
 	irq_add(II_VBLANK, irq_vblank);
 	
-
-
 	// load charsets
 	Charset charset = Charset(256, 4, 6, 1, _4x6_bin);
 	zoo_video_gba_load_charset(0x00000, charset);
-	zoo_video_set_mode_6_lines(1);
 
 	// initialize 32KB of data for blinking - see VRAM layout
 	memcpy32(((uint32_t*) (MEM_VRAM + (256*32))), ((uint32_t*) (MEM_VRAM)), 256 * 32 / 4);
@@ -438,8 +459,7 @@ void zoo_video_gba_install(void) {
 	// initialize background registers
 	vram_update_bgcnt();
 
-	// clear display
-	memset32((void*) (MEM_VRAM + MAP_ADDR_OFFSET), 0x00000000, 32 * 32 * 2 * 4 / 4);
+	zoo_video_clear_fast();
 }
 
 GBADriver::GBADriver() {
@@ -541,11 +561,30 @@ void GBADriver::sound_stop(void) {
 
 GBA_CODE_IWRAM
 void GBADriver::draw_char(int16_t x, int16_t y, uint8_t col, uint8_t chr) {
-	vram_write_char(x, y, col, chr);
+	if (!mode_6_lines) {
+		if (x < 12 || (force_4x8_mode == FORCE_4X8_MODE_ALWAYS)) {
+			vram_write_char_4x8(x, y, col, chr);
+		} else if ((force_4x8_mode == FORCE_4X8_MODE_READ)) {
+			vram_write_char_8x8(x >> 1, y, col, chr);			
+		} else {
+			vram_write_char_8x8(x - 6, y, col, chr);
+		}
+	} else {
+		vram_write_char(x, y, col, chr);
+	}
 }
 
 void GBADriver::read_char(int16_t x, int16_t y, uint8_t &col, uint8_t &chr) {
-	vram_read_char(x, y, &col, &chr);
+	if (!mode_6_lines) {
+		if (x < 12 || (force_4x8_mode != FORCE_4X8_MODE_NONE)) {
+			vram_read_char(x, y, &col, &chr);
+		} else {
+			vram_read_char_wide(x - 6, y, &col, &chr);
+		}
+		col &= 0x7F;
+	} else {
+		vram_read_char(x, y, &col, &chr);
+	}
 }
 
 void GBADriver::get_video_size(int16_t &width, int16_t &height) {
@@ -553,17 +592,28 @@ void GBADriver::get_video_size(int16_t &width, int16_t &height) {
 	height = 26;
 }
 
+UserInterface *GBADriver::create_user_interface(Game &game) {
+	if (game.engineDefinition.engineType == ENGINE_TYPE_SUPER_ZZT) {
+		zoo_video_set_mode_6_lines(0);
+		zoo_set_force_4x8_mode(FORCE_4X8_MODE_NONE);
+		return new UserInterfaceSuperZZTGBA(this);
+	} else {
+		zoo_video_set_mode_6_lines(1);
+		return new UserInterfaceSlim(this);
+	}
+}
+
 int main(void) {
+	REG_WAITCNT = 0x4000;
+
 	driver.keyboard.driver = &driver;
 	driver.install();
 
 	game.driver = &driver;
 	game.filesystem = new RomfsFilesystemDriver(&__rom_end__);
-	game.interface = new UserInterfaceSlim(&driver);
 
 	game.GameTitleLoop();
 
-	delete game.interface;
 	delete game.filesystem;
 
 	driver.uninstall();

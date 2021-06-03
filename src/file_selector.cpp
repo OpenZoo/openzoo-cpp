@@ -7,8 +7,8 @@
 
 using namespace ZZT;
 
-FileSelector::FileSelector(Driver *driver, FilesystemDriver *filesystem, const char *title, const char *extension)
-    : window(TextWindow(driver, filesystem)) {
+FileSelector::FileSelector(TextWindow *window, FilesystemDriver *filesystem, const char *title, const char *extension) {
+	this->window = window;
     this->filesystem = filesystem;
     this->title = title;
     this->extension = extension;
@@ -28,18 +28,18 @@ bool FileSelector::select() {
     }
 
     while (true) {
-        window.Clear();
-        StrCopy(window.title, title);
-        window.selectable = true;
-        StrClear(window.hyperlink);
+        window->Clear();
+        StrCopy(window->title, title);
+        window->selectable = true;
+        StrClear(window->hyperlink);
 
         if (path_fs != nullptr) {
             if (path_fs->has_parent()) {
-                window.Append("!..;[..]");
+                window->Append("!..;[..]");
             }
         }
 
-        int listed_start = window.line_count;
+        int listed_start = window->line_count;
         filesystem->list_files([this](FileEntry &entry) -> bool {
             sstring<20> wname;
             sstring<31> ext_tokens;
@@ -49,7 +49,7 @@ bool FileSelector::select() {
 
             if (entry.is_dir) {
                 if (name_len > 0 && !StrEquals(entry.filename, ".") && !StrEquals(entry.filename, "..")) {
-                    window.Append(DynString("!") + entry.filename + ";[" + entry.filename + "]");
+                    window->Append(DynString("!") + entry.filename + ";[" + entry.filename + "]");
                 }
             } else {
                 StrCopy(ext_tokens, this->extension);
@@ -63,7 +63,7 @@ bool FileSelector::select() {
                     if (strcasecmp(entry.filename + name_len - ext_len, ext_token) == 0) {
                         StrCopy(wname, entry.filename);
                         wname[name_len - ext_len] = 0;
-                        window.Append(wname);
+                        window->Append(wname);
                         break;
                     }
                 }
@@ -73,29 +73,29 @@ bool FileSelector::select() {
 
             return true;
         });
-        int listed_end = window.line_count;
-        window.Sort(listed_start, listed_end - listed_start);
+        int listed_end = window->line_count;
+        window->Sort(listed_start, listed_end - listed_start);
 
-        window.Append("Exit");
+        window->Append("Exit");
 
-        window.DrawOpen();
-        window.Select(true, false);
-        window.DrawClose();
+        window->DrawOpen();
+        window->Select(true, false);
+        window->DrawClose();
 
-        if (window.line_pos == (window.line_count - 1) || window.rejected) {
+        if (window->line_pos == (window->line_count - 1) || window->rejected) {
             if (past_path != nullptr) {
                 path_fs->set_current_path(past_path);
                 free(past_path);
             }
             return false;            
-        } else if (!StrEmpty(window.hyperlink)) {
+        } else if (!StrEmpty(window->hyperlink)) {
             // directory
             if (path_fs != nullptr) {
-                path_fs->open_dir(window.hyperlink);
+                path_fs->open_dir(window->hyperlink);
             }
         } else {
             // file
-            StrCopy(filename, window.lines[window.line_pos]->c_str());
+            StrCopy(filename, window->lines[window->line_pos]->c_str());
             if (past_path != nullptr) {
                 free(past_path);
             }

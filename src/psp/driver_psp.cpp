@@ -374,7 +374,6 @@ int main(int argc, char** argv) {
 
 	game->driver = &driver;
 	game->filesystem = new PosixFilesystemDriver();
-	game->interface = new UserInterface(&driver);
 
 	driver.install();
 
@@ -392,7 +391,6 @@ int main(int argc, char** argv) {
 	driver.uninstall();
 
 	delete game->filesystem;
-	delete game->interface;
 	delete game;
 
 	return 0;

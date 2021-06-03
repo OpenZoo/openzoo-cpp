@@ -433,6 +433,7 @@ bool Game::FindTileOnBoard(int16_t &x, int16_t &y, Tile tile) {
 	}
 }
 
+GBA_CODE_IWRAM // for #CHANGE
 void Game::OopPlaceTile(int16_t x, int16_t y, Tile tile) {
 	Tile curTile = board.tiles.get(x, y);
 	if (curTile.element != EPlayer) {
@@ -904,7 +905,7 @@ ReadCommand:
 				textLine[0] = oopChar;
 				OopReadLineToEnd(stat, position, textLine + 1, sizeof(textLine) - 1);
 				if (textWindow == nullptr) {
-					textWindow = new TextWindow(driver, filesystem);
+					textWindow = interface->CreateTextWindow(filesystem);
 					textWindow->selectable = false;
 				}
 				textWindow->Append(textLine);
@@ -922,7 +923,7 @@ ReadCommand:
 
 	if (textWindow == nullptr) {
 		// implies 0 lines
-	} else if (textWindow->line_count > 1) {
+	} else if (textWindow->line_count > engineDefinition.messageLines) {
 		char name[256];
 		StrCopy(name, default_name);
 
@@ -950,7 +951,11 @@ ReadCommand:
 		}
 
 		delete textWindow;
-	} else if (textWindow->line_count == 1) {
+	} else if (textWindow->line_count >= 2) {
+		DisplayMessage(200, textWindow->lines[0]->c_str(), textWindow->lines[1]->c_str());
+		textWindow->Clear();
+		delete textWindow;
+	} else if (textWindow->line_count >= 1) {
 		DisplayMessage(200, textWindow->lines[0]->c_str());
 		textWindow->Clear();
 		delete textWindow;

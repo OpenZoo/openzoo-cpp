@@ -5,8 +5,6 @@
 
 using namespace ZZT;
 
-static int16_t window_x = 5, window_y = 3, window_width = 50, window_height = 18;
-
 static const char draw_patterns[4][5] = {
 	{'\xC6', '\xD1', '\xCD', '\xD1', '\xB5'}, // top
 	{'\xC6', '\xCF', '\xCD', '\xCF', '\xB5'}, // bottom
@@ -31,7 +29,11 @@ void TextWindow::DrawBorderLine(int16_t y, WindowPatternType ptype) {
 	TextWindowDrawPattern(driver, window_x, y, window_width, 0x0F, ptype);
 }
 
-TextWindow::TextWindow(Driver *driver, FilesystemDriver *filesystem) {
+TextWindow::TextWindow(Driver *driver, FilesystemDriver *filesystem, int16_t w_x, int16_t w_y, int16_t w_width, int16_t w_height) {
+	this->window_x = w_x;
+	this->window_y = w_y;
+	this->window_width = w_width;
+	this->window_height = w_height;
     this->driver = driver;
     this->filesystem = filesystem;
     this->line_count = 0;
@@ -561,23 +563,4 @@ void TextWindow::Sort(int16_t start, int16_t count) {
         qsort(lines + start, count, sizeof(DynString*), cmp_dynstring);
     }
 #endif
-}
-
-void ZZT::TextWindowDisplayFile(Driver *driver, FilesystemDriver *filesystem, const char *filename, const char *title) {
-    TextWindow window = TextWindow(driver, filesystem);
-    StrCopy(window.title, title);
-    window.OpenFile(filename, false);
-    window.selectable = false;
-    if (window.line_count > 0) {
-        window.DrawOpen();
-        window.Select(false, true);
-        window.DrawClose();
-    }
-}
-
-void ZZT::TextWindowInit(int16_t x, int16_t y, int16_t width, int16_t height) {
-    window_x = x;
-    window_y = y;
-    window_width = width;
-    window_height = height;
 }

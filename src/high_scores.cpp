@@ -85,16 +85,18 @@ void HighScoreList::InitTextWindow(TextWindow &window) {
 }
 
 void HighScoreList::Display(const char *worldName, int16_t line_pos) {
-    TextWindow window = TextWindow(game->driver, game->filesystem);
+    TextWindow *window = game->interface->CreateTextWindow(game->filesystem);
 
-    window.line_pos = line_pos;
-    InitTextWindow(window);
-    if (window.line_count > 2) {
-        StrJoin(window.title, 2, "High scores for ", worldName);
-        window.DrawOpen();
-        window.Select(false, true);
-        window.DrawClose();
+    window->line_pos = line_pos;
+    InitTextWindow(*window);
+    if (window->line_count > 2) {
+        StrJoin(window->title, 2, "High scores for ", worldName);
+        window->DrawOpen();
+        window->Select(false, true);
+        window->DrawClose();
     }
+
+	delete window;
 }
 
 void HighScoreList::Add(const char *worldName, int16_t score) {
@@ -109,7 +111,7 @@ void HighScoreList::Add(const char *worldName, int16_t score) {
     }
     
     if (list_pos < HIGH_SCORE_COUNT) {
-        TextWindow window = TextWindow(game->driver, game->filesystem);
+        TextWindow *window = game->interface->CreateTextWindow(game->filesystem);
 
         for (int i = (HIGH_SCORE_COUNT - 2); i >= list_pos; i--) {
             entries[i + 1] = entries[i];
@@ -118,18 +120,20 @@ void HighScoreList::Add(const char *worldName, int16_t score) {
         entries[list_pos].score = score;
         StrCopy(entries[list_pos].name, "-- You! --");
 
-        InitTextWindow(window);
-        window.line_pos = list_pos;
-        StrJoin(window.title, 2, "New high score for ", worldName);
-        window.DrawOpen();
-        window.Draw(false, false);
+        InitTextWindow(*window);
+        window->line_pos = list_pos;
+        StrJoin(window->title, 2, "New high score for ", worldName);
+        window->DrawOpen();
+        window->Draw(false, false);
 
         StrClear(name);
         game->interface->PopupPromptString("Congratulations!  Enter your name:", name, sizeof(name));
         StrCopy(entries[list_pos].name, name);
         Save(worldName);
 
-        window.DrawClose();
+        window->DrawClose();
+		delete window;
+
         game->TransitionDrawToBoard();
     }
 }

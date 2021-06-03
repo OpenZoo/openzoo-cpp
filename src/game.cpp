@@ -359,7 +359,7 @@ bool Viewport::point_at(Board &board, int16_t sx, int16_t sy) {
 Game::Game(void):
     board(60, 25, 150),
     world(WorldFormatZZT, &engineDefinition, 255, true), /* TODO: dynamic board list scaling? */
-    viewport(0, 0, 60, 25)
+    viewport(0, 0, 1, 1)
 {
     tickSpeed = 4;
     debugEnabled = false;
@@ -476,6 +476,11 @@ GBA_CODE_IWRAM
 void Game::BoardDrawTile(int16_t x, int16_t y) {
     Tile tile = board.tiles.get(x, y);
     uint8_t drawn_char, drawn_color;
+    int x_pos = x - 1 - viewport.cx_offset;
+    int y_pos = y - 1 - viewport.cy_offset;
+    if (!(x_pos >= 0 && y_pos >= 0 && x_pos < viewport.width && y_pos < viewport.height)) {
+		return;
+    }
 
     if (!board.info.is_dark
         || elementDef(tile.element).visible_in_dark
@@ -510,13 +515,13 @@ void Game::BoardDrawTile(int16_t x, int16_t y) {
         drawn_char = 176;
     }
 
-    BoardDrawChar(x, y, drawn_color, drawn_char);
+	driver->draw_char(x_pos + viewport.x, y_pos + viewport.y, drawn_color, drawn_char);
 }
 
 GBA_CODE_IWRAM
 void Game::BoardDrawChar(int16_t x, int16_t y, uint8_t drawn_color, uint8_t drawn_char) {
-    int16_t x_pos = x - 1 - viewport.cx_offset;
-    int16_t y_pos = y - 1 - viewport.cy_offset;
+    int x_pos = x - 1 - viewport.cx_offset;
+    int y_pos = y - 1 - viewport.cy_offset;
     if (x_pos >= 0 && y_pos >= 0 && x_pos < viewport.width && y_pos < viewport.height) {
         driver->draw_char(x_pos + viewport.x, y_pos + viewport.y, drawn_color, drawn_char);
     }
@@ -552,6 +557,7 @@ void Game::BoardPointCameraAt(int16_t sx, int16_t sy) {
                     BoardDrawTile(x_pos, viewport.cy_offset + i + 1);
                 }
             }
+			interface->GameShowMessage(*this, 0);
         } else {
             TransitionDrawToBoard();
         }
@@ -719,20 +725,22 @@ void Game::PauseOnError(void) {
 void Game::DisplayIOError(IOStream &stream) {
     if (!stream.errored()) return;
 
-    TextWindow window = TextWindow(driver, filesystem);
-    StrCopy(window.title, "Error");
-    window.Append("$I/O Error: ");
-    window.Append("");
-    window.Append("This may be caused by missing");
-    window.Append("ZZT files or a bad disk.  If");
-    window.Append("you are trying to save a game,");
-    window.Append("your disk may be full -- try");
-    window.Append("using a blank, formatted disk");
-    window.Append("for saving the game!");
+    TextWindow *window = interface->CreateTextWindow(filesystem);
+    StrCopy(window->title, "Error");
+    window->Append("$I/O Error: ");
+    window->Append("");
+    window->Append("This may be caused by missing");
+    window->Append("ZZT files or a bad disk.  If");
+    window->Append("you are trying to save a game,");
+    window->Append("your disk may be full -- try");
+    window->Append("using a blank, formatted disk");
+    window->Append("for saving the game!");
 
-    window.DrawOpen();
-    window.Select(false, false);
-    window.DrawClose();
+    window->DrawOpen();
+    window->Select(false, false);
+    window->DrawClose();
+	
+	delete window;
 }
 
 void Game::WorldUnload(void) {
@@ -843,7 +851,8 @@ void Game::GameWorldSave(const char *prompt, char* filename, size_t filename_len
 
 bool Game::GameWorldLoad(const char *extension) {
     const char *title = StrEquals(extension, ".SAV") ? "Saved Games" : "ZZT Worlds";
-    FileSelector *selector = new FileSelector(driver, filesystem, title, extension);
+	TextWindow *window = interface->CreateTextWindow(filesystem);
+    FileSelector *selector = new FileSelector(window, filesystem, title, extension);
 
     if (selector->select()) {
         bool result = WorldLoad(selector->get_filename(), extension, false);
@@ -858,6 +867,7 @@ bool Game::GameWorldLoad(const char *extension) {
     }
     
     delete selector;
+	delete window;
     return false;
 }
 
@@ -1114,6 +1124,7 @@ void Game::DamageStat(int16_t attacker_stat_id) {
     }
 }
 
+GBA_CODE_IWRAM
 void Game::BoardDamageTile(int16_t x, int16_t y) {
     int16_t stat_id = board.stats.id_at(x, y);
     if (stat_id != -1) {
@@ -1307,7 +1318,7 @@ void Game::GameDebugPrompt(void) {
 }
 
 void Game::GameAboutScreen(void) {
-    TextWindowDisplayFile(driver, filesystem, "ABOUT.HLP", "About ZZT...");
+    interface->DisplayFile(filesystem, "ABOUT.HLP", "About ZZT...");
 }
 
 #ifdef __GBA__
@@ -1526,6 +1537,8 @@ void Game::GameTitleLoop(void) {
     returnBoardId = 0;
     bool boardChanged = true;
     do {
+		interface = driver->create_user_interface(*this);
+		interface->ConfigureViewport(viewport.x, viewport.y, viewport.width, viewport.height);
         BoardChange(0);
         do {
             gameStateElement = EMonitor;
@@ -1599,5 +1612,6 @@ void Game::GameTitleLoop(void) {
                 boardChanged = true;
             }
         } while (!boardChanged && !gameTitleExitRequested);
+		delete interface;
     } while (!gameTitleExitRequested);
 }

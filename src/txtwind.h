@@ -24,6 +24,7 @@ namespace ZZT {
     protected:
         Driver *driver;
         FilesystemDriver *filesystem;
+		int16_t window_x, window_y, window_width, window_height;
 
         int PageMoveHeightLines(void);
         void DrawTitle(uint8_t color, const char *title);
@@ -42,13 +43,13 @@ namespace ZZT {
         VideoCopy *screenCopy;
         bool rejected;
 
-        TextWindow(Driver *driver, FilesystemDriver *filesystem);
-        ~TextWindow();
+        TextWindow(Driver *driver, FilesystemDriver *filesystem, int16_t w_x, int16_t w_y, int16_t w_width, int16_t w_height);
+        virtual ~TextWindow();
 
         void Clear(void);
-        void DrawOpen(void);
-        void DrawClose(void);
-        void Draw(bool withoutFormatting, bool viewingFile);
+        virtual void DrawOpen(void);
+        virtual void DrawClose(void);
+        virtual void Draw(bool withoutFormatting, bool viewingFile);
         void Append(const char *line);
         void Append(const DynString line);
         void Select(bool hyperlinkAsSelect, bool viewingFile);
@@ -59,8 +60,6 @@ namespace ZZT {
     };
 
     void TextWindowDrawPattern(Driver *driver, int16_t x, int16_t y, int16_t width, uint8_t color, WindowPatternType ptype);
-    void TextWindowDisplayFile(Driver *driver, FilesystemDriver *filesystem, const char *filename, const char *title);
-    void TextWindowInit(int16_t x, int16_t y, int16_t width, int16_t height);
 }
 
 #endif

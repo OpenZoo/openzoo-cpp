@@ -5,6 +5,14 @@
 #include "driver.h"
 #include "user_interface_osk.h"
 
+typedef enum : uint8_t {
+	FORCE_4X8_MODE_NONE,
+	FORCE_4X8_MODE_ALWAYS,
+	FORCE_4X8_MODE_READ
+} Force4x8ModeType;
+
+void zoo_set_force_4x8_mode(Force4x8ModeType value);
+
 namespace ZZT {
     class GBADriver: public Driver {
         friend void irq_vblank(void);
@@ -17,6 +25,8 @@ namespace ZZT {
 
         void install(void);
         void uninstall(void);
+
+		UserInterface *create_user_interface(Game &game);
 
         // required (input)
         void update_input(void) override;
