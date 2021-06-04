@@ -26,6 +26,11 @@ PosixIOStream::PosixIOStream(const char *name, bool write) {
     this->file = fopen(name, write ? "wb" : "rb");
     this->is_write = write;
     this->error_condition = this->file == NULL;
+#if defined(__NDS__) || defined(__N3DS__)
+	if (this->file != NULL) {
+		setvbuf(this->file, NULL, _IOFBF, 32768);
+	}
+#endif
 }
 
 size_t PosixIOStream::read(uint8_t *ptr, size_t len) {

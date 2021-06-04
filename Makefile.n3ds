@@ -63,6 +63,12 @@ SOURCES_3DS	:= src/n3ds
 INCLUDES	:= src src/n3ds src/utils
 DATA		:=
 
+APP_TITLE := OpenZoo
+APP_VERSION := alpha
+APP_DESCRIPTION := ZZT/Super ZZT-compatible engine
+APP_AUTHOR := Adrian \"asie\" Siekierka
+ICON := assets/icon48.png
+
 #GRAPHICS	:=	gfx
 #GFXBUILD	:=	$(BUILD)
 #ROMFS		:=	romfs

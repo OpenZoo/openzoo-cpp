@@ -35,11 +35,19 @@ static const uint32_t ega_palette[16] = {
     0xFFFFFF
 };
 
+static Game *game;
+static bool gameRunning = true;
+
 N3DSDriver::N3DSDriver(void) {
 	this->soundSimulator = new AudioSimulator<uint16_t>(&this->_queue, 48000, false);
 }
 
 void ZZT::n3ds_audio_callback(int16_t *samples, int len, void *userdata) {
+	if (!gameRunning) {
+		memset(samples, 0, len * 2);
+		return;
+	}
+
 	N3DSDriver *driver = (N3DSDriver*) userdata;
 	driver->soundSimulator->simulate((uint16_t*) samples, len);
 	for (int i = 0; i < len; i++) {
@@ -115,8 +123,9 @@ void N3DSDriver::uninstall(void) {
 
 	// Sound
 
-	delete this->soundStream;
 	ndspExit();
+	delay(100);
+	delete this->soundStream;
 
 	// Video
 
@@ -243,9 +252,6 @@ void N3DSDriver::on_pit_tick() {
 	// TODO: wake PIT listeners
 }
 
-static Game *game;
-static bool gameRunning = true;
-
 void gameThreadProc(void *userdata) {
 	game->GameTitleLoop();
 	gameRunning = false;
@@ -284,6 +290,9 @@ int main(int argc, char** argv) {
 		driver.update_joy();
 		driver.draw_frame();
 	}
+
+	threadJoin(timerThread, 500000000);
+	threadJoin(gameThread, 500000000);
 
 	delete game->filesystem;
 	delete game;
