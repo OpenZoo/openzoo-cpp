@@ -258,6 +258,26 @@ TextWindow *UserInterfaceSuperZZT::CreateTextWindow(FilesystemDriver *fsDriver) 
 	return new TextWindow(driver, fsDriver, (width - t_width) / 2, (height - t_height) / 2, t_width, t_height);
 }
 
+void UserInterfaceSuperZZT::GameShowMessage(Game &game, uint8_t color) {
+	if (height >= 25) {
+		UserInterface::GameShowMessage(game, (color & 0x0F) | 0x10, 12, height - 1, width - 12);
+	} else {
+		GameShowMessage(game, color);
+	}
+}
+
+void UserInterfaceSuperZZT::GameHideMessage(Game &game) {
+	if (height >= 25) {
+		for (int iy = height - 2; iy < height; iy++) {
+			for (int ix = 12; ix < width; ix++) {
+				driver->draw_char(ix, iy, 0x10, ' ');
+			}
+		}
+	} else {
+		GameHideMessage(game);
+	}
+}
+
 void UserInterfaceSuperZZT::SidebarShowMessage(uint8_t color, const char *message, bool temporary) {
     if (temporary) {
         if (message == nullptr) {

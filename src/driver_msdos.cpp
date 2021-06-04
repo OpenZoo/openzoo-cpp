@@ -8,6 +8,8 @@
 #include <go32.h>
 #include "driver_msdos.h"
 #include "filesystem_msdos.h"
+#include "gamevars.h"
+#include "user_interface_super_zzt.h"
 
 using namespace ZZT;
 
@@ -168,6 +170,21 @@ void MSDOSDriver::get_video_size(int16_t &width, int16_t &height) {
 	height = 25;
 }
 
+UserInterface *MSDOSDriver::create_user_interface(Game &game) {
+	union REGS r;
+	if (game.engineDefinition.engineType == ENGINE_TYPE_SUPER_ZZT) {
+		r.w.ax = 0x0001;
+		int86(0x10, &r, &r);
+		set_cursor(false);
+		return new UserInterfaceSuperZZT(this, 40, 25);
+	} else {
+		r.w.ax = 0x0003;
+		int86(0x10, &r, &r);
+		set_cursor(false);
+		return new UserInterface(this);
+	}
+}
+
 #include "gamevars.h"
 
 static Game *game;
@@ -180,12 +197,11 @@ int main(int argc, char** argv) {
     game->filesystem = new MsdosFilesystemDriver();
 
 	driver.install();
-
-	driver.set_cursor(false);
 	driver.clrscr();
 
 	game->GameTitleLoop();
 
+	// TODO: set video mode back
 	driver.clrscr();
 	driver.set_cursor(true);
 

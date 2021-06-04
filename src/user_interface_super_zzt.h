@@ -22,6 +22,8 @@ namespace ZZT {
 
 		virtual void ConfigureViewport(int16_t &x, int16_t &y, int16_t &width, int16_t &height) override;
 		virtual TextWindow *CreateTextWindow(FilesystemDriver *fsDriver) override;
+		void GameShowMessage(Game &game, uint8_t color) override;
+		void GameHideMessage(Game &game) override;
 
         virtual bool SidebarPromptYesNo(const char *message, bool defaultReturn) override;
         virtual void SidebarPromptString(const char *prompt, const char *extension, char *filename, int filenameLen, InputPromptMode mode) override;

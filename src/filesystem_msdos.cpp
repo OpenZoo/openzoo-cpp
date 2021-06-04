@@ -3,7 +3,7 @@
 #include <dir.h>
 #include <unistd.h>
 #include "filesystem_msdos.h"
-#include "utils/strings.h"
+#include "utils/stringutils.h"
 
 using namespace ZZT;
 

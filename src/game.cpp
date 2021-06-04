@@ -575,6 +575,7 @@ void Game::BoardPointCameraAt(int16_t sx, int16_t sy) {
 			viewport.cx_offset = new_cx_offset;
 			viewport.cy_offset = new_cy_offset;	
             driver->scroll_chars(viewport.x, viewport.y, viewport.width, viewport.height, deltaX, deltaY);
+			BoardDrawTile(sx, sy);
             if (deltaX == 0) {
                 int y_pos = ((deltaY > 0) ? viewport.cy_offset : (viewport.cy_offset + viewport.height - 1)) + 1;
                 for (int i = 0; i < viewport.width; i++) {

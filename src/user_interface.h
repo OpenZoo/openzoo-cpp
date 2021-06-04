@@ -45,6 +45,7 @@ namespace ZZT {
         Driver *driver;
 		uint8_t messageColor;
 
+		void GameShowMessage(Game &game, uint8_t color, int16_t x, int16_t y, int16_t width);
         void PromptString(int16_t x, int16_t y, uint8_t arrowColor, uint8_t color, int16_t width, InputPromptMode mode, char *buffer, int buflen);
         bool WaitYesNo(bool defaultReturn);
 
