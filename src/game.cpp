@@ -148,7 +148,7 @@ void StatList::clear() {
 
 Board::Board(uint8_t width, uint8_t height, int16_t stat_size)
     : tiles(TileMap(width, height)), stats(StatList(stat_size)) {
-
+	clear();
 }
 
 Board::~Board() {
@@ -1666,6 +1666,11 @@ void Game::GameTitleLoop(void) {
             }
 
             if (startPlay) {
+				// TODO: Ideally, this wouldn't be such a kludge.
+				delete interface;
+				interface = driver->create_user_interface(*this);
+				interface->ConfigureViewport(viewport.x, viewport.y, viewport.width, viewport.height);
+
                 gameStateElement = EPlayer;
                 gamePaused = true;
                 GamePlayLoop(true);
