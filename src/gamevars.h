@@ -864,7 +864,7 @@ namespace ZZT {
         void BoardDrawTile(int16_t x, int16_t y);
         void BoardDrawChar(int16_t x, int16_t y, uint8_t drawn_color, uint8_t drawn_char);
         bool BoardUpdateDrawOffset(void);
-        void BoardPointCameraAt(int16_t sx, int16_t sy);
+        bool BoardPointCameraAt(int16_t sx, int16_t sy);
         void BoardDrawBorder(void);
         void TransitionDrawToBoard(void);
         void SidebarPromptCharacter(bool editable, int16_t x, int16_t y, const char *prompt, uint8_t &value);

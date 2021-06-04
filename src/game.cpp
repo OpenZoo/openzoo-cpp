@@ -560,7 +560,7 @@ bool Game::BoardUpdateDrawOffset(void) {
     return viewport.point_at(board, board.stats[0]);
 }
 
-void Game::BoardPointCameraAt(int16_t sx, int16_t sy) {
+bool Game::BoardPointCameraAt(int16_t sx, int16_t sy) {
     int16_t old_cx_offset = viewport.cx_offset;
     int16_t old_cy_offset = viewport.cy_offset;
     if (viewport.point_at(board, sx, sy)) {
@@ -591,7 +591,10 @@ void Game::BoardPointCameraAt(int16_t sx, int16_t sy) {
         } else {
             TransitionDrawToBoard();
         }
-    }
+		return true;
+    } else {
+		return false;
+	}
 }
 
 void Game::BoardDrawBorder(void) {
@@ -1024,16 +1027,17 @@ void Game::MoveStat(int16_t stat_id, int16_t newX, int16_t newY, bool scrollOffs
     stat.y = newY;
 
     BoardDrawTile(oldX, oldY);
+	bool scrolled = false;
 
     if (stat_id == 0 && scrollOffset) {
         // TODO: More accurate Super ZZT behaviour
-        BoardPointCameraAt(stat.x, stat.y);
+        scrolled = BoardPointCameraAt(stat.x, stat.y);
     }
 
     BoardDrawTile(stat.x, stat.y);
 
     if (stat_id == 0 && board.info.is_dark && world.info.torch_ticks > 0) {
-        if ((Sqr(oldX - stat.x) + Sqr(oldY - stat.y)) == 1) {
+        if (!scrolled && ((Sqr(oldX - stat.x) + Sqr(oldY - stat.y)) == 1)) {
             int16_t torchDx = engineDefinition.torchDx;
             int16_t torchDy = engineDefinition.torchDy;
             int16_t torchDistSqr = engineDefinition.torchDistSqr;
