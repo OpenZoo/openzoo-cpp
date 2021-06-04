@@ -235,7 +235,7 @@ void UserInterfaceSuperZZT::SidebarGameDraw(Game &game, uint32_t flags) {
 			{
 				for (int i = 0; i < 7; i++) {
 					if (game.world.info.keys[i])
-						driver->draw_char((i & 3) + 6 + short_offset, (i >> 2) + 15, 0x68 + i, game.elementDef(EKey).character);
+						driver->draw_char((i & 3) + 6 + short_offset, (i >> 2) + 15, 0x69 + i, game.elementDef(EKey).character);
 					else
 						driver->draw_char((i & 3) + 6 + short_offset, (i >> 2) + 15, 0x60, ' ');
 				}
