@@ -1,0 +1,20 @@
+.out outpos position
+.out outtc0 texcoord0
+.out outclr color
+
+.alias inpos v0
+.alias intc0 v1
+.alias inclr v2
+
+.constf RGBS(0.00392156862745098, 0.00392156862745098, 0.00392156862745098, 0.00392156862745098)
+
+.proc main
+	mov outpos, inpos
+	mov outtc0, intc0
+        mov r1, RGBS
+	mul outclr, inclr.wzyx, r1.x
+
+	end
+.end
+
+

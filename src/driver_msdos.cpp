@@ -165,11 +165,6 @@ void MSDOSDriver::set_border_color(uint8_t value) {
 	outportb(0x3D9, value);
 }
 
-void MSDOSDriver::get_video_size(int16_t &width, int16_t &height) {
-	width = 80;
-	height = 25;
-}
-
 UserInterface *MSDOSDriver::create_user_interface(Game &game) {
 	union REGS r;
 	if (game.engineDefinition.engineType == ENGINE_TYPE_SUPER_ZZT) {

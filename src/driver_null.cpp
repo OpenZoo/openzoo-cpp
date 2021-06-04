@@ -45,11 +45,6 @@ void NullDriver::read_char(int16_t x, int16_t y, uint8_t &col, uint8_t &chr) {
     chr = 0;
 }
 
-void NullDriver::get_video_size(int16_t &width, int16_t &height) {
-	width = 80;
-	height = 25;
-}
-
 #include "gamevars.h"
 
 static Game *game;

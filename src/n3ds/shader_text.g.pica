@@ -1,0 +1,73 @@
+.gsh point c0
+
+.fvec projection[4]
+.fvec offset
+.fvec tex_scale
+.fvec uv_char_offset
+.fvec xy_char_offset
+
+.out outpos position
+.out outtc0 texcoord0
+.out outclr color
+
+.alias inpos v0
+.alias intc0 v1
+.alias inclr v2
+
+;.constf tex_scale(0.0009765625, 0.001953125, -1, 1)
+;.constf uv_char_offset(8, -14, 0, 0)
+;.constf xy_char_offset(8.0, 14.0, 1.0, 1.0)
+
+.entry gmain
+.proc gmain
+	mov r4, xy_char_offset
+	mov r2, intc0
+	mov r3.xyz, inpos
+	mad r0, r3, r4, offset
+
+	mov r11, tex_scale
+	mov r0.w, xy_char_offset.w
+	mul r5.xy, uv_char_offset.xy, r11.xy
+	mul r6, r2, r11
+
+	setemit 0
+	add r8.xy, r0.xy, r4.xy
+	add r10.xy, r6.xy, r5.xy
+	call emit_vertex
+	emit
+
+	setemit 1
+	mov r8.y, r0.y
+	add r8.x, r0.x, r4.x
+	mov r10.y, r6.y
+	add r10.x, r6.x, r5.x
+	call emit_vertex
+	emit
+
+	setemit 2, prim
+	mov r8, r0
+	mov r10, r6
+	call emit_vertex
+	emit
+
+	setemit 1, prim inv
+	mov r8.x, r0.x
+	add r8.y, r0.y, r4.y
+	mov r10.x, r6.x
+	add r10.y, r6.y, r5.y
+	call emit_vertex
+	emit
+
+	end
+.end
+
+.proc emit_vertex
+	dp4 outpos.x, projection[0], r8
+	dp4 outpos.y, projection[1], r8
+	dp4 outpos.z, projection[2], r8
+	dp4 outpos.w, projection[3], r8
+
+	mov outclr, inclr
+	mov outtc0, r10
+.end
+

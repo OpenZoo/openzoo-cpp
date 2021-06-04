@@ -530,11 +530,6 @@ void SDL2Driver::clrscr(void) {
     SDL_UnlockMutex(playfieldMutex);
 }
 
-void SDL2Driver::get_video_size(int16_t &width, int16_t &height) {
-	width = width_chars;
-	height = height_chars;
-}
-
 bool SDL2Driver::set_video_size(int16_t width, int16_t height, bool simulate) {
     if (width <= 0 || height <= 0) return false;
 

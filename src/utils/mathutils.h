@@ -16,6 +16,17 @@ public:
         int16_t Next(int16_t max);
     };
 
+	template<typename T> T NextPowerOfTwo(T value) {
+		value--;
+		value |= value >> 1;
+		value |= value >> 2;
+		value |= value >> 4;
+		value |= value >> 8;
+		value |= value >> 16;
+		value |= value >> 32;
+		return value + 1;
+	}
+
     template<typename T> T Sqr(T value) {
         return value * value;
     }

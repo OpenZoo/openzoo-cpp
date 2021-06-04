@@ -614,11 +614,6 @@ void GBADriver::read_char(int16_t x, int16_t y, uint8_t &col, uint8_t &chr) {
 	}
 }
 
-void GBADriver::get_video_size(int16_t &width, int16_t &height) {
-	width = 60;
-	height = 26;
-}
-
 UserInterface *GBADriver::create_user_interface(Game &game) {
 	if (game.engineDefinition.engineType == ENGINE_TYPE_SUPER_ZZT) {
 		zoo_video_set_mode_6_lines(0);

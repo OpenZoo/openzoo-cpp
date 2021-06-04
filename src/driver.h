@@ -194,7 +194,6 @@ namespace ZZT {
         // required
         virtual void draw_char(int16_t x, int16_t y, uint8_t col, uint8_t chr) = 0;
         virtual void read_char(int16_t x, int16_t y, uint8_t &col, uint8_t &chr) = 0;
-        virtual void get_video_size(int16_t &width, int16_t &height) = 0;
 
         // optional
         virtual void draw_string(int16_t x, int16_t y, uint8_t col, const char* text);
