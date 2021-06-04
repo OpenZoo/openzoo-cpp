@@ -534,23 +534,359 @@ bool Game::OopSend(int16_t stat_id, const char *sendLabel, bool ignoreLock) {
 	return result;
 }
 
+OopCommandResult ZZT::OopCommandGo(OopState &state) {
+	int16_t deltaX, deltaY;
+	state.game.OopReadDirection(state.stat, state.position, deltaX, deltaY);
+	int16_t destX = state.stat.x + deltaX;
+	int16_t destY = state.stat.y + deltaY;
+
+	if (!state.game.elementDefAt(destX, destY).walkable) {
+		ElementPushablePush(state.game, destX, destY, deltaX, deltaY);
+	}
+
+	destX = state.stat.x + deltaX;
+	destY = state.stat.y + deltaY;
+
+	if (state.game.elementDefAt(destX, destY).walkable) {
+		state.game.MoveStat(state.stat_id, destX, destY);
+	} else {
+		state.repeatInsNextTick = true;
+	}
+
+	state.stopRunning = true;
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandTry(OopState &state) {
+	int16_t deltaX, deltaY;
+	state.game.OopReadDirection(state.stat, state.position, deltaX, deltaY);
+	int16_t destX = state.stat.x + deltaX;
+	int16_t destY = state.stat.y + deltaY;
+
+	if (!state.game.elementDefAt(destX, destY).walkable) {
+		ElementPushablePush(state.game, destX, destY, deltaX, deltaY);
+	}
+
+	destX = state.stat.x + deltaX;
+	destY = state.stat.y + deltaY;
+
+	if (state.game.elementDefAt(destX, destY).walkable) {
+		state.game.MoveStat(state.stat_id, destX, destY);
+		state.stopRunning = true;
+		return OOP_COMMAND_FINISHED;
+	} else {
+		return OOP_COMMAND_NEXT;
+	}
+}
+
+OopCommandResult ZZT::OopCommandWalk(OopState &state) {
+	int16_t newStepX = state.stat.step_x;
+	int16_t newStepY = state.stat.step_y;
+	state.game.OopReadDirection(state.stat, state.position, newStepX, newStepY);
+	state.stat.step_x = newStepX;
+	state.stat.step_y = newStepY;
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandSet(OopState &state) {
+	state.game.OopReadWord(state.stat, state.position);
+	state.game.WorldSetFlag(state.game.oopWord);
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandClear(OopState &state) {
+	state.game.OopReadWord(state.stat, state.position);
+	state.game.WorldClearFlag(state.game.oopWord);
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandIf(OopState &state) {
+	state.game.OopReadWord(state.stat, state.position);
+	if (state.game.OopCheckCondition(state.stat, state.position)) {
+		return OOP_COMMAND_NEXT;
+	} else {
+		return OOP_COMMAND_FINISHED;
+	}
+}
+
+OopCommandResult ZZT::OopCommandShoot(OopState &state) {
+	int16_t deltaX, deltaY;
+	state.game.OopReadDirection(state.stat, state.position, deltaX, deltaY);
+	if (state.game.BoardShoot(EBullet, state.stat.x, state.stat.y, deltaX, deltaY, ShotSourceEnemy)) {
+		state.game.driver->sound_queue(2, "\x30\x01\x26\x01");
+	}
+	state.stopRunning = true;
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandThrowstar(OopState &state) {
+	int16_t deltaX, deltaY;
+	state.game.OopReadDirection(state.stat, state.position, deltaX, deltaY);
+	if (state.game.BoardShoot(EStar, state.stat.x, state.stat.y, deltaX, deltaY, ShotSourceEnemy)) {
+		// pass
+	}
+	state.stopRunning = true;
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandGiveTake(OopState &state) {
+	bool counterSubtract = state.game.oopWord[0] == 'T';
+	
+	state.game.OopReadWord(state.stat, state.position);
+	int16_t *counterPtr = nullptr;
+	if (StrEquals(state.game.oopWord, "HEALTH")) {
+		counterPtr = &state.game.world.info.health;
+	} else if (StrEquals(state.game.oopWord, "AMMO")) {
+		counterPtr = &state.game.world.info.ammo;
+	} else if (StrEquals(state.game.oopWord, "GEMS")) {
+		counterPtr = &state.game.world.info.gems;
+	} else if (StrEquals(state.game.oopWord, "TORCHES")) {
+		counterPtr = &state.game.world.info.torches;
+	} else if (StrEquals(state.game.oopWord, "SCORE")) {
+		counterPtr = &state.game.world.info.score;
+	} else if (StrEquals(state.game.oopWord, "TIME")) {
+		counterPtr = &state.game.world.info.board_time_sec;
+	} else if (state.game.engineDefinition.is<QUIRK_SUPER_ZZT_STONES_OF_POWER>() && StrEquals(state.game.oopWord, "Z")) {
+		counterPtr = &state.game.world.info.stones_of_power;
+	}
+
+	if (counterPtr != nullptr) {
+		state.game.OopReadValue(state.stat, state.position);
+		if (state.game.oopValue > 0) {
+			if (counterSubtract) {
+				state.game.oopValue = -state.game.oopValue;
+			}
+
+			if (((*counterPtr) + state.game.oopValue) >= 0) {
+				*counterPtr += state.game.oopValue;
+			} else {
+				return OOP_COMMAND_NEXT;
+			}
+		}
+	}
+
+	state.game.GameUpdateSidebar();
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandEnd(OopState &state) {
+	state.position = -1;
+	state.game.oopChar = 0;
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandEndgame(OopState &state) {
+	state.game.world.info.health = 0;
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandIdle(OopState &state) {
+	state.stopRunning = true;
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandRestart(OopState &state) {
+	state.position = 0;
+	state.lineFinished = false;
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandZap(OopState &state) {
+	state.game.OopReadWord(state.stat, state.position);
+	// state->oop_word is used by OopIterateStat
+	sstring<20> oopWordCopy;
+	StrCopy(oopWordCopy, state.game.oopWord);
+
+	int16_t labelStatId = 0;
+	int16_t labelDataPos;
+	while (state.game.OopFindLabel(state.stat_id, oopWordCopy, labelStatId, labelDataPos, "\r:")) {
+		state.game.board.stats[labelStatId].data.data[labelDataPos + 1] = '\'';
+	}
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandRestore(OopState &state) {
+	state.game.OopReadWord(state.stat, state.position);
+	// state->oop_word is used by OopIterateStat
+	sstring<20> oopWordCopy;
+	sstring<30> oopSearchStr;
+	StrCopy(oopWordCopy, state.game.oopWord);
+	StrJoin(oopSearchStr, 3, "\r'", state.game.oopWord, "\r");
+
+	int16_t labelStatId = 0;
+	int16_t labelDataPos;
+	while (state.game.OopFindLabel(state.stat_id, oopWordCopy, labelStatId, labelDataPos, "\r'")) {
+		Stat &labelStat = state.game.board.stats[labelStatId];
+
+		do {
+			labelStat.data.data[labelDataPos + 1] = ':';
+			labelDataPos = state.game.OopFindString(labelStat, labelDataPos + 1, oopSearchStr);
+		} while (labelDataPos > 0);
+	}
+
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandLock(OopState &state) {
+	stat_lock(state.stat, state.game) = 1;
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandUnlock(OopState &state) {
+	stat_lock(state.stat, state.game) = 0;
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandSend(OopState &state) {
+	state.game.OopReadWord(state.stat, state.position);
+	// state->oop_word is used by OopIterateStat
+	sstring<20> oopWordCopy;
+	StrCopy(oopWordCopy, state.game.oopWord);
+
+	if (state.game.OopSend(state.stat_id, oopWordCopy, false)) {
+		state.lineFinished = false;
+	}
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandBecome(OopState &state) {
+	Tile tile;
+	if (state.game.OopParseTile(state.stat, state.position, tile)) {
+		state.replaceStat = true;
+		state.replaceTile = tile;
+	} else {
+		state.game.OopError(state.stat, "Bad #BECOME");
+	}
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandPut(OopState &state) {
+	int16_t deltaX, deltaY;
+	Tile tile;
+	state.game.OopReadDirection(state.stat, state.position, deltaX, deltaY);
+	
+	if (deltaX == 0 && deltaY == 0) {
+		state.game.OopError(state.stat, "Bad #PUT");
+	} else if (!state.game.OopParseTile(state.stat, state.position, tile)) {
+		state.game.OopError(state.stat, "Bad #PUT");
+	} else {
+		int16_t destX = state.stat.x + deltaX;
+		int16_t destY = state.stat.y + deltaY;
+		if (destX > 0 && destX <= state.game.board.width() && destY > 0 && destY < state.game.board.height()) {
+			if (!state.game.elementDefAt(destX, destY).walkable) {
+				ElementPushablePush(state.game, destX, destY, deltaX, deltaY);
+			}
+
+			destX = state.stat.x + deltaX;
+			destY = state.stat.y + deltaY;
+
+			state.game.OopPlaceTile(destX, destY, tile);
+		}
+	}
+
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandChange(OopState &state) {
+	Tile fromTile, toTile;
+	if (!state.game.OopParseTile(state.stat, state.position, fromTile)) {
+		state.game.OopError(state.stat, "Bad #CHANGE");
+	}
+	if (!state.game.OopParseTile(state.stat, state.position, toTile)) {
+		state.game.OopError(state.stat, "Bad #CHANGE");
+	}
+
+	int16_t ix = 0;
+	int16_t iy = 1;
+	if (toTile.color == 0 && state.game.elementDef(toTile.element).color < ColorSpecialMin) {
+		toTile.color = state.game.elementDef(toTile.element).color;
+	}
+
+	while (state.game.FindTileOnBoard(ix, iy, fromTile)) {
+		state.game.OopPlaceTile(ix, iy, toTile);
+	}
+
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandPlay(OopState &state) {
+	char textLine[256];
+	state.game.OopReadLineToEnd(state.stat, state.position, textLine, sizeof(textLine));
+	if (!StrEmpty(textLine)) {
+		uint8_t buf[255];
+		int buflen = SoundParse(textLine, buf, sizeof(buf));
+		if (buflen > 0) {
+			state.game.driver->sound_queue(-1, buf, buflen);
+		}
+	}
+	state.lineFinished = false;
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandCycle(OopState &state) {
+	state.game.OopReadValue(state.stat, state.position);
+	if (state.game.oopValue > 0) {
+		state.stat.cycle = state.game.oopValue;
+	}
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandChar(OopState &state) {
+	state.game.OopReadValue(state.stat, state.position);
+	if (state.game.oopValue > 0 && state.game.oopValue <= 255) {
+		state.stat.p1 = (uint8_t) state.game.oopValue;
+		state.game.BoardDrawTile(state.stat.x, state.stat.y);
+	}
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandDie(OopState &state) {
+	state.replaceStat = true;
+	state.replaceTile = {
+		.element = EEmpty,
+		.color = 0x0F
+	};
+	return OOP_COMMAND_FINISHED;
+}
+
+OopCommandResult ZZT::OopCommandBind(OopState &state) {
+	state.game.OopReadWord(state.stat, state.position);
+	// state->oop_word is used by OopIterateStat
+	sstring<20> oopWordCopy;
+	StrCopy(oopWordCopy, state.game.oopWord);
+	int16_t bindStatId = 0;
+	if (state.game.OopIterateStat(state.stat_id, bindStatId, oopWordCopy)) {
+		state.game.board.stats.free_data_if_unused(state.stat_id);
+		state.stat.data = state.game.board.stats[bindStatId].data;
+		state.position = 0;
+	}
+	return OOP_COMMAND_FINISHED;
+}
+
 bool Game::OopExecute(int16_t stat_id, int16_t &position, const char *default_name) {
 StartParsing:
-	TextWindow *textWindow = nullptr;
-	bool stopRunning = false;
-	bool repeatInsNextTick = false;
-	bool replaceStat = false;
-	bool endOfProgram = false;
-	bool lineFinished;
-	int16_t insCount = 0;
-	int16_t lastPosition;
-	Tile replaceTile;
-
 	Stat &stat = board.stats[stat_id];
+
+	OopState state = {
+		.game = *this,
+		.stat = stat,
+		.stat_id = stat_id,
+		.position = position,
+		.textWindow = nullptr,
+		.stopRunning = false,
+		.repeatInsNextTick = false,
+		.replaceStat = false,
+		.endOfProgram = false,
+		.lineFinished = false,
+		.insCount = 0,
+		.replaceTile = {EEmpty, 0x00}
+	};
+
+	int16_t lastPosition;
 
 	do {
 ReadInstruction:
-		lineFinished = true;
+		state.lineFinished = true;
 		lastPosition = position;
 		OopReadChar(stat, position);
 
@@ -572,7 +908,7 @@ ReadInstruction:
 				int16_t deltaX, deltaY;
 				bool is_try = (oopChar == '?');
 				if (engineDefinition.isNot<QUIRK_OOP_SUPER_ZZT_MOVEMENT>()) {
-					repeatInsNextTick = !is_try;
+					state.repeatInsNextTick = !is_try;
 				}
 
 				OopReadWord(stat, position);
@@ -599,17 +935,17 @@ ReadInstruction:
 
 							if (elementDefAt(destX, destY).walkable) {
 								MoveStat(stat_id, destX, destY);
-								repeatInsNextTick = false;
+								state.repeatInsNextTick = false;
 							}
 						} else {
-							repeatInsNextTick = false;
+							state.repeatInsNextTick = false;
 						}
 					}
 
 					OopReadChar(stat, position);
 					if (oopChar != '\r') position--;
 
-					stopRunning = true;
+					state.stopRunning = true;
 				} else {
 					OopError(stat, "Bad direction");
 				}
@@ -623,260 +959,18 @@ ReadCommand:
 				if (StrEmpty(oopWord)) {
 					goto ReadInstruction;
 				} else {
-					insCount++;
-					if (StrEquals(oopWord, "GO")) {
-						int16_t deltaX, deltaY;
-						OopReadDirection(stat, position, deltaX, deltaY);
-						int16_t destX = stat.x + deltaX;
-						int16_t destY = stat.y + deltaY;
-
-						if (!elementDefAt(destX, destY).walkable) {
-							ElementPushablePush(*this, destX, destY, deltaX, deltaY);
-						}
-
-						destX = stat.x + deltaX;
-						destY = stat.y + deltaY;
-
-						if (elementDefAt(destX, destY).walkable) {
-							MoveStat(stat_id, destX, destY);
-						} else {
-							repeatInsNextTick = true;
-						}
-
-						stopRunning = true;
-					} else if (StrEquals(oopWord, "TRY")) {
-						int16_t deltaX, deltaY;
-						OopReadDirection(stat, position, deltaX, deltaY);
-						int16_t destX = stat.x + deltaX;
-						int16_t destY = stat.y + deltaY;
-
-						if (!elementDefAt(destX, destY).walkable) {
-							ElementPushablePush(*this, destX, destY, deltaX, deltaY);
-						}
-
-						destX = stat.x + deltaX;
-						destY = stat.y + deltaY;
-
-						if (elementDefAt(destX, destY).walkable) {
-							MoveStat(stat_id, destX, destY);
-							stopRunning = true;
-						} else {
-							goto ReadCommand;
-						}
-					} else if (StrEquals(oopWord, "WALK")) {
-						int16_t newStepX = stat.step_x;
-						int16_t newStepY = stat.step_y;
-						OopReadDirection(stat, position, newStepX, newStepY);
-						stat.step_x = newStepX;
-						stat.step_y = newStepY;
-					} else if (StrEquals(oopWord, "SET")) {
-						OopReadWord(stat, position);
-						WorldSetFlag(oopWord);
-					} else if (StrEquals(oopWord, "CLEAR")) {
-						OopReadWord(stat, position);
-						WorldClearFlag(oopWord);
-					} else if (StrEquals(oopWord, "IF")) {
-						OopReadWord(stat, position);
-						if (OopCheckCondition(stat, position)) {
-							goto ReadCommand;
-						}
-					} else if (StrEquals(oopWord, "SHOOT")) {
-						int16_t deltaX, deltaY;
-						OopReadDirection(stat, position, deltaX, deltaY);
-						if (BoardShoot(EBullet, stat.x, stat.y, deltaX, deltaY, ShotSourceEnemy)) {
-							driver->sound_queue(2, "\x30\x01\x26\x01");
-						}
-						stopRunning = true;
-					} else if (StrEquals(oopWord, "THROWSTAR")) {
-						int16_t deltaX, deltaY;
-						OopReadDirection(stat, position, deltaX, deltaY);
-						if (BoardShoot(EStar, stat.x, stat.y, deltaX, deltaY, ShotSourceEnemy)) {
-							// pass
-						}
-						stopRunning = true;
-					} else if (StrEquals(oopWord, "GIVE") || StrEquals(oopWord, "TAKE")) {
-						bool counterSubtract = StrEquals(oopWord, "TAKE");
-
-						OopReadWord(stat, position);
-						int16_t *counterPtr = nullptr;
-						if (StrEquals(oopWord, "HEALTH")) {
-							counterPtr = &world.info.health;
-						} else if (StrEquals(oopWord, "AMMO")) {
-							counterPtr = &world.info.ammo;
-						} else if (StrEquals(oopWord, "GEMS")) {
-							counterPtr = &world.info.gems;
-						} else if (StrEquals(oopWord, "TORCHES")) {
-							counterPtr = &world.info.torches;
-						} else if (StrEquals(oopWord, "SCORE")) {
-							counterPtr = &world.info.score;
-						} else if (StrEquals(oopWord, "TIME")) {
-							counterPtr = &world.info.board_time_sec;
-						} else if (engineDefinition.is<QUIRK_SUPER_ZZT_STONES_OF_POWER>() && StrEquals(oopWord, "Z")) {
-							counterPtr = &world.info.stones_of_power;
-						}
-
-						if (counterPtr != nullptr) {
-							OopReadValue(stat, position);
-							if (oopValue > 0) {
-								if (counterSubtract) {
-									oopValue = -oopValue;
-								}
-
-								if (((*counterPtr) + oopValue) >= 0) {
-									*counterPtr += oopValue;
-								} else {
-									goto ReadCommand;
-								}
-							}
-						}
-
-						GameUpdateSidebar();
-					} else if (StrEquals(oopWord, "END")) {
-						position = -1;
-						oopChar = 0;
-					} else if (StrEquals(oopWord, "ENDGAME")) {
-						world.info.health = 0;
-					} else if (StrEquals(oopWord, "IDLE")) {
-						stopRunning = true;
-					} else if (StrEquals(oopWord, "RESTART")) {
-						position = 0;
-						lineFinished = false;
-					} else if (StrEquals(oopWord, "ZAP")) {
-						OopReadWord(stat, position);
-						// state->oop_word is used by OopIterateStat
-						sstring<20> oopWordCopy;
-						StrCopy(oopWordCopy, oopWord);
-
-						int16_t labelStatId = 0;
-						int16_t labelDataPos;
-						while (OopFindLabel(stat_id, oopWordCopy, labelStatId, labelDataPos, "\r:")) {
-							board.stats[labelStatId].data.data[labelDataPos + 1] = '\'';
-						}
-					} else if (StrEquals(oopWord, "RESTORE")) {
-						OopReadWord(stat, position);
-						// state->oop_word is used by OopIterateStat
-						sstring<20> oopWordCopy;
-						sstring<30> oopSearchStr;
-						StrCopy(oopWordCopy, oopWord);
-						StrJoin(oopSearchStr, 3, "\r'", oopWord, "\r");
-
-						int16_t labelStatId = 0;
-						int16_t labelDataPos;
-						while (OopFindLabel(stat_id, oopWordCopy, labelStatId, labelDataPos, "\r'")) {
-							Stat &labelStat = board.stats[labelStatId];
-
-							do {
-								labelStat.data.data[labelDataPos + 1] = ':';
-								labelDataPos = OopFindString(labelStat, labelDataPos + 1, oopSearchStr);
-							} while (labelDataPos > 0);
-						}
-					} else if (StrEquals(oopWord, "LOCK")) {
-						stat_lock(stat, *this) = 1;
-					} else if (StrEquals(oopWord, "UNLOCK")) {
-						stat_lock(stat, *this) = 0;
-					} else if (StrEquals(oopWord, "SEND")) {
-						OopReadWord(stat, position);
-						// state->oop_word is used by OopIterateStat
-						sstring<20> oopWordCopy;
-						StrCopy(oopWordCopy, oopWord);
-
-						if (OopSend(stat_id, oopWordCopy, false)) {
-							lineFinished = false;
-						}
-					} else if (StrEquals(oopWord, "BECOME")) {
-						Tile tile;
-						if (OopParseTile(stat, position, tile)) {
-							replaceStat = true;
-							replaceTile = tile;
-						} else {
-							OopError(stat, "Bad #BECOME");
-						}
-					} else if (StrEquals(oopWord, "PUT")) {
-						int16_t deltaX, deltaY;
-						Tile tile;
-						OopReadDirection(stat, position, deltaX, deltaY);
-						
-						if (deltaX == 0 && deltaY == 0) {
-							OopError(stat, "Bad #PUT");
-						} else if (!OopParseTile(stat, position, tile)) {
-							OopError(stat, "Bad #PUT");
-						} else {
-							int16_t destX = stat.x + deltaX;
-							int16_t destY = stat.y + deltaY;
-							if (destX > 0 && destX <= board.width() && destY > 0 && destY < board.height()) {
-								if (!elementDefAt(destX, destY).walkable) {
-									ElementPushablePush(*this, destX, destY, deltaX, deltaY);
-								}
-
-								destX = stat.x + deltaX;
-								destY = stat.y + deltaY;
-
-								OopPlaceTile(destX, destY, tile);
-							}
-						}
-					} else if (StrEquals(oopWord, "CHANGE")) {
-						Tile fromTile, toTile;
-						if (!OopParseTile(stat, position, fromTile)) {
-							OopError(stat, "Bad #CHANGE");
-						}
-						if (!OopParseTile(stat, position, toTile)) {
-							OopError(stat, "Bad #CHANGE");
-						}
-
-						int16_t ix = 0;
-						int16_t iy = 1;
-						if (toTile.color == 0 && elementDef(toTile.element).color < ColorSpecialMin) {
-							toTile.color = elementDef(toTile.element).color;
-						}
-
-						while (FindTileOnBoard(ix, iy, fromTile)) {
-							OopPlaceTile(ix, iy, toTile);
-						}
-					} else if (StrEquals(oopWord, "PLAY")) {
-						char textLine[256];
-						OopReadLineToEnd(stat, position, textLine, sizeof(textLine));
-						if (!StrEmpty(textLine)) {
-							uint8_t buf[255];
-							int buflen = SoundParse(textLine, buf, sizeof(buf));
-							if (buflen > 0) {
-								driver->sound_queue(-1, buf, buflen);
-							}
-						}
-						lineFinished = false;
-					} else if (StrEquals(oopWord, "CYCLE")) {
-						OopReadValue(stat, position);
-						if (oopValue > 0) {
-							stat.cycle = oopValue;
-						}
-					} else if (StrEquals(oopWord, "CHAR")) {
-						OopReadValue(stat, position);
-						if (oopValue > 0 && oopValue <= 255) {
-							stat.p1 = (uint8_t) oopValue;
-							BoardDrawTile(stat.x, stat.y);
-						}
-					} else if (StrEquals(oopWord, "DIE")) {
-						replaceStat = true;
-						replaceTile = {
-							.element = EEmpty,
-							.color = 0x0F
-						};
-					} else if (StrEquals(oopWord, "BIND")) {
-						OopReadWord(stat, position);
-						// state->oop_word is used by OopIterateStat
-						sstring<20> oopWordCopy;
-						StrCopy(oopWordCopy, oopWord);
-						int16_t bindStatId = 0;
-						if (OopIterateStat(stat_id, bindStatId, oopWordCopy)) {
-							board.stats.free_data_if_unused(stat_id);
-							stat.data = board.stats[bindStatId].data;
-							position = 0;
-						}
+					state.insCount++;
+					OopCommandProc proc = engineDefinition.oopCommandMap.get(oopWord);
+					
+					if (proc != nullptr) {
+						OopCommandResult result = proc(state);
+						if (result == OOP_COMMAND_NEXT) goto ReadCommand;
 					} else {
 						sstring<20> oopWordCopy;
 						StrCopy(oopWordCopy, oopWord);
 
 						if (OopSend(stat_id, oopWordCopy, false)) {
-							lineFinished = false;
+							state.lineFinished = false;
 						} else {
 							if (strchr(oopWordCopy, ':') == NULL) {
 								char textLine[61];
@@ -887,33 +981,33 @@ ReadCommand:
 					}
 				}
 
-				if (lineFinished) {
+				if (state.lineFinished) {
 					OopSkipLine(stat, position);
 				}
 			} break;
 			case '\r': {
 				// OpenZoo: implies textWindow.lineCount > 0
-				if (textWindow != nullptr) {
-					textWindow->Append("");
+				if (state.textWindow != nullptr) {
+					state.textWindow->Append("");
 				}
 			} break;
 			case 0: {
-				endOfProgram = true;
+				state.endOfProgram = true;
 			} break;
 			default: {
 				char textLine[66]; // should be enough?
 				textLine[0] = oopChar;
 				OopReadLineToEnd(stat, position, textLine + 1, sizeof(textLine) - 1);
-				if (textWindow == nullptr) {
-					textWindow = interface->CreateTextWindow(filesystem);
-					textWindow->selectable = false;
+				if (state.textWindow == nullptr) {
+					state.textWindow = interface->CreateTextWindow(filesystem);
+					state.textWindow->selectable = false;
 				}
-				textWindow->Append(textLine);
+				state.textWindow->Append(textLine);
 			} break;
 		}
-	} while (!endOfProgram && !stopRunning && !repeatInsNextTick && !replaceStat && insCount <= 32);
+	} while (!state.endOfProgram && !state.stopRunning && !state.repeatInsNextTick && !state.replaceStat && state.insCount <= 32);
 
-	if (repeatInsNextTick) {
+	if (state.repeatInsNextTick) {
 		position = lastPosition;
 	}
 
@@ -921,9 +1015,9 @@ ReadCommand:
 		position = -1;
 	}
 
-	if (textWindow == nullptr) {
+	if (state.textWindow == nullptr) {
 		// implies 0 lines
-	} else if (textWindow->line_count > engineDefinition.messageLines) {
+	} else if (state.textWindow->line_count > engineDefinition.messageLines) {
 		char name[256];
 		StrCopy(name, default_name);
 
@@ -937,38 +1031,38 @@ ReadCommand:
 			StrCopy(name, "Interaction");
 		}
 
-		StrCopy(textWindow->title, name);
-		textWindow->DrawOpen();
-		textWindow->Select(true, false);
-		textWindow->DrawClose();
-		textWindow->Clear();
+		StrCopy(state.textWindow->title, name);
+		state.textWindow->DrawOpen();
+		state.textWindow->Select(true, false);
+		state.textWindow->DrawClose();
+		state.textWindow->Clear();
 
-		if (!StrEmpty(textWindow->hyperlink)) {
-			if (OopSend(stat_id, textWindow->hyperlink, false)) {
-				delete textWindow;
+		if (!StrEmpty(state.textWindow->hyperlink)) {
+			if (OopSend(stat_id, state.textWindow->hyperlink, false)) {
+				delete state.textWindow;
 				goto StartParsing;
 			}
 		}
 
-		delete textWindow;
-	} else if (textWindow->line_count >= 2) {
-		DisplayMessage(200, textWindow->lines[0]->c_str(), textWindow->lines[1]->c_str());
-		textWindow->Clear();
-		delete textWindow;
-	} else if (textWindow->line_count >= 1) {
-		DisplayMessage(200, textWindow->lines[0]->c_str());
-		textWindow->Clear();
-		delete textWindow;
+		delete state.textWindow;
+	} else if (state.textWindow->line_count >= 2) {
+		DisplayMessage(200, state.textWindow->lines[0]->c_str(), state.textWindow->lines[1]->c_str());
+		state.textWindow->Clear();
+		delete state.textWindow;
+	} else if (state.textWindow->line_count >= 1) {
+		DisplayMessage(200, state.textWindow->lines[0]->c_str());
+		state.textWindow->Clear();
+		delete state.textWindow;
 	}
 
-	if (replaceStat) {
+	if (state.replaceStat) {
 		int16_t ix = stat.x;
 		int16_t iy = stat.y;
 		if (engineDefinition.isNot<QUIRK_SUPER_ZZT_COMPAT_MISC>()) {
 			DamageStat(stat_id);
 		}
-		OopPlaceTile(ix, iy, replaceTile);
+		OopPlaceTile(ix, iy, state.replaceTile);
 	}
 
-	return replaceStat;
+	return state.replaceStat;
 }

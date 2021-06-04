@@ -670,6 +670,15 @@ namespace ZZT {
         }
     };
 
+	class OopState;
+
+	typedef enum {
+		OOP_COMMAND_FINISHED,
+		OOP_COMMAND_NEXT
+	} OopCommandResult;
+
+	typedef OopCommandResult (*OopCommandProc)(OopState &state);
+
     class EngineDefinition {
         uint8_t elementTypeToId[ElementTypeCount];
 
@@ -694,6 +703,7 @@ namespace ZZT {
 
         // Caches
         TokenMap<int16_t, -1, true> elementNameMap;
+		TokenMap<OopCommandProc, nullptr, false> oopCommandMap;
 
 		bool has_element(ElementType type) const {
 			return (type == EEmpty) || (elementTypeToId[type] != 0);
@@ -736,22 +746,6 @@ namespace ZZT {
         inline const ElementDef& elementDef(uint8_t element) const {
             return elementDefs[element >= elementCount ? EEmpty : element];
         }
-    };
-
-    class OopState {
-    public:
-        Game *game;
-        Stat *stat;
-
-        TextWindow *textWindow;
-        bool stopRunning;
-        bool repeatInsNextTick;
-        bool replaceStat;
-        bool endOfProgram;
-        bool lineFinished;
-        int16_t insCount;
-        int16_t lastPosition;
-        Tile replaceTile;
     };
 
     class Game {
@@ -929,6 +923,51 @@ namespace ZZT {
         // sounds.cpp
         bool HasTimeElapsed(int16_t &counter, int16_t duration);
     };
+
+	// oop.cpp - command definitions
+	class OopState {
+	public:
+		Game &game;
+		Stat &stat;
+		int16_t stat_id;
+		int16_t &position;
+
+		TextWindow *textWindow;
+		bool stopRunning;
+		bool repeatInsNextTick;
+		bool replaceStat;
+		bool endOfProgram;
+		bool lineFinished;
+		int16_t insCount;
+		Tile replaceTile;
+	};
+
+	OopCommandResult OopCommandGo(OopState &state);
+	OopCommandResult OopCommandTry(OopState &state);
+	OopCommandResult OopCommandWalk(OopState &state);
+	OopCommandResult OopCommandSet(OopState &state);
+	OopCommandResult OopCommandClear(OopState &state);
+	OopCommandResult OopCommandIf(OopState &state);
+	OopCommandResult OopCommandShoot(OopState &state);
+	OopCommandResult OopCommandThrowstar(OopState &state);
+	OopCommandResult OopCommandGiveTake(OopState &state);
+	OopCommandResult OopCommandEnd(OopState &state);
+	OopCommandResult OopCommandEndgame(OopState &state);
+	OopCommandResult OopCommandIdle(OopState &state);
+	OopCommandResult OopCommandRestart(OopState &state);
+	OopCommandResult OopCommandZap(OopState &state);
+	OopCommandResult OopCommandRestore(OopState &state);
+	OopCommandResult OopCommandLock(OopState &state);
+	OopCommandResult OopCommandUnlock(OopState &state);
+	OopCommandResult OopCommandSend(OopState &state);
+	OopCommandResult OopCommandBecome(OopState &state);
+	OopCommandResult OopCommandPut(OopState &state);
+	OopCommandResult OopCommandChange(OopState &state);
+	OopCommandResult OopCommandPlay(OopState &state);
+	OopCommandResult OopCommandCycle(OopState &state);
+	OopCommandResult OopCommandChar(OopState &state);
+	OopCommandResult OopCommandDie(OopState &state);
+	OopCommandResult OopCommandBind(OopState &state);
 
     // game.cpp
     void CopyStatDataToTextWindow(const Stat &stat, TextWindow &window);

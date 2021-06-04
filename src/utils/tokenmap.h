@@ -20,7 +20,9 @@ namespace ZZT {
         bool resize(int16_t new_size) {
             const char **new_tokens = new const char*[new_size];
             E *new_values = new E[new_size];
-            if (new_tokens == NULL || new_values == NULL) {
+            if (new_tokens == nullptr || new_values == nullptr) {
+                if (new_tokens != nullptr) delete[] new_tokens;
+                if (new_values != nullptr) delete[] new_values;
                 return false;
             }
             if (size > 0) {
@@ -57,7 +59,7 @@ namespace ZZT {
         }
 
         void add(const char *key, E value, bool override) {
-            if (count >= size) {
+            while (count >= size) {
                 resize(size << 1);
             }
 

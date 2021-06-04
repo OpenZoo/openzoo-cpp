@@ -2207,6 +2207,36 @@ void Game::InitEngine(EngineType engineType, bool is_editor) {
 
     this->engineDefinition.mark_element_used(this->engineDefinition.textCutoff + 6);
 
+	// Register OOP commands
+	this->engineDefinition.oopCommandMap.clear();
+	this->engineDefinition.oopCommandMap.add("GO", OopCommandGo);
+	this->engineDefinition.oopCommandMap.add("TRY", OopCommandTry);
+	this->engineDefinition.oopCommandMap.add("WALK", OopCommandWalk);
+	this->engineDefinition.oopCommandMap.add("SET", OopCommandSet);
+	this->engineDefinition.oopCommandMap.add("CLEAR", OopCommandClear);
+	this->engineDefinition.oopCommandMap.add("IF", OopCommandIf);
+	this->engineDefinition.oopCommandMap.add("SHOOT", OopCommandShoot);
+	this->engineDefinition.oopCommandMap.add("THROWSTAR", OopCommandThrowstar);
+	this->engineDefinition.oopCommandMap.add("GIVE", OopCommandGiveTake);
+	this->engineDefinition.oopCommandMap.add("TAKE", OopCommandGiveTake);
+	this->engineDefinition.oopCommandMap.add("END", OopCommandEnd);
+	this->engineDefinition.oopCommandMap.add("ENDGAME", OopCommandEndgame);
+	this->engineDefinition.oopCommandMap.add("IDLE", OopCommandIdle);
+	this->engineDefinition.oopCommandMap.add("RESTART", OopCommandRestart);
+	this->engineDefinition.oopCommandMap.add("ZAP", OopCommandZap);
+	this->engineDefinition.oopCommandMap.add("RESTORE", OopCommandRestore);
+	this->engineDefinition.oopCommandMap.add("LOCK", OopCommandLock);
+	this->engineDefinition.oopCommandMap.add("UNLOCK", OopCommandUnlock);
+	this->engineDefinition.oopCommandMap.add("SEND", OopCommandSend);
+	this->engineDefinition.oopCommandMap.add("BECOME", OopCommandBecome);
+	this->engineDefinition.oopCommandMap.add("PUT", OopCommandPut);
+	this->engineDefinition.oopCommandMap.add("CHANGE", OopCommandChange);
+	this->engineDefinition.oopCommandMap.add("PLAY", OopCommandPlay);
+	this->engineDefinition.oopCommandMap.add("CYCLE", OopCommandCycle);
+	this->engineDefinition.oopCommandMap.add("CHAR", OopCommandChar);
+	this->engineDefinition.oopCommandMap.add("DIE", OopCommandDie);
+	this->engineDefinition.oopCommandMap.add("BIND", OopCommandBind);
+
     // Update caches
     {
         char compared[21];
