@@ -894,6 +894,7 @@ bool Game::GameWorldLoad(const char *extension) {
         if (result) {
             TransitionDrawToFill(219, 0x44);
             delete selector;
+			delete window;
             return true;
         } else {
             // FIXME: at this point, the world has a player on it - should have a monitor
