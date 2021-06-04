@@ -145,7 +145,7 @@ void N3DSDriver::uninstall(void) {
 
 void N3DSDriver::set_text_input(bool enabled, InputPromptMode mode) {
 	if (enabled) {
-		keyboard.open(-1, 2, mode);
+		keyboard.open(-1, 2, currentLayer->width(), mode);
 	} else {
 		keyboard.close();
 	}

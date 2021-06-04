@@ -21,7 +21,11 @@ static const OSKEntry entries_digit[ENTRIES_DIGIT_COUNT] = {
 	{4,  6, 13, 26}
 };
 static const OSKLayout layout_digit = {
+#ifdef __GBA__
+	.width = 6,
+#else
     .width = 5,
+#endif
     .height = 7,
     .entries = entries_digit,
     .entry_count = ENTRIES_DIGIT_COUNT,
@@ -129,7 +133,11 @@ static const OSKEntry entries_text[ENTRIES_TEXT_COUNT] = {
 	{21, 3, '/', '?'}
 };
 static const OSKLayout layout_text = {
+#ifdef __GBA__
+	.width = 26,
+#else
     .width = 25,
+#endif
     .height = 4,
     .entries = entries_text,
     .entry_count = ENTRIES_TEXT_COUNT,
@@ -173,7 +181,7 @@ void OnScreenKeyboard::draw(bool redraw) {
     }
 }
 
-void OnScreenKeyboard::open(int16_t x, int16_t y, InputPromptMode mode) {
+void OnScreenKeyboard::open(int16_t x, int16_t y, int16_t width, InputPromptMode mode) {
     close();
 
     // int16_t dw, dh;
@@ -183,7 +191,10 @@ void OnScreenKeyboard::open(int16_t x, int16_t y, InputPromptMode mode) {
     else if (mode == InputPMAlphanumeric) this->layout = &layout_alphanum;
 	else this->layout = &layout_text;
 
-    this->x = x < 0 ? (60 - (layout->width + 6)) >> 1 : x;
+    this->x = x < 0 ? (width - (layout->width + 6)) >> 1 : x;
+#ifdef __GBA__
+	this->x &= ~1;
+#endif
     this->y = y < 0 ? (-y) - (layout->height + 4) : y;
     this->backup = new VideoCopy(layout->width + 6, layout->height + 4);
     driver->copy_chars(*backup, this->x, this->y, backup->width(), backup->height(), 0, 0);

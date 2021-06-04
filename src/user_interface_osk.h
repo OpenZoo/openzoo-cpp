@@ -37,7 +37,7 @@ namespace ZZT {
         ~OnScreenKeyboard();
 
         inline bool opened() const { return backup != nullptr; }
-        void open(int16_t x, int16_t y, InputPromptMode mode);
+        void open(int16_t x, int16_t y, int16_t width, InputPromptMode mode);
         void update(void);
         void close(void);
     };

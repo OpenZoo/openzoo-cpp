@@ -136,7 +136,7 @@ void ZZT::psp_audio_callback(void *stream, unsigned int len, void *userdata) {
 
 void PSPDriver::set_text_input(bool enabled, InputPromptMode mode) {
 	if (enabled) {
-		keyboard.open(-1, 2, mode);
+		keyboard.open(-1, 2, video_doubleWide ? 40 : 60, mode);
 	} else {
 		keyboard.close();
 	}

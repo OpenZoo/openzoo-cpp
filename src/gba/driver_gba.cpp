@@ -549,17 +549,22 @@ void GBADriver::update_joy(void) {
 
 void GBADriver::set_text_input(bool enabled, InputPromptMode mode) {
 	if (enabled) {
-		keyboard.open(-1, 2, mode);
+		zoo_set_force_4x8_mode(FORCE_4X8_MODE_ALWAYS);
+		keyboard.open(-1, 2, 60, mode);
 	} else {
+		zoo_set_force_4x8_mode(FORCE_4X8_MODE_READ);
 		keyboard.close();
 	}
+	zoo_set_force_4x8_mode(FORCE_4X8_MODE_NONE);
 }
 
 void GBADriver::update_input(void) {
     advance_input();
 	if (keyboard.opened()) {
+		zoo_set_force_4x8_mode(FORCE_4X8_MODE_ALWAYS);
 		keyboard.update();
 		keyPressed = keyboard.key_pressed;
+		zoo_set_force_4x8_mode(FORCE_4X8_MODE_NONE);
 	}
 }
 
