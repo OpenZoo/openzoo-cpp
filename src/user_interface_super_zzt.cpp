@@ -262,7 +262,7 @@ void UserInterfaceSuperZZT::GameShowMessage(Game &game, uint8_t color) {
 	if (height >= 25) {
 		UserInterface::GameShowMessage(game, (color & 0x0F) | 0x10, 12, height - 1, width - 12);
 	} else {
-		GameShowMessage(game, color);
+		UserInterface::GameShowMessage(game, color);
 	}
 }
 
@@ -274,7 +274,7 @@ void UserInterfaceSuperZZT::GameHideMessage(Game &game) {
 			}
 		}
 	} else {
-		GameHideMessage(game);
+		UserInterface::GameHideMessage(game);
 	}
 }
 
