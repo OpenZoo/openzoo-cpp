@@ -598,6 +598,8 @@ bool Game::BoardPointCameraAt(int16_t sx, int16_t sy) {
 }
 
 void Game::BoardDrawBorder(void) {
+	if (engineDefinition.is<QUIRK_SUPER_ZZT_COMPAT_MISC>()) return;
+
     for (int ix = 1; ix <= board.width(); ix++) {
         BoardDrawTile(ix, 1);
 	}
@@ -1551,7 +1553,10 @@ const MenuEntry ZZT::TitleMenu[] = {
     {.id = 'P', .keys = {'P'}, .name = "Play"},
     {.id = 'R', .keys = {'R'}, .name_func = menu_str_restore},
     {.id = 'A', .keys = {'A'}, .name = "About ZZT"},
+#ifndef DISABLE_EDITOR
     {.id = 'E', .keys = {'E'}, .name_func = menu_str_editor},
+#endif
+    {.id = 'h', .keys = {'H'}, .name_func = menu_str_hint},
     {.id = 'S', .keys = {'S'}, .name = "Game speed"},
     {.id = 'H', .keys = {'H'}, .name = "High scores"},
     {.id = '|', .keys = {'|'}, .name = "Console command"},
@@ -1645,6 +1650,9 @@ void Game::GameTitleLoop(void) {
 						highScoreList->Display(world.info.name, 0);
 					}
                 } break;
+				case 'h': {
+					OopSend(0, "ALL:HINT", false);
+				} break;
                 case '|': {
                     GameDebugPrompt();
                 } break;

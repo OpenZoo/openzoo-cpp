@@ -17,5 +17,5 @@ void TextWindowSuperZZTGBA::DrawClose(void) {
 UserInterfaceSuperZZTGBA::UserInterfaceSuperZZTGBA(Driver *driver) : UserInterfaceSuperZZT(driver, 36, 20) { }
 
 TextWindow *UserInterfaceSuperZZTGBA::CreateTextWindow(FilesystemDriver *fsDriver) {
-	return new TextWindowSuperZZTGBA(driver, fsDriver, 18, 1, 38, 17);
+	return new TextWindowSuperZZTGBA(driver, fsDriver, 12, 1, 38, 17);
 }

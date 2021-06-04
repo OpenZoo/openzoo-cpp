@@ -1475,6 +1475,7 @@ void Game::GamePromptEndPlay(void) {
     if (world.info.health <= 0) {
         gamePlayExitRequested = true;
         BoardDrawBorder();
+		interface->GameHideMessage(*this);
     } else {
         gamePlayExitRequested = interface->SidebarPromptYesNo("End this game?", true);
         if (driver->keyPressed == KeyEscape) {
