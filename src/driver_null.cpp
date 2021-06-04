@@ -52,16 +52,19 @@ void NullDriver::get_video_size(int16_t &width, int16_t &height) {
 
 #include "gamevars.h"
 
+static Game *game;
+
 int main(int argc, char** argv) {
 	NullDriver driver = NullDriver();
-	Game game = Game();
+	game = new Game();
 	
-	game.driver = &driver;
-	game.filesystem = new NullFilesystemDriver();
+	game->driver = &driver;
+	game->filesystem = new NullFilesystemDriver();
 
-	game.GameTitleLoop();
+	game->GameTitleLoop();
 
-	delete game.filesystem;
+	delete game->filesystem;
+	delete game;
 
 	return 0;
 }
