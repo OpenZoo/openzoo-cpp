@@ -1528,6 +1528,7 @@ void Game::GamePlayLoop(bool boardChanged) {
                     currentTick = random.Next(100);
                     currentStatTicked = board.stats.count + 1;
                     world.info.is_save = true;
+			interface->GameHideMessage(*this);
                 }
             }
         } else /* not gamePaused */ {
