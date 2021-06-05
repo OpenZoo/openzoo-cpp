@@ -619,7 +619,7 @@ void GBADriver::read_char(int16_t x, int16_t y, uint8_t &col, uint8_t &chr) {
 	}
 }
 
-UserInterface *GBADriver::create_user_interface(Game &game) {
+UserInterface *GBADriver::create_user_interface(Game &game, bool is_editor) {
 	if (game.engineDefinition.engineType == ENGINE_TYPE_SUPER_ZZT) {
 		zoo_video_set_mode_6_lines(0);
 		zoo_set_force_4x8_mode(FORCE_4X8_MODE_NONE);

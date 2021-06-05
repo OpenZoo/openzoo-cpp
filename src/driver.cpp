@@ -363,6 +363,6 @@ bool Driver::set_video_size(int16_t width, int16_t height, bool simulate) {
     return false;
 }
 
-UserInterface *Driver::create_user_interface(Game &game) {
+UserInterface *Driver::create_user_interface(Game &game, bool is_editor) {
 	return new UserInterface(this);
 }

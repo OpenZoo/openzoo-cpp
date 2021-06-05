@@ -135,12 +135,7 @@ void UserInterface::SidebarPromptString(const char *prompt, const char *extensio
     SidebarClearLine(5);
 }
 
-void UserInterface::PopupPromptString(const char *question, char *buffer, size_t buffer_len) {
-    int x = 3;
-    int y = 18;
-    int width = 50;
-    uint8_t color = 0x4F;
-
+void UserInterface::PopupPromptString(int16_t x, int16_t y, int16_t width, uint8_t color, const char *question, char *buffer, size_t buffer_len) {
     VideoCopy copy = VideoCopy(width, 6);
     driver->copy_chars(copy, x, y, width, 6, 0, 0);
 
@@ -158,9 +153,17 @@ void UserInterface::PopupPromptString(const char *question, char *buffer, size_t
     driver->paste_chars(copy, 0, 0, width, 6, x, y);
 }
 
+void UserInterface::PopupPromptString(const char *question, char *buffer, size_t buffer_len) {
+    PopupPromptString(3, 18, 50, 0x4F, question, buffer, buffer_len);
+}
+
 // TODO: Remove duplicate with game.cpp
 static const char * menu_str_sound(Game *game) {
     return game->driver->sound_is_enabled() ? "Be quiet" : "Be noisy";
+}
+
+void UserInterface::HackRunGameSpeedSlider(Game &game, bool editable, uint8_t &val) {
+	game.SidebarPromptSlider(editable, 66, 21, "Game speed:;FS", val);
 }
 
 void UserInterface::SidebarGameDraw(Game &game, uint32_t flags) {
@@ -407,6 +410,10 @@ int UserInterface::HandleMenu(Game &game, const MenuEntry *entries, bool simulat
     } else {
         const MenuEntry *entry = entries;
         while (entry->id >= 0) {
+			if (entry->name_func != nullptr && entry->get_name(&game) == nullptr) {
+				entry++;
+				continue;
+			}
             if (entry->matches_key(UpCase(driver->keyPressed))) {
                 return entry->id;
             }

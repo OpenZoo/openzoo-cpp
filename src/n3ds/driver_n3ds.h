@@ -36,7 +36,7 @@ namespace ZZT {
 		void update_joy(void);
 		void on_pit_tick(void);
 
-		UserInterface *create_user_interface(Game &game);
+		UserInterface *create_user_interface(Game &game, bool is_editor);
 
         // required (input)
         void update_input(void) override;

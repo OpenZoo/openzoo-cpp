@@ -135,7 +135,7 @@ namespace ZZT {
 
 		/* PROVIDERS */
 
-		virtual UserInterface *create_user_interface(Game &game);
+		virtual UserInterface *create_user_interface(Game &game, bool is_editor);
 
         /* INPUT */
 

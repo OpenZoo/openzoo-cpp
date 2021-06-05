@@ -22,6 +22,7 @@ namespace ZZT {
         UserInterfaceSuperZZTGBA(Driver *driver);
 
 		virtual TextWindow *CreateTextWindow(FilesystemDriver *fsDriver) override;
+		void PopupPromptString(const char *question, char *buffer, size_t buffer_len) override;
     };
 }
 

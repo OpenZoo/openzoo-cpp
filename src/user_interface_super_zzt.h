@@ -25,6 +25,7 @@ namespace ZZT {
 		void GameShowMessage(Game &game, uint8_t color) override;
 		void GameHideMessage(Game &game) override;
 
+        virtual void PopupPromptString(const char *question, char *buffer, size_t buffer_len) override;
         virtual bool SidebarPromptYesNo(const char *message, bool defaultReturn) override;
         virtual void SidebarPromptString(const char *prompt, const char *extension, char *filename, int filenameLen, InputPromptMode mode) override;
         virtual void SidebarGameDraw(Game &game, uint32_t flags) override;

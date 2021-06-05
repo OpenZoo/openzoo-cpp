@@ -48,6 +48,7 @@ namespace ZZT {
 		void GameShowMessage(Game &game, uint8_t color, int16_t x, int16_t y, int16_t width);
         void PromptString(int16_t x, int16_t y, uint8_t arrowColor, uint8_t color, int16_t width, InputPromptMode mode, char *buffer, int buflen);
         bool WaitYesNo(bool defaultReturn);
+        virtual void PopupPromptString(int16_t x, int16_t y, int16_t width, uint8_t color, const char *question, char *buffer, size_t buffer_len);
 
     public:
         UserInterface(Driver *driver);
@@ -55,6 +56,8 @@ namespace ZZT {
 
 		virtual TextWindow *CreateTextWindow(FilesystemDriver *fsDriver);
 		virtual void ConfigureViewport(int16_t &x, int16_t &y, int16_t &width, int16_t &height);
+
+		virtual void HackRunGameSpeedSlider(Game &game, bool editable, uint8_t &val);
 
         virtual bool SidebarPromptYesNo(const char *message, bool defaultReturn);
         virtual void SidebarPromptString(const char *prompt, const char *extension, char *filename, int filenameLen, InputPromptMode mode);

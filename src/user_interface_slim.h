@@ -15,6 +15,8 @@ namespace ZZT {
     public:
         UserInterfaceSlim(Driver *driver);
 
+		virtual void HackRunGameSpeedSlider(Game &game, bool editable, uint8_t &val) override;
+
         virtual bool SidebarPromptYesNo(const char *message, bool defaultReturn) override;
         virtual void SidebarPromptString(const char *prompt, const char *extension, char *filename, int filenameLen, InputPromptMode mode) override;
         virtual void SidebarGameDraw(Game &game, uint32_t flags) override;

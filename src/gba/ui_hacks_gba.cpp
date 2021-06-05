@@ -14,6 +14,12 @@ void TextWindowSuperZZTGBA::DrawClose(void) {
 	zoo_set_force_4x8_mode(FORCE_4X8_MODE_NONE);
 }
 
+void UserInterfaceSuperZZTGBA::PopupPromptString(const char *question, char *buffer, size_t buffer_len) {
+	zoo_set_force_4x8_mode(FORCE_4X8_MODE_ALWAYS);
+    UserInterface::PopupPromptString(4, 18, 50, 0x4F, question, buffer, buffer_len);
+	zoo_set_force_4x8_mode(FORCE_4X8_MODE_NONE);
+}
+
 UserInterfaceSuperZZTGBA::UserInterfaceSuperZZTGBA(Driver *driver) : UserInterfaceSuperZZT(driver, 36, 20) { }
 
 TextWindow *UserInterfaceSuperZZTGBA::CreateTextWindow(FilesystemDriver *fsDriver) {

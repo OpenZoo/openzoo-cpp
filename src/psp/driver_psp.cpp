@@ -366,8 +366,8 @@ void PSPDriver::uninstall(void) {
 	sceKernelStopVTimer(pit_timer_id);
 }
 
-UserInterface *PSPDriver::create_user_interface(Game &game) {
-	if (game.engineDefinition.engineType == ENGINE_TYPE_SUPER_ZZT) {
+UserInterface *PSPDriver::create_user_interface(Game &game, bool is_editor) {
+	if (game.engineDefinition.engineType == ENGINE_TYPE_SUPER_ZZT && !is_editor) {
 		video_doubleWide = 2;
 		return new UserInterfaceSuperZZT(this, 40, 25);
 	} else {

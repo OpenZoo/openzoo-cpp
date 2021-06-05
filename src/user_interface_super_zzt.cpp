@@ -244,6 +244,10 @@ void UserInterfaceSuperZZT::SidebarGameDraw(Game &game, uint32_t flags) {
     }
 }
 
+void UserInterfaceSuperZZT::PopupPromptString(const char *question, char *buffer, size_t buffer_len) {
+    UserInterface::PopupPromptString(1, 18, 38, 0x4F, question, buffer, buffer_len);
+}
+
 void UserInterfaceSuperZZT::ConfigureViewport(int16_t &v_x, int16_t &v_y, int16_t &v_width, int16_t &v_height) {
 	v_width = 24;
 	v_height = 20;

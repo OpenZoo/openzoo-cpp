@@ -165,9 +165,9 @@ void MSDOSDriver::set_border_color(uint8_t value) {
 	outportb(0x3D9, value);
 }
 
-UserInterface *MSDOSDriver::create_user_interface(Game &game) {
+UserInterface *MSDOSDriver::create_user_interface(Game &game, bool is_editor) {
 	union REGS r;
-	if (game.engineDefinition.engineType == ENGINE_TYPE_SUPER_ZZT) {
+	if (game.engineDefinition.engineType == ENGINE_TYPE_SUPER_ZZT && !is_editor) {
 		r.w.ax = 0x0001;
 		int86(0x10, &r, &r);
 		set_cursor(false);

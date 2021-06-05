@@ -12,9 +12,7 @@ static const char EditorColorNames[16][4] = {
     "DGr", "LBl", "LGn", "LCy", "LRe", "LMa", "Yel", "Wht"
 };
 
-static const uint8_t EditorPatterns[] = {
-    ESolid, ENormal, EBreakable, EWater, EEmpty, ELine
-};
+static uint8_t EditorPatterns[6];
 static constexpr size_t EditorPatternCount = sizeof(EditorPatterns) / sizeof(uint8_t);
 
 static const char NeighborBoardStrs[4][8] = {
@@ -264,11 +262,22 @@ void Editor::DrawTileAndNeighhborsAt(int16_t x, int16_t y) {
 void Editor::DrawRefresh(void) {
     sstring<128> name;
 
+	// TODO: Move elsewhere! This is a hack. We need a proper InitEngine call.
+    EditorPatterns[0] = ESolid;
+	EditorPatterns[1] = ENormal;
+	EditorPatterns[2] = EBreakable;
+	EditorPatterns[3] = game->hasElement(EFloor) ? EFloor : EWater;
+	EditorPatterns[4] = EEmpty;
+	EditorPatterns[5] = ELine;
+
     game->BoardPointCameraAt(cursor_x, cursor_y);
 
     game->BoardDrawBorder();
     DrawSidebar();
     game->TransitionDrawToBoard();
+
+	// TODO: Implement title prompt for scrolling viewports.
+	if (game->viewport.width < game->board.width() || game->viewport.height < game->board.height()) return;
 
     if (!StrEmpty(game->board.name)) {
         StrJoin(name, 3, " ", game->board.name, " ");

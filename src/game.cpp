@@ -364,6 +364,7 @@ Game::Game(void):
     world(WorldFormatZZT, &engineDefinition, 255, true), /* TODO: dynamic board list scaling? */
     viewport(0, 0, 1, 1)
 {
+	interface = nullptr;
     tickSpeed = 4;
     debugEnabled = false;
 #ifndef DISABLE_EDITOR
@@ -678,11 +679,15 @@ void Game::SidebarPromptSlider(bool editable, int16_t x, int16_t y, const char *
         str[prompt_len - 3] = 0;
     }
 
-    SidebarClearLine(y);
+	for (int ix = 0; ix < 11; ix++) {
+		driver->draw_char(x + ix, y, 0x10, ' ');
+	}
     driver->draw_string(x, y, editable ? 0x1F : 0x1E, str);
-    SidebarClearLine(y + 1);
-    SidebarClearLine(y + 2);
-    StrCopy(str, "?....:....?");
+	for (int ix = 0; ix < 11; ix++) {
+		driver->draw_char(x + ix, y+1, 0x10, ' ');
+		driver->draw_char(x + ix, y+2, 0x10, ' ');
+	}
+	StrCopy(str, "?....:....?");
     str[0] = startChar;
     str[10] = endChar;
     driver->draw_string(x, y + 2, 0x1E, str);
@@ -693,16 +698,23 @@ void Game::SidebarPromptSlider(bool editable, int16_t x, int16_t y, const char *
             driver->draw_char(x + value + 1, y + 1, 0x9F, 31);
 
             driver->update_input();
+			bool redraw_arrow = false;
             if (driver->keyPressed >= '1' && driver->keyPressed <= '9') {
                 value = driver->keyPressed - 49;
-                SidebarClearLine(y + 1);
+				redraw_arrow = true;
             } else {
                 uint8_t new_value = (uint8_t) (value + driver->deltaX);
                 if (value != new_value && new_value >= 0 && new_value <= 8) {
                     value = new_value;
-                    SidebarClearLine(y + 1);
+					redraw_arrow = true;
                 }
             }
+
+			if (redraw_arrow) {
+				for (int ix = 0; ix < 11; ix++) {
+					driver->draw_char(x + ix, y+1, 0x10, ' ');
+				}
+			}
         }
     } while (driver->keyPressed != KeyEnter && driver->keyPressed != KeyEscape && editable && !driver->shiftPressed);
 
@@ -1123,6 +1135,10 @@ static const char * menu_str_editor(Game *game) {
 
 static const char * menu_str_hint(Game *game) {
     return game->engineDefinition.is<QUIRK_SUPER_ZZT_HINTS>() ? "Hint" : nullptr;
+}
+
+static const char * menu_str_gameSpeed(Game *game) {
+    return game->engineDefinition.engineType == ENGINE_TYPE_ZZT ? "Game speed" : nullptr;
 }
 
 void Game::GameUpdateSidebar(void) {
@@ -1593,7 +1609,7 @@ const MenuEntry ZZT::TitleMenu[] = {
     {.id = 'E', .keys = {'E'}, .name_func = menu_str_editor},
 #endif
     {.id = 'h', .keys = {'H'}, .name_func = menu_str_hint},
-    {.id = 'S', .keys = {'S'}, .name = "Game speed"},
+    {.id = 'S', .keys = {'S'}, .name_func = menu_str_gameSpeed},
     {.id = 'H', .keys = {'H'}, .name = "High scores"},
     {.id = '|', .keys = {'|'}, .name = "Console command"},
 #ifdef __GBA__
@@ -1626,7 +1642,7 @@ void Game::GameTitleLoop(void) {
     returnBoardId = 0;
     bool boardChanged = true;
     do {
-		interface = driver->create_user_interface(*this);
+		interface = driver->create_user_interface(*this, false);
 		interface->ConfigureViewport(viewport.x, viewport.y, viewport.width, viewport.height);
         BoardChange(0);
         do {
@@ -1660,6 +1676,10 @@ void Game::GameTitleLoop(void) {
                 } break;
                 case 'E': {
                    if (editorEnabled) {
+				 		delete interface;
+				   		interface = driver->create_user_interface(*this, true);
+						interface->ConfigureViewport(viewport.x, viewport.y, viewport.width, viewport.height);
+
                         Editor *editor = new Editor(this);
                         editor->Loop();
                         delete editor;
@@ -1669,7 +1689,7 @@ void Game::GameTitleLoop(void) {
                     }
                 } break;
                 case 'S': {
-                    SidebarPromptSlider(true, 66, 21, "Game speed:;FS", tickSpeed);
+					interface->HackRunGameSpeedSlider(*this, true, tickSpeed);
                     driver->keyPressed = 0;
                 } break;
                 case 'R': {
@@ -1703,7 +1723,7 @@ void Game::GameTitleLoop(void) {
             if (startPlay) {
 				// TODO: Ideally, this wouldn't be such a kludge.
 				delete interface;
-				interface = driver->create_user_interface(*this);
+				interface = driver->create_user_interface(*this, false);
 				interface->ConfigureViewport(viewport.x, viewport.y, viewport.width, viewport.height);
 
                 gameStateElement = EPlayer;

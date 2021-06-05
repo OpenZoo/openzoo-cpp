@@ -593,8 +593,8 @@ void SDL2Driver::sound_unlock(void) {
     SDL_UnlockMutex(soundBufferMutex);
 }
 
-UserInterface *SDL2Driver::create_user_interface(Game &game) {
-	if (game.engineDefinition.engineType == ENGINE_TYPE_SUPER_ZZT) {
+UserInterface *SDL2Driver::create_user_interface(Game &game, bool is_editor) {
+	if (game.engineDefinition.engineType == ENGINE_TYPE_SUPER_ZZT && !is_editor) {
 		video_doubleWide = true;
 		return new UserInterfaceSuperZZT(this, 40, 25);
 	} else {

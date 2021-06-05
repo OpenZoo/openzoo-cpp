@@ -235,7 +235,7 @@ void N3DSDriver::update_joy(void) {
 
 #include "gamevars.h"
 
-UserInterface *N3DSDriver::create_user_interface(Game &game) {
+UserInterface *N3DSDriver::create_user_interface(Game &game, bool is_editor) {
 	if (game.engineDefinition.engineType == ENGINE_TYPE_SUPER_ZZT) {
 		this->currentLayer = this->mainLayer40;
 		return new UserInterfaceSuperZZT(this, 50, 30);

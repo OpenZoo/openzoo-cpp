@@ -1,4 +1,5 @@
 #include "user_interface_slim.h"
+#include "driver.h"
 #include "txtwind.h"
 #include "gamevars.h"
 
@@ -113,6 +114,27 @@ static void write_number_torch_bg(int16_t torch_ticks, int16_t torch_duration, D
 	for (; i < len; i++) {
 		driver->draw_char(x + i, y, col, ' ');
 	}
+}
+
+void UserInterfaceSlim::HackRunGameSpeedSlider(Game &game, bool editable, uint8_t &val) {
+	int16_t width = 17;
+	int16_t height = 5;
+	int16_t x = (60 - width) >> 1;
+	int16_t y = (26 - height) >> 1;
+
+	VideoCopy *copy = new VideoCopy(width, height);
+	driver->copy_chars(*copy, x, y, width, height, 0, 0);
+
+    TextWindowDrawPattern(driver, x, y, width, 0x1F, WinPatTop);
+    TextWindowDrawPattern(driver, x, y+1, width, 0x1F, WinPatInner);
+    TextWindowDrawPattern(driver, x, y+2, width, 0x1F, WinPatInner);
+    TextWindowDrawPattern(driver, x, y+3, width, 0x1F, WinPatInner);
+    TextWindowDrawPattern(driver, x, y+4, width, 0x1F, WinPatBottom);
+
+	game.SidebarPromptSlider(editable, x + 3, y + 1, "Game speed:;FS", val);
+
+	driver->paste_chars(*copy, 0, 0, width, height, x, y);
+	delete copy;
 }
 
 void UserInterfaceSlim::SidebarGameDraw(Game &game, uint32_t flags) {

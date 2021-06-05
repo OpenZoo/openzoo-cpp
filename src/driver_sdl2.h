@@ -77,7 +77,7 @@ namespace ZZT {
         void install(void);
         void uninstall(void);
 
-		UserInterface *create_user_interface(Game &game) override;
+		UserInterface *create_user_interface(Game &game, bool is_editor) override;
 
         // required (input)
         void update_input(void) override;
