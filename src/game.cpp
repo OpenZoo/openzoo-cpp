@@ -341,16 +341,20 @@ bool Viewport::set(int16_t nx, int16_t ny) {
     }
 }
 
-bool Viewport::point_at(Board &board, int16_t sx, int16_t sy) {
-    int16_t nx = (sx - 1) - (width >> 1);
-    int16_t ny = (sy - 1) - (height >> 1);
-
+bool Viewport::set(Board &board, int16_t nx, int16_t ny) {
     if (nx < 0) nx = 0;
     else if (nx > (board.width() - width)) nx = board.width() - width;
     if (ny < 0) ny = 0;
     else if (ny > (board.height() - height)) ny = board.height() - height;
 
     return set(nx, ny);
+}
+
+bool Viewport::point_at(Board &board, int16_t sx, int16_t sy) {
+    int16_t nx = (sx - 1) - (width >> 1);
+    int16_t ny = (sy - 1) - (height >> 1);
+
+    return set(board, nx, ny);
 }
 
 // Game
@@ -560,37 +564,40 @@ bool Game::BoardUpdateDrawOffset(void) {
     return viewport.point_at(board, board.stats[0]);
 }
 
+void Game::BoardScrollViewport(int16_t new_cx_offset, int16_t new_cy_offset) {
+	int deltaX = viewport.cx_offset - new_cx_offset;
+	int deltaY = viewport.cy_offset - new_cy_offset;
+	interface->GameHideMessage(*this);
+	if ((Abs(deltaX) + Abs(deltaY)) == 1) {
+		viewport.cx_offset = new_cx_offset;
+		viewport.cy_offset = new_cy_offset;	
+		driver->scroll_chars(viewport.x, viewport.y, viewport.width, viewport.height, deltaX, deltaY);
+		if (deltaX == 0) {
+			int y_pos = ((deltaY > 0) ? viewport.cy_offset : (viewport.cy_offset + viewport.height - 1)) + 1;
+			for (int i = 0; i < viewport.width; i++) {
+				BoardDrawTile(viewport.cx_offset + i + 1, y_pos);
+			}
+		} else {
+			int x_pos = ((deltaX > 0) ? viewport.cx_offset : (viewport.cx_offset + viewport.width - 1)) + 1;
+			for (int i = 0; i < viewport.height; i++) {
+				BoardDrawTile(x_pos, viewport.cy_offset + i + 1);
+			}
+		}
+	} else {
+		TransitionDrawToBoard();
+	}
+	interface->GameShowMessage(*this, 0);
+}
+
 bool Game::BoardPointCameraAt(int16_t sx, int16_t sy) {
     int16_t old_cx_offset = viewport.cx_offset;
     int16_t old_cy_offset = viewport.cy_offset;
     if (viewport.point_at(board, sx, sy)) {
 		int16_t new_cx_offset = viewport.cx_offset;
 		int16_t new_cy_offset = viewport.cy_offset;
-        int deltaX = old_cx_offset - viewport.cx_offset;
-        int deltaY = old_cy_offset - viewport.cy_offset;
-        if ((Abs(deltaX) + Abs(deltaY)) == 1) {
-			viewport.cx_offset = old_cx_offset;
-			viewport.cy_offset = old_cy_offset;	
-			interface->GameHideMessage(*this);
-			viewport.cx_offset = new_cx_offset;
-			viewport.cy_offset = new_cy_offset;	
-            driver->scroll_chars(viewport.x, viewport.y, viewport.width, viewport.height, deltaX, deltaY);
-			BoardDrawTile(sx, sy);
-            if (deltaX == 0) {
-                int y_pos = ((deltaY > 0) ? viewport.cy_offset : (viewport.cy_offset + viewport.height - 1)) + 1;
-                for (int i = 0; i < viewport.width; i++) {
-                    BoardDrawTile(viewport.cx_offset + i + 1, y_pos);
-                }
-            } else {
-                int x_pos = ((deltaX > 0) ? viewport.cx_offset : (viewport.cx_offset + viewport.width - 1)) + 1;
-                for (int i = 0; i < viewport.height; i++) {
-                    BoardDrawTile(x_pos, viewport.cy_offset + i + 1);
-                }
-            }
-			interface->GameShowMessage(*this, 0);
-        } else {
-            TransitionDrawToBoard();
-        }
+		viewport.cx_offset = old_cx_offset;
+		viewport.cy_offset = old_cy_offset;	
+		BoardScrollViewport(new_cx_offset, new_cy_offset);			
 		return true;
     } else {
 		return false;
@@ -1033,8 +1040,38 @@ void Game::MoveStat(int16_t stat_id, int16_t newX, int16_t newY, bool scrollOffs
 	bool scrolled = false;
 
     if (stat_id == 0 && scrollOffset) {
-        // TODO: More accurate Super ZZT behaviour
-        scrolled = BoardPointCameraAt(stat.x, stat.y);
+		if (engineDefinition.is<QUIRK_SUPER_ZZT_COMPAT_MISC>()) {
+			bool smallScroll = false;
+			bool largeScroll = false;
+			int16_t deltaX = stat.x - oldX;
+			int16_t deltaY = stat.y - oldY;
+			int16_t diffX = (stat.x - viewport.cx_offset) - 1;
+			int16_t diffY = (stat.y - viewport.cy_offset) - 1;
+			int16_t vCenterX = viewport.width >> 1;
+			int16_t vCenterY = viewport.height >> 1;
+
+			if (diffX <= (vCenterX - 4)) { smallScroll |= (deltaX == -1 && deltaY == 0); largeScroll = true; }
+			else if (diffX >= (vCenterX + 2)) { smallScroll |= (deltaX == 1 && deltaY == 0); largeScroll = true; }
+			if (diffY <= (vCenterY - 3)) { smallScroll |= (deltaY == -1 && deltaX == 0); largeScroll = true; }
+			else if (diffY >= (vCenterY + 4)) { smallScroll |= (deltaY == 1 && deltaX == 0); largeScroll = true; }
+
+			if (smallScroll) {
+				int16_t old_cx_offset = viewport.cx_offset;
+				int16_t old_cy_offset = viewport.cy_offset;
+				if (viewport.set(board, viewport.cx_offset + deltaX, viewport.cy_offset + deltaY)) {
+					int16_t new_cx_offset = viewport.cx_offset;
+					int16_t new_cy_offset = viewport.cy_offset;
+					viewport.cx_offset = old_cx_offset;
+					viewport.cy_offset = old_cy_offset;
+					BoardScrollViewport(new_cx_offset, new_cy_offset);
+					scrolled = true;
+				}
+			} else if (largeScroll) {
+				scrolled = BoardPointCameraAt(stat.x, stat.y);
+			}
+		} else {
+	        scrolled = BoardPointCameraAt(stat.x, stat.y);		
+		}
     }
 
     BoardDrawTile(stat.x, stat.y);

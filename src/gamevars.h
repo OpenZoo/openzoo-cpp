@@ -664,6 +664,7 @@ namespace ZZT {
         Viewport(int16_t _x, int16_t _y, int16_t _width, int16_t _height);
 
         bool set(int16_t nx, int16_t ny);
+        bool set(Board& board, int16_t nx, int16_t ny);
         bool point_at(Board& board, int16_t sx, int16_t sy);
         bool point_at(Board& board, Stat& stat) {
             return point_at(board, stat.x, stat.y);
@@ -751,6 +752,9 @@ namespace ZZT {
     class Game {
     private:
         bool initialized;
+
+		// game.cpp
+		void BoardScrollViewport(int16_t new_cx_offset, int16_t new_cy_offset);
 
         // oop.cpp
         uint8_t GetColorForTileMatch(const Tile &tile);
