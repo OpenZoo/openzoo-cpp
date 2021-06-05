@@ -568,9 +568,9 @@ void Game::BoardScrollViewport(int16_t new_cx_offset, int16_t new_cy_offset) {
 	int deltaX = viewport.cx_offset - new_cx_offset;
 	int deltaY = viewport.cy_offset - new_cy_offset;
 	interface->GameHideMessage(*this);
+	viewport.cx_offset = new_cx_offset;
+	viewport.cy_offset = new_cy_offset;	
 	if ((Abs(deltaX) + Abs(deltaY)) == 1) {
-		viewport.cx_offset = new_cx_offset;
-		viewport.cy_offset = new_cy_offset;	
 		driver->scroll_chars(viewport.x, viewport.y, viewport.width, viewport.height, deltaX, deltaY);
 		if (deltaX == 0) {
 			int y_pos = ((deltaY > 0) ? viewport.cy_offset : (viewport.cy_offset + viewport.height - 1)) + 1;
@@ -1436,9 +1436,7 @@ void Game::GamePlayLoop(bool boardChanged) {
         interface->SidebarShowMessage(0x0B, "Pick a command:", false);
     }
 
-    BoardUpdateDrawOffset();
-
-    if (boardChanged) {
+    if (BoardUpdateDrawOffset() || boardChanged) {
         TransitionDrawBoardChange();
     }
 
