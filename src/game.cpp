@@ -370,7 +370,7 @@ Game::Game(void):
 #ifndef DISABLE_EDITOR
     editorEnabled = true;
 #endif
-    StrCopy(startupWorldFileName, "TOWN");
+    StrCopy(startupWorldFileName, "587SQGB");
     StrCopy(savedGameFileName, "SAVED");
     StrCopy(savedBoardFileName, "TEMP");
     initialized = false;
@@ -1415,7 +1415,7 @@ void Game::GameDebugPrompt(void) {
 }
 
 void Game::GameAboutScreen(void) {
-    interface->DisplayFile(filesystem, "ABOUT.HLP", "About ZZT...");
+    interface->DisplayFile(filesystem, "ABOUT.HLP", "About OpenZoo/C++...");
 }
 
 #ifdef __GBA__
@@ -1428,7 +1428,7 @@ void Game::GamePlayLoop(bool boardChanged) {
     GameDrawSidebar();
 
     if (justStarted) {
-        GameAboutScreen();
+        // GameAboutScreen();
         if (StrLength(startupWorldFileName) != 0) {
             if (!WorldLoad(startupWorldFileName, ".ZZT;.SZT", true)) {
 				WorldCreate();
@@ -1544,11 +1544,11 @@ void Game::GamePlayLoop(bool boardChanged) {
         if (currentStatTicked > board.stats.count && !gamePlayExitRequested) {
             // all stats ticked
 #ifdef __GBA__
-			gba_on_tick_end();
+//			gba_on_tick_end();
 #endif
             if (HasTimeElapsed(tickTimeCounter, tickTimeDuration)) {
 #ifdef __GBA__
-				gba_on_tick_start();
+//				gba_on_tick_start();
 #endif
                 currentTick++;
                 if (currentTick > 420) {
@@ -1601,30 +1601,30 @@ void Game::GamePlayLoop(bool boardChanged) {
 }
 
 const MenuEntry ZZT::TitleMenu[] = {
-    {.id = 'W', .keys = {'W'}, .name = "Load world"},
+//    {.id = 'W', .keys = {'W'}, .name = "Load world"},
     {.id = 'P', .keys = {'P'}, .name = "Play"},
-    {.id = 'R', .keys = {'R'}, .name_func = menu_str_restore},
-    {.id = 'A', .keys = {'A'}, .name = "About ZZT"},
+//    {.id = 'R', .keys = {'R'}, .name_func = menu_str_restore},
+    {.id = 'A', .keys = {'A'}, .name = "About engine"},
 #ifndef DISABLE_EDITOR
-    {.id = 'E', .keys = {'E'}, .name_func = menu_str_editor},
+//    {.id = 'E', .keys = {'E'}, .name_func = menu_str_editor},
 #endif
-    {.id = 'h', .keys = {'H'}, .name_func = menu_str_hint},
-    {.id = 'S', .keys = {'S'}, .name_func = menu_str_gameSpeed},
-    {.id = 'H', .keys = {'H'}, .name = "High scores"},
-    {.id = '|', .keys = {'|'}, .name = "Console command"},
+//    {.id = 'h', .keys = {'H'}, .name_func = menu_str_hint},
+//    {.id = 'S', .keys = {'S'}, .name_func = menu_str_gameSpeed},
+//    {.id = 'H', .keys = {'H'}, .name = "High scores"},
+//    {.id = '|', .keys = {'|'}, .name = "Console command"},
 #ifdef __GBA__
 	{.id = 255, .name = "Sleep"},
 #endif
-    {.id = 'Q', .keys = {'Q', KeyEscape}, .name = "Quit ZZT"},
+//    {.id = 'Q', .keys = {'Q', KeyEscape}, .name = "Quit ZZT"},
     {.id = -1}
 };
 
 const MenuEntry ZZT::PlayMenu[] = {
-    {.id = 'T', .keys = {'T'}, .joy_button = JoyButtonB}, // Torch
-    {.id = 'S', .keys = {'S'}, .name_func = menu_str_save},
-    {.id = 'P', .keys = {'P'}}, // Pause - hidden in menu mode
-    {.id = 'h', .keys = {'H'}, .name_func = menu_str_hint},
-    {.id = 'H', .keys = {'H'}, .name = "Help"},
+//    {.id = 'T', .keys = {'T'}, .joy_button = JoyButtonB}, // Torch
+//    {.id = 'S', .keys = {'S'}, .name_func = menu_str_save},
+//    {.id = 'P', .keys = {'P'}}, // Pause - hidden in menu mode
+//    {.id = 'h', .keys = {'H'}, .name_func = menu_str_hint},
+//    {.id = 'H', .keys = {'H'}, .name = "Help"},
     {.id = '?', .keys = {'?'}, .name = "Console command"},
     {.id = 'B', .keys = {'B'}, .name_func = menu_str_sound},
 #ifdef __GBA__

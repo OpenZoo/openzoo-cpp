@@ -28,7 +28,7 @@ static uint16_t hsecs;
 static uint16_t prev_key_input;
 extern u32 __rom_end__;
 
-#define DEBUG_CONSOLE
+// #define DEBUG_CONSOLE
 
 uint8_t ext_tile_memory[62 * 27 * sizeof(Tile)];
 uint8_t ext_stat_memory[153 * sizeof(Stat)];
@@ -149,7 +149,7 @@ GBA_CODE_IWRAM
 static void vram_write_char(int16_t x, int16_t y, uint8_t col, uint8_t chr) {
 	GET_VRAM_PTRS;
 
-	*tile_bg_ptr = '\xDB' | ((col << 8) & 0x7000); 
+	*tile_bg_ptr = '\xDB' | ((col << 8) & 0x7000);
 	*tile_fg_ptr = chr | ((col & 0x80) << 1) | (col << 12);
 }
 
@@ -364,6 +364,7 @@ void zoo_video_gba_set_blinking(bool val) {
 uint32_t tmp_ticks = 0;
 bool tick_started = false;
 
+#ifdef DEBUG_CONSOLE
 void gba_on_tick_start() {
 	tick_started = true;
 	tmp_ticks = dbg_ticks();
@@ -378,6 +379,7 @@ void gba_on_tick_end() {
 	siprintf(tmp, "%d ticks, %d%%, %d bytes", tmp_ticks, tmp_ticks * 10 / 184568, platform_debug_free_memory());
 	platform_debug_puts(tmp, true);
 }
+#endif
 
 GBA_CODE_IWRAM
 void ZZT::irq_timer_pit(void) {

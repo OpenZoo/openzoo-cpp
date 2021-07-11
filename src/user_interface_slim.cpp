@@ -147,8 +147,9 @@ void UserInterfaceSlim::SidebarGameDraw(Game &game, uint32_t flags) {
 	if (game.gameStateElement == EMonitor) {
         x = 0;
 
-        if (redraw) driver->draw_string(x, 25, 0x1F, " World: ");
-        x += 8;
+        if (redraw) driver->draw_string(x, 25, 0x1F, " 587 Squadron Advance ");
+	x += 22;
+/*        x += 8;
         {
             // truncate
             sstring<8> name;
@@ -158,8 +159,8 @@ void UserInterfaceSlim::SidebarGameDraw(Game &game, uint32_t flags) {
                 driver->draw_char(x + i, 25, 0x1F, ' ');
             }
             x += 9;
-        }
-        if (redraw) driver->draw_string(x, 25, 0x1F, "\xB3 Speed:");
+        } */
+/*        if (redraw) driver->draw_string(x, 25, 0x1F, "\xB3 Speed:");
         x += 8;
         const char *speed_str = " F...:...S ";
         for (int i = 0; i < 11; i++) {
@@ -170,7 +171,7 @@ void UserInterfaceSlim::SidebarGameDraw(Game &game, uint32_t flags) {
                 ch = ']';
             }
             driver->draw_char(x++, 25, 0x1F, ch);
-        }
+        } */
         if (redraw) {
             for (; x < (60 - 13); x++) {
                 driver->draw_char(x, 25, 0x1F, ' ');
@@ -196,13 +197,13 @@ void UserInterfaceSlim::SidebarGameDraw(Game &game, uint32_t flags) {
             }
             x += 8;
 
-            {
+            /* {
                 driver->draw_char(x, 25, 0x1E, '\x9D');
                 driver->draw_char(x + 1, 25, 0x1E, ' ');
                 write_number_torch_bg(game.world.info.torch_ticks, game.engineDefinition.torchDuration,
                     driver, x + 2, 25, 0x1F, game.world.info.torches, 6);
             }
-            x += 8;
+            x += 8; */
 
             {
                 driver->draw_char(x, 25, 0x19, '\x04');

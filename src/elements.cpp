@@ -1558,12 +1558,9 @@ static void ElementPlayerTick(Game &game, int16_t stat_id) {
         game.driver->sound_set_block_queueing(true);
     }
 
-    // OpenZoo: Only allow shift *with* arrows.
-    bool shootDirPressed = game.driver->shiftPressed && (game.driver->deltaX != 0 || game.driver->deltaY != 0);
-    bool shootNondirPressed = game.driver->keyPressed == ' ';
-    if (shootDirPressed || shootNondirPressed) {
+    if (game.driver->shiftPressed) {
         // shooting logic
-        if (shootDirPressed) {
+        if (game.driver->deltaX != 0 || game.driver->deltaY != 0) {
             game.playerDirX = game.driver->deltaX;
             game.playerDirY = game.driver->deltaY;
         }
@@ -1608,7 +1605,7 @@ static void ElementPlayerTick(Game &game, int16_t stat_id) {
                 }                
             }
         }
-    } else if (game.driver->deltaX != 0 || game.driver->deltaY != 0) {
+    } else if ((game.driver->deltaX != 0 || game.driver->deltaY != 0)) {
         // moving logic
         game.playerDirX = game.driver->deltaX;
         game.playerDirY = game.driver->deltaY;
