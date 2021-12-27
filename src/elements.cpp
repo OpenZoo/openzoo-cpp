@@ -1781,6 +1781,7 @@ void Game::InitEngine(EngineType engineType, bool is_editor) {
         this->engineDefinition.quirks.set<QUIRK_BOARD_EDGE_TOUCH_DESINATION_FIX>();
         this->engineDefinition.quirks.set<QUIRK_CENTIPEDE_EXTRA_CHECKS>();
         this->engineDefinition.quirks.set<QUIRK_CONNECTION_DRAWING_CHECKS_UNDER_STAT>();
+        this->engineDefinition.quirks.set<QUIRK_PASSAGE_MOVEMENT_PRESERVES_WALKABLES>();
         this->engineDefinition.quirks.set<QUIRK_OOP_LENIENT_COLOR_MATCHES>();
         this->engineDefinition.quirks.set<QUIRK_OOP_SUPER_ZZT_MOVEMENT>();
         this->engineDefinition.quirks.set<QUIRK_BOARD_CHANGE_SENDS_ENTER>();

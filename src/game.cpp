@@ -1342,10 +1342,14 @@ void Game::BoardPassageTeleport(int16_t x, int16_t y) {
         }
     }
 
-    board.tiles.set(player.x, player.y, {
-        .element = EEmpty,
-        .color = 0x00
-    });
+    if (engineDefinition.is<QUIRK_PASSAGE_MOVEMENT_PRESERVES_WALKABLES>()) {
+        board.tiles.set(player.x, player.y, player.under);
+    } else {
+        board.tiles.set(player.x, player.y, {
+            .element = EEmpty,
+            .color = 0x00
+        });
+    }
     if (newX != 0) {
         player.x = newX;
         player.y = newY;
@@ -1509,8 +1513,7 @@ void Game::GamePlayLoop(bool boardChanged) {
                         BoardDrawTile(player.x, player.y);
                         player.x = dest_x;
                         player.y = dest_y;
-						if (engineDefinition.is<QUIRK_SUPER_ZZT_COMPAT_MISC>()) {
-							// TODO: Bugfix quirk?
+						if (engineDefinition.is<QUIRK_PASSAGE_MOVEMENT_PRESERVES_WALKABLES>()) {
 							player.under = board.tiles.get(player.x, player.y);
 						}
                         board.tiles.set(player.x, player.y, {
