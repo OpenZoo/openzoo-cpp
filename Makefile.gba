@@ -23,7 +23,6 @@ include $(DEVKITARM)/gba_rules
 TARGET		:= openzoo
 BUILD		:= build_gba
 SOURCES		:= \
-	src/cxx_shim.cpp \
 	src/assets.cpp \
 	src/driver.cpp \
 	src/elements.cpp \
@@ -101,7 +100,7 @@ CPPFILES	:=	$(foreach src,$(SOURCES),$(notdir $(src)))
 SFILES		:=
 BINFILES	:=	4x6.bin 4x8.bin 8x8.bin
 
-export LD	:=	$(CC)
+export LD	:=	$(CXX)
 
 export OFILES_BIN := $(addsuffix .o,$(BINFILES))
 

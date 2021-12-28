@@ -5,16 +5,13 @@ AC_CONFIG_HEADERS([config.h])
 
 AC_PROG_CXX
 AC_LANG_PUSH([C++])
-AX_CXX_COMPILE_STDCXX(14, ext)
+AX_CXX_COMPILE_STDCXX(17)
 
 AC_CANONICAL_HOST
 AC_CHECK_HEADERS([dirent.h sys/stat.h])
 
 AC_ARG_WITH([driver],
 	AS_HELP_STRING([--with-driver=DRIVER], [Use specified driver]))
-AC_ARG_ENABLE([cxx-shim],
-	AS_HELP_STRING([--enable-cxx-shim], [Use lightweight C++ shim instead of linking to the actual standard library]),
-	[with_cxx_shim=yes], [])
 
 AS_IF([test "x$with_driver" = "x"], [
 	dnl Pick driver.
@@ -41,8 +38,6 @@ AS_CASE([$with_driver],
 	[msdos], [],
 	[AC_MSG_ERROR("driver not selected or invalid driver")]
 )
-
-AM_CONDITIONAL([USE_CXX_SHIM], [test "x$with_cxx_shim" = "xyes"])
 
 AM_CONDITIONAL([DRIVER_NULL], [test "x$with_driver" = "xnull"])
 AM_CONDITIONAL([DRIVER_SDL2], [test "x$with_driver" = "xsdl2"])

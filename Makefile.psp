@@ -5,7 +5,7 @@ TARGET = openzoo
 
 BUILD_PRX = 1
 
-LIBS = -lpsputility -lpsppower -lpspaudiolib -lpspaudio -lpspgum -lpspgu -lm
+LIBS = -lpsputility -lpsppower -lpspaudiolib -lpspaudio -lpspgum -lpspgu -lm -lstdc++
 DEFINES = -DDISABLE_EDITOR -DLABEL_CACHE
 CFLAGS = -O2 -G0 -Wall $(DEFINES)
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
@@ -17,7 +17,6 @@ PSP_EBOOT_ICON = assets/icon_psp.png
 
 OBJS = \
 	$(OBJDIR)/6x10_psp.o \
-	$(OBJDIR)/cxx_shim.o \
 	$(OBJDIR)/assets.o \
 	$(OBJDIR)/driver.o \
 	$(OBJDIR)/elements.o \
