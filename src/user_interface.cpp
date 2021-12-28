@@ -369,7 +369,7 @@ void UserInterface::DisplayFile(FilesystemDriver *filesystem, const char *filena
     TextWindow *window = CreateTextWindow(filesystem);
     StrCopy(window->title, title);
     window->OpenFile(filename, false);
-    if (window->line_count > 0) {
+    if (window->line_count() > 0) {
 	    window->selectable = false;
         window->DrawOpen();
         window->Select(false, true);
@@ -394,7 +394,7 @@ int UserInterface::HandleMenu(Game &game, const MenuEntry *entries, bool simulat
             name = entry->get_name(&game);
             if (name != NULL) {
                 StrFromInt(numStr, i);
-                window->Append(DynString("!") + numStr + ";" + name);
+                window->Append("!" + std::string(numStr) + ";" + name);
             }
             entry++; i++;
         }

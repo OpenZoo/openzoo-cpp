@@ -88,43 +88,6 @@ namespace ZZT {
         return s[0] == 0;
     }
 
-    // Dynamic strings
-
-    class DynString {
-    private:
-        uint8_t len;
-        char *data;
-
-        void set_length(size_t new_len);
-        DynString(size_t length);
-
-    public:
-        DynString();
-        DynString(const char *s);
-        DynString(const DynString &other);
-
-        ~DynString();
-
-        DynString& operator=(const DynString& other);
-        DynString& operator=(DynString&& other);
-        DynString operator+(const DynString &rhs);
-        DynString operator+(const char *rhs);
-        DynString operator+(char rhs);
-        DynString substr(size_t from, size_t length);
-
-        inline const char* c_str() const {
-            return data;
-        }
-
-        inline size_t length() const {
-            return len;
-        }
-
-        inline char operator[](int idx) const {
-            return data[idx];
-        }
-    };
-
 }
 
 #endif

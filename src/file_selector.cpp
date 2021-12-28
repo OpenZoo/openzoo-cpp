@@ -39,7 +39,7 @@ bool FileSelector::select() {
             }
         }
 
-        int listed_start = window->line_count;
+        int listed_start = window->line_count();
         filesystem->list_files([this](FileEntry &entry) -> bool {
             sstring<20> wname;
             sstring<31> ext_tokens;
@@ -49,7 +49,7 @@ bool FileSelector::select() {
 
             if (entry.is_dir) {
                 if (name_len > 0 && !StrEquals(entry.filename, ".") && !StrEquals(entry.filename, "..")) {
-                    window->Append(DynString("!") + entry.filename + ";[" + entry.filename + "]");
+                    window->Append("!" +  std::string(entry.filename) + ";[" +  std::string(entry.filename) + "]");
                 }
             } else {
                 StrCopy(ext_tokens, this->extension);
@@ -73,7 +73,7 @@ bool FileSelector::select() {
 
             return true;
         });
-        int listed_end = window->line_count;
+        int listed_end = window->line_count();
         window->Sort(listed_start, listed_end - listed_start);
 
         window->Append("Exit");
@@ -82,7 +82,7 @@ bool FileSelector::select() {
         window->Select(true, false);
         window->DrawClose();
 
-        if (window->line_pos == (window->line_count - 1) || window->rejected) {
+        if (window->line_pos == (window->line_count() - 1) || window->rejected) {
             if (past_path != nullptr) {
                 path_fs->set_current_path(past_path);
                 free(past_path);
@@ -95,7 +95,7 @@ bool FileSelector::select() {
             }
         } else {
             // file
-            StrCopy(filename, window->lines[window->line_pos]->c_str());
+            StrCopy(filename, window->lines[window->line_pos].c_str());
             if (past_path != nullptr) {
                 free(past_path);
             }

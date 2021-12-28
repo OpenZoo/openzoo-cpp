@@ -79,7 +79,7 @@ void HighScoreList::InitTextWindow(TextWindow &window) {
                 StrCopy(scoreStrPadded, scoreStr);
             }
 
-            window.Append(DynString(scoreStrPadded) + "  " + entries[i].name);
+            window.Append(std::string(scoreStrPadded) + "  " + entries[i].name);
         }
     }
 }
@@ -89,7 +89,7 @@ void HighScoreList::Display(const char *worldName, int16_t line_pos) {
 
     window->line_pos = line_pos;
     InitTextWindow(*window);
-    if (window->line_count > 2) {
+    if (window->line_count() > 2) {
         StrJoin(window->title, 2, "High scores for ", worldName);
         window->DrawOpen();
         window->Select(false, true);

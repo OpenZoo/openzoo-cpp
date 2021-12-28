@@ -1,6 +1,8 @@
+#include <algorithm>
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 #include "txtwind.h"
 
 using namespace ZZT;
@@ -36,11 +38,10 @@ TextWindow::TextWindow(Driver *driver, FilesystemDriver *filesystem, int16_t w_x
 	this->window_height = w_height;
     this->driver = driver;
     this->filesystem = filesystem;
-    this->line_count = 0;
     this->line_pos = 0;
     StrClear(this->loaded_filename);
     this->screenCopy = nullptr;
-    lines = (DynString**) malloc(sizeof(DynString*) * MAX_TEXT_WINDOW_LINES);
+	this->lines = std::vector<std::string>();
     this->color = 0x10;
 }
 
@@ -49,7 +50,6 @@ TextWindow::~TextWindow() {
     if (this->screenCopy != nullptr) {
         delete this->screenCopy;
     }
-    free(lines);
 }
 
 int TextWindow::PageMoveHeightLines(void) {
@@ -57,10 +57,8 @@ int TextWindow::PageMoveHeightLines(void) {
 }
 
 void TextWindow::Clear(void) {
-    for (int i = 0; i < this->line_count; i++)
-        delete this->lines[i];
+	this->lines.clear();
     this->line_pos = 0;
-    this->line_count = 0;
 }
 
 void TextWindow::DrawTitle(uint8_t color, const char *title) {
@@ -111,13 +109,11 @@ void TextWindow::Append(const char *line) {
     strncpy(this->lines[this->line_count], line, str_width);
     this->lines[this->line_count][str_width] = 0; */
 
-    if (this->line_count >= MAX_TEXT_WINDOW_LINES) return;
-    this->lines[this->line_count++] = new DynString(line);
+	this->lines.push_back(std::string(line));
 }
 
-void TextWindow::Append(const DynString line) {
-    if (this->line_count >= MAX_TEXT_WINDOW_LINES) return;
-    this->lines[this->line_count++] = new DynString(line);
+void TextWindow::Append(const std::string line) {
+	this->lines.push_back(line);
 }
 
 void TextWindow::DrawLine(int16_t lpos, bool withoutFormatting, bool viewingFile) {
@@ -138,8 +134,8 @@ void TextWindow::DrawLine(int16_t lpos, bool withoutFormatting, bool viewingFile
     bool is_boundary, draw_arrow = false;
     const char *str = NULL;
 
-	if (lpos >= 0 && lpos < line_count) {
-        str = lines[lpos]->c_str();
+	if (lpos >= 0 && lpos < line_count()) {
+        str = lines[lpos].c_str();
         const char *tmp = NULL;
 
 		if (!withoutFormatting) switch (str[0]) {
@@ -174,7 +170,7 @@ void TextWindow::DrawLine(int16_t lpos, bool withoutFormatting, bool viewingFile
             }
         }
     } else {
-        is_boundary = lpos == -1 || lpos == line_count;
+        is_boundary = lpos == -1 || lpos == line_count();
         for (int i = 0; i < (window_width - 4); i++) {
             driver->draw_char(window_x + 2 + i, line_y, text_color,
                 (is_boundary && ((i % 5) == 4)) ? '\x07' : ' ');
@@ -211,9 +207,9 @@ void TextWindow::Select(bool hyperlinkAsSelect, bool viewingFile) {
             new_line_pos += driver->deltaY;
         } else if (driver->shiftPressed || driver->keyPressed == KeyEnter) {
             driver->shiftAccepted = true;
-            if (lines[line_pos]->length() > 0 && (*lines[line_pos])[0] == '!') {
+            if (lines[line_pos].length() > 0 && (lines[line_pos])[0] == '!') {
                 sstring<20> pointerStr;
-                StrCopy(pointerStr, (lines[line_pos]->c_str()) + 1);
+                StrCopy(pointerStr, (lines[line_pos].c_str()) + 1);
 
                 char *divPos = strchr(pointerStr, ';');
                 if (divPos != NULL) {
@@ -223,7 +219,7 @@ void TextWindow::Select(bool hyperlinkAsSelect, bool viewingFile) {
                 if (pointerStr[0] == '-') {
                     Clear();
                     OpenFile(pointerStr + 1, false);
-                    if (line_count == 0) {
+                    if (line_count() == 0) {
                         return;
                     } else {
                         viewingFile = true;
@@ -239,11 +235,11 @@ void TextWindow::Select(bool hyperlinkAsSelect, bool viewingFile) {
                         sstring<21> label;
                         StrJoin(label, 2, ":", pointerStr);
                         int label_len = StrLength(label);
-                        for (int i = 0; i < line_count; i++) {
-                            if (label_len == lines[i]->length()) {
+                        for (int i = 0; i < line_count(); i++) {
+                            if (label_len == lines[i].length()) {
                                 bool match = true;
                                 for (int ic = 0; ic < label_len; ic++) {
-                                    if (UpCase(label[ic]) != UpCase((*lines[i])[ic])) {
+                                    if (UpCase(label[ic]) != UpCase((lines[i])[ic])) {
                                         match = false;
                                         break;
                                     }
@@ -281,13 +277,13 @@ void TextWindow::Select(bool hyperlinkAsSelect, bool viewingFile) {
 
     LabelMatched:
         if (new_line_pos < 0) new_line_pos = 0;
-        else if (new_line_pos >= line_count) new_line_pos = line_count - 1;
+        else if (new_line_pos >= line_count()) new_line_pos = line_count() - 1;
 
         if (new_line_pos != line_pos) {
             line_pos = new_line_pos;
             Draw(false, viewingFile);
 
-            if (lines[line_pos]->length() > 0 && (*lines[line_pos])[0] == '!') {
+            if (lines[line_pos].length() > 0 && (lines[line_pos])[0] == '!') {
                 DrawTitle(color | 0x0E, hyperlinkAsSelect
                     ? "\xAEPress ENTER to select this\xAF"
                     : "\xAEPress ENTER for more info\xAF"
@@ -306,27 +302,22 @@ void TextWindow::Select(bool hyperlinkAsSelect, bool viewingFile) {
 }
 
 int16_t TextWindow::Edit_DeleteCurrLine(void) {
-    if (line_count > 1) {
-        delete lines[line_pos];
-        for (int i = line_pos + 1; i < line_count; i++) {
-            lines[i - 1] = lines[i];
-        }
-        line_count--;
-        if (line_pos > line_count) {
-            return line_count;
+    if (line_count() > 1) {
+		lines.erase(lines.begin() + line_pos);
+        if (line_pos > line_count()) {
+            return line_count();
         } else {
             Draw(true, false);
             return line_pos;
         }
     } else {
-        delete lines[0];
-        lines[0] = new DynString();
+        lines[0] = "";
         return line_pos;
     }
 }
 
 void TextWindow::Edit(void) {
-    if (line_count <= 0) {
+    if (line_count() <= 0) {
         Append("");
     }
     bool insert_mode = false;
@@ -336,15 +327,15 @@ void TextWindow::Edit(void) {
     do {
         driver->draw_string(77, 14, color | 0x0E, insert_mode ? "on " : "off");
 
-        if (char_pos >= lines[line_pos]->length()) {
-            char_pos = lines[line_pos]->length();
+        if (char_pos >= lines[line_pos].length()) {
+            char_pos = lines[line_pos].length();
             driver->draw_char(char_pos + window_x + 4,
                 window_y + (window_height / 2) + 1,
                 0x70, ' ');
         } else {
             driver->draw_char(char_pos + window_x + 4,
                 window_y + (window_height / 2) + 1,
-                0x70, (*lines[line_pos])[char_pos]);
+                0x70, (lines[line_pos])[char_pos]);
         }
 
         driver->read_wait_key();
@@ -370,7 +361,7 @@ void TextWindow::Edit(void) {
                 break;
             case KeyRight: {
                 char_pos++;
-                if (char_pos > lines[line_pos]->length()) {
+                if (char_pos > lines[line_pos].length()) {
                     char_pos = 0;
                     new_line_pos = line_pos + 1;
                 }
@@ -383,30 +374,21 @@ void TextWindow::Edit(void) {
                 }
             } break;
             case KeyEnter: {
-                if (line_count < MAX_TEXT_WINDOW_LINES) {
-                    for (int i = line_count - 1; i >= line_pos + 1; i--) {
-                        lines[i + 1] = lines[i];
-                    }
-
-                    DynString *s = lines[line_pos];
-                    lines[line_pos + 1] = new DynString(char_pos >= s->length() ? "" : s->substr(char_pos, lines[line_pos]->length() - char_pos));
-                    lines[line_pos] = new DynString(s->substr(0, char_pos));
-                    delete s;
+                if (line_count() < MAX_TEXT_WINDOW_LINES) {
+                    std::string s = lines[line_pos];
+					lines.insert(lines.begin() + line_pos + 1, char_pos >= s.length() ? "" : s.substr(char_pos, lines[line_pos].length() - char_pos));
+                    lines[line_pos] = s.substr(0, char_pos);
 
                     new_line_pos = line_pos + 1;
                     char_pos = 0;
-                    line_count++;
                 }
             } break;
             case KeyBackspace: {
                 if (char_pos > 0) {
-                    DynString *s = lines[line_pos];
-                    lines[line_pos] = new DynString(
-                        s->substr(0, char_pos - 1) + s->substr(char_pos, s->length() - char_pos)
-                    );
-                    delete s;
+                    std::string s = lines[line_pos];
+                    lines[line_pos] = s.substr(0, char_pos - 1) + s.substr(char_pos, s.length() - char_pos);
                     char_pos--;
-                } else if (lines[line_pos]->length() == 0) {
+                } else if (lines[line_pos].length() == 0) {
                     Edit_DeleteCurrLine();
                     new_line_pos = line_pos - 1;
                     char_pos = window_width;
@@ -416,18 +398,13 @@ void TextWindow::Edit(void) {
                 insert_mode = !insert_mode;
                 break;
             case KeyDelete: {
-                if (lines[line_pos]->length() > 0) {
-                    DynString *s = lines[line_pos];
-                    if (char_pos < lines[line_pos]->length()) {
-                        lines[line_pos] = new DynString(
-                            s->substr(0, char_pos) + s->substr(char_pos + 1, s->length() - char_pos - 1)
-                        );
+                if (lines[line_pos].length() > 0) {
+                    std::string s = lines[line_pos];
+                    if (char_pos < lines[line_pos].length()) {
+                        lines[line_pos] = s.substr(0, char_pos) + s.substr(char_pos + 1, s.length() - char_pos - 1);
                     } else {
-                        lines[line_pos] = new DynString(
-                            s->substr(0, char_pos) 
-                        );
+                        lines[line_pos] = s.substr(0, char_pos);
                     }
-                    delete s;
                 }
             } break;
             case KeyCtrlY: {
@@ -436,32 +413,22 @@ void TextWindow::Edit(void) {
             default: {
                 if (driver->keyPressed >= 32 && driver->keyPressed < 127 && char_pos < (window_width - 7)) {
                     if (!insert_mode) {
-                        DynString *s = lines[line_pos];
-                        if (char_pos < s->length()) {
-                            lines[line_pos] = new DynString(
-                                s->substr(0, char_pos) + ((char) driver->keyPressed) + s->substr(char_pos, s->length() - char_pos)
-                            );
+                        std::string s = lines[line_pos];
+                        if (char_pos < s.length()) {
+                            lines[line_pos] = s.substr(0, char_pos) + ((char) driver->keyPressed) + s.substr(char_pos, s.length() - char_pos);
                         } else {
-                            lines[line_pos] = new DynString(
-                                s->substr(0, char_pos) + ((char) driver->keyPressed)
-                            );
+                            lines[line_pos] = s.substr(0, char_pos) + ((char) driver->keyPressed);
                         }
-                        delete s;
 
                         char_pos++;
                     } else {
-                        if (lines[line_pos]->length() < (window_width - 8)) {
-                            DynString *s = lines[line_pos];
-                            if ((char_pos + 1) < s->length()) {
-                                lines[line_pos] = new DynString(
-                                    s->substr(0, char_pos) + ((char) driver->keyPressed) + s->substr(char_pos + 1, s->length() - char_pos - 1)
-                                );
+                        if (lines[line_pos].length() < (window_width - 8)) {
+                      		std::string s = lines[line_pos];
+                            if ((char_pos + 1) < s.length()) {
+                                lines[line_pos] = s.substr(0, char_pos) + ((char) driver->keyPressed) + s.substr(char_pos + 1, s.length() - char_pos - 1);
                             } else {
-                                lines[line_pos] = new DynString(
-                                    s->substr(0, char_pos) + ((char) driver->keyPressed)
-                                );
+                                lines[line_pos] = s.substr(0, char_pos) + ((char) driver->keyPressed);
                             }
-                            delete s;
 
                             char_pos++;
                         }
@@ -471,7 +438,7 @@ void TextWindow::Edit(void) {
         }
 
         if (new_line_pos < 0) new_line_pos = 0;
-        else if (new_line_pos >= line_count) new_line_pos = line_count - 1;
+        else if (new_line_pos >= line_count()) new_line_pos = line_count() - 1;
 
         if (new_line_pos != line_pos) {
             line_pos = new_line_pos;
@@ -481,10 +448,9 @@ void TextWindow::Edit(void) {
         }
     } while (driver->keyPressed != KeyEscape);
 
-    if (lines[line_count - 1]->length() == 0) {
-        delete lines[line_count - 1];
-        line_count--;
-    }
+    if (lines[line_count() - 1].length() == 0) {
+        lines.erase(lines.begin() + line_count() - 1);
+	}
 }
 
 void TextWindow::OpenFile(const char *filename, bool errorIfMissing) {
@@ -540,27 +506,19 @@ void TextWindow::OpenFile(const char *filename, bool errorIfMissing) {
 
 void TextWindow::SaveFile(const char *filename) {
     IOStream *stream = filesystem->open_file(filename, true);
-    for (int i = 0; i < line_count; i++) {
-        stream->write_cstring((const char *) lines[i], false);
+    for (auto line : lines) {
+        stream->write_cstring(line.c_str(), false);
         stream->write8('\r');
         stream->write8('\n');
     }
     delete stream;
 }
 
-static int cmp_dynstring(const void *a, const void *b) {
-    const DynString *as = *((const DynString **) a);
-    const DynString *bs = *((const DynString **) b);
-    return strcmp(as->c_str(), bs->c_str());
-}
-
 void TextWindow::Sort(int16_t start, int16_t count) {
-#ifdef HAVE_QSORT
     if (start < 0) start = 0;
-    if ((start + count) >= line_count) count = line_count - start;
+    if ((start + count) >= line_count()) count = line_count() - start;
 
     if (count > 0) {
-        qsort(lines + start, count, sizeof(DynString*), cmp_dynstring);
+		std::sort(lines.begin(), lines.end());
     }
-#endif
 }

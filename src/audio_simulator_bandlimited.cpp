@@ -32,6 +32,7 @@ AudioSimulatorBandlimited<SampleFormat>::AudioSimulatorBandlimited(SoundQueue *q
     coeff_table[0] = 0;
     for (int i = 1; i < COEFF_MAX; i++) {
         coeff_table[i] = 32768 * sinf(0.5 * i * M_PI) / (i * M_PI);
+	printf("%d\n", coeff_table[i]);
     }
 }
 

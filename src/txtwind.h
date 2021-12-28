@@ -2,6 +2,8 @@
 #define __TXTWIND_H__
 
 #include <cstdint>
+#include <string>
+#include <vector>
 #include "filesystem.h"
 #include "driver.h"
 #include "utils/stringutils.h"
@@ -34,14 +36,17 @@ namespace ZZT {
     public:
         bool selectable;
         uint8_t color;
-        int16_t line_count;
         int16_t line_pos;
-        DynString **lines;
+        std::vector<std::string> lines;
         sstring<20> hyperlink;
         sstring<50> title;
         sstring<50> loaded_filename;
         VideoCopy *screenCopy;
         bool rejected;
+
+		int16_t line_count(void) const {
+			return lines.size();
+		}
 
         TextWindow(Driver *driver, FilesystemDriver *filesystem, int16_t w_x, int16_t w_y, int16_t w_width, int16_t w_height);
         virtual ~TextWindow();
@@ -51,7 +56,7 @@ namespace ZZT {
         virtual void DrawClose(void);
         virtual void Draw(bool withoutFormatting, bool viewingFile);
         void Append(const char *line);
-        void Append(const DynString line);
+        void Append(const std::string line);
         void Select(bool hyperlinkAsSelect, bool viewingFile);
         void Edit(void);
         void OpenFile(const char *filename, bool errorIfMissing);

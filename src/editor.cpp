@@ -362,7 +362,7 @@ void Editor::RemoveTile(int16_t x, int16_t y) {
     game->BoardDrawTile(x, y);
 }
 
-static const char *boolToString(bool value) {
+static const std::string boolToString(bool value) {
     return value ? "Yes" : "No ";
 }
 
@@ -379,23 +379,23 @@ void Editor::EditBoardInfo(void) {
         window->selectable = true;
         StrCopy(window->title, "Board Information");
 
-        window->Append(DynString("         Title: ") + game->board.name);
+        window->Append("         Title: " + std::string(game->board.name));
         StrFromInt(num_str, game->board.info.max_shots);
-        window->Append(DynString("      Can fire: ") + num_str + " shots.");
-        window->Append(DynString(" Board is dark: ") + boolToString(game->board.info.is_dark));
+        window->Append("      Can fire: " + std::string(num_str) + " shots.");
+        window->Append(" Board is dark: " + boolToString(game->board.info.is_dark));
         
         for (int i = 0; i < 4; i++) {
             GetBoardName(game->board.info.neighbor_boards[i], true, num_str, sizeof(num_str));
-            window->Append(DynString("       ") + NeighborBoardStrs[i] + ": " + num_str);
+            window->Append("       " + std::string(NeighborBoardStrs[i]) + ": " + std::string(num_str));
         }
 
-        window->Append(DynString("Re-enter when zapped: ") + boolToString(game->board.info.reenter_when_zapped));
+        window->Append("Re-enter when zapped: " + boolToString(game->board.info.reenter_when_zapped));
         StrFromInt(num_str, game->board.info.time_limit_seconds);
-        window->Append(DynString("  Time limit, 0=None: ") + num_str + " sec.");
+        window->Append("  Time limit, 0=None: " +  std::string(num_str) + " sec.");
         window->Append("          Quit!");
 
         window->Select(false, false);
-        was_modified |= (game->driver->keyPressed == KeyEnter && window->line_pos != (window->line_count - 1));
+        was_modified |= (game->driver->keyPressed == KeyEnter && window->line_pos != (window->line_count() - 1));
         if (game->driver->keyPressed == KeyEnter) {
             switch (window->line_pos) {
                 case 0: { // title
@@ -490,8 +490,8 @@ void Editor::EditStatText(int16_t stat_id, const char *prompt) {
     window->Edit();
 
     int16_t len = 0;
-    for (int i = 0; i < window->line_count; i++) {
-        len += window->lines[i]->length() + 1;
+    for (int i = 0; i < window->line_count(); i++) {
+        len += window->lines[i].length() + 1;
     }
     stat.data.alloc_data(len);
 
@@ -503,9 +503,9 @@ void Editor::EditStatText(int16_t stat_id, const char *prompt) {
     }
 
     char *data_ptr = stat.data.data;
-    for (int i = 0; i < window->line_count; i++) {
-        int len = window->lines[i]->length();
-        memcpy(data_ptr, window->lines[i]->c_str(), len);
+    for (int i = 0; i < window->line_count(); i++) {
+        int len = window->lines[i].length();
+        memcpy(data_ptr, window->lines[i].c_str(), len);
         data_ptr[len] = '\r';
         data_ptr += len + 1;
     }

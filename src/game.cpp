@@ -927,7 +927,7 @@ bool Game::GameWorldLoad(const char *extension) {
 }
 
 void ZZT::CopyStatDataToTextWindow(const Stat &stat, TextWindow &window) {
-    DynString s = "";
+	std::string s = "";
     
     window.Clear();
 

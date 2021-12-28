@@ -1017,7 +1017,7 @@ ReadCommand:
 
 	if (state.textWindow == nullptr) {
 		// implies 0 lines
-	} else if (state.textWindow->line_count > engineDefinition.messageLines) {
+	} else if (state.textWindow->line_count() > engineDefinition.messageLines) {
 		char name[256];
 		StrCopy(name, default_name);
 
@@ -1045,12 +1045,12 @@ ReadCommand:
 		}
 
 		delete state.textWindow;
-	} else if (state.textWindow->line_count >= 2) {
-		DisplayMessage(200, state.textWindow->lines[0]->c_str(), state.textWindow->lines[1]->c_str());
+	} else if (state.textWindow->line_count() >= 2) {
+		DisplayMessage(200, state.textWindow->lines[0].c_str(), state.textWindow->lines[1].c_str());
 		state.textWindow->Clear();
 		delete state.textWindow;
-	} else if (state.textWindow->line_count >= 1) {
-		DisplayMessage(200, state.textWindow->lines[0]->c_str());
+	} else if (state.textWindow->line_count() >= 1) {
+		DisplayMessage(200, state.textWindow->lines[0].c_str());
 		state.textWindow->Clear();
 		delete state.textWindow;
 	}
