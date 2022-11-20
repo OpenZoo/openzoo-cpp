@@ -1,0 +1,1 @@
+option('driver', type: 'combo', choices: ['null', 'msdos', 'sdl2'], value: 'sdl2')
