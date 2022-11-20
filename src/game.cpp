@@ -1053,36 +1053,83 @@ void Game::MoveStat(int16_t stat_id, int16_t newX, int16_t newY, bool scrollOffs
 
     if (stat_id == 0 && scrollOffset) {
 		if (engineDefinition.is<QUIRK_SUPER_ZZT_COMPAT_MISC>()) {
-			bool smallScroll = false;
-			bool largeScroll = false;
-			int16_t deltaX = stat.x - oldX;
-			int16_t deltaY = stat.y - oldY;
-			int16_t diffX = (stat.x - viewport.cx_offset) - 1;
-			int16_t diffY = (stat.y - viewport.cy_offset) - 1;
-			int16_t vCenterX = viewport.width >> 1;
-			int16_t vCenterY = viewport.height >> 1;
+			bool recalcRequired = false;
+			int16_t oldOX = viewport.cx_offset;
+			int16_t oldOY = viewport.cy_offset;
+			int16_t newOX = oldOX;
+			int16_t newOY = oldOY;
+			int16_t oxMin = 0;
+			int16_t oxMax = board.width() - viewport.width - 1;
+			int16_t oyMin = 0;
+			int16_t oyMax = board.height() - viewport.height - 1;
 
-			if (diffX <= (vCenterX - 4)) { smallScroll |= (deltaX == -1 && deltaY == 0); largeScroll = true; }
-			else if (diffX >= (vCenterX + 2)) { smallScroll |= (deltaX == 1 && deltaY == 0); largeScroll = true; }
-			if (diffY <= (vCenterY - 3)) { smallScroll |= (deltaY == -1 && deltaX == 0); largeScroll = true; }
-			else if (diffY >= (vCenterY + 4)) { smallScroll |= (deltaY == 1 && deltaX == 0); largeScroll = true; }
-
-			if (smallScroll) {
-				int16_t old_cx_offset = viewport.cx_offset;
-				int16_t old_cy_offset = viewport.cy_offset;
-				if (viewport.set(board, viewport.cx_offset + deltaX, viewport.cy_offset + deltaY)) {
-					int16_t new_cx_offset = viewport.cx_offset;
-					int16_t new_cy_offset = viewport.cy_offset;
-					viewport.cx_offset = old_cx_offset;
-					viewport.cy_offset = old_cy_offset;
-					BoardScrollViewport(new_cx_offset, new_cy_offset);
-					scrolled = true;
+			if (((newX - newOX) < ((viewport.width >> 1) - 3)) && (newOX > oxMin)) {
+				if ((oldX  - 1) == newX) {
+					newOX--;
+				} else {
+					recalcRequired = true;
 				}
-			} else if (largeScroll) {
-				scrolled = BoardPointCameraAt(stat.x, stat.y);
+			}
+
+			if (((newX - newOX) >= ((viewport.width >> 1) + 2)) && (newOX < oxMax)) {
+				if ((oldX + 1) == newX) {
+					newOX++;
+				} else {
+					recalcRequired = true;
+				}
+			}
+
+			if (((newY - newOY) < ((viewport.height >> 1) - 2)) && (newOY > oyMin)) {
+				if ((oldY - 1) == newY) {
+					newOY--;
+				} else {
+					recalcRequired = true;
+				}
+			}
+
+			if (((newY - newOY) >= ((viewport.height >> 1) + 4)) && (newOY < oyMax)) {
+				if ((oldY + 1) == newY) {
+					newOY++;
+				} else {
+					recalcRequired = true;
+				}
+			}
+
+			if (recalcRequired) {
+				newOX = newX - (viewport.width >> 1);
+				newOY = newY - (viewport.height >> 1);
+			}
+
+			if (newOX < oxMin) {
+				newOX = oxMin;
+			} else if (newOX > oxMax) {
+				newOX = oxMax;
+			} else if (newOY < oyMin) {
+				newOY = oyMin;
+			} else if (newOY > oyMax) {
+				newOY = oyMax;
+			}
+
+			if ((oldOX != newOX) || (oldOY != newOY)) {
+				int16_t deltaX = newOX - oldOX;
+				int16_t deltaY = newOY - oldOY;
+				if ((Abs(deltaX) == 1 && deltaY == 0) || (Abs(deltaY) == 1 && deltaX == 0)) {
+					int16_t old_cx_offset = viewport.cx_offset;
+					int16_t old_cy_offset = viewport.cy_offset;
+					if (viewport.set(board, newOX, newOY)) {
+						int16_t new_cx_offset = viewport.cx_offset;
+						int16_t new_cy_offset = viewport.cy_offset;
+						viewport.cx_offset = old_cx_offset;
+						viewport.cy_offset = old_cy_offset;
+						BoardScrollViewport(new_cx_offset, new_cy_offset);
+						scrolled = true;
+					}
+				} else {
+					scrolled = BoardPointCameraAt(stat.x, stat.y);
+				}
 			}
 		} else {
-	        scrolled = BoardPointCameraAt(stat.x, stat.y);		
+	        	scrolled = BoardPointCameraAt(stat.x, stat.y);
 		}
     }
 

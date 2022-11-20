@@ -657,7 +657,7 @@ OopCommandResult ZZT::OopCommandGiveTake(OopState &state) {
 				state.game.oopValue = -state.game.oopValue;
 			}
 
-			if (((*counterPtr) + state.game.oopValue) >= 0) {
+			if (((int16_t) ((*counterPtr) + state.game.oopValue)) >= 0) {
 				*counterPtr += state.game.oopValue;
 			} else {
 				return OOP_COMMAND_NEXT;
